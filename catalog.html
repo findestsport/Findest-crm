@@ -803,7 +803,7 @@ function openTracking(orderId,initialData){
       .subscribe();
   }catch(e){console.warn('[Findest] realtime subscribe:',e.message);}
   // Also fetch fresh (in case status changed while modal was closed)
-  SB.from('orders').select('id,no_order,status,total_nilai,pembayaran,created_at,tanggal').eq('id',orderId).maybeSingle().then(({data})=>{
+  SB.from('orders').select('id,no_order,status,total_nilai,pembayaran,created_at').eq('id',orderId).maybeSingle().then(({data})=>{
     if(data)renderTracker({...initial,...data});
   });
 }
@@ -814,7 +814,7 @@ async function openHistory(){
   c.innerHTML=`<div class="cart-header">Riwayat Pesanan</div><div class="cart-sub">${currentCustomer.nama}</div><div class="oh-empty"><div class="spinner" style="margin:0 auto 12px;width:24px;height:24px;border:2px solid var(--surface2);border-top-color:var(--text);border-radius:50%;animation:spin .8s linear infinite"></div>Memuat...</div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
   openOverlay('historyModal');
   try{
-    const{data,error}=await SB.from('orders').select('id,no_order,customer_nama,produk,total_nilai,status,pembayaran,tanggal,created_at,catatan').eq('customer_id',currentCustomer.id).order('created_at',{ascending:false}).limit(20);
+    const{data,error}=await SB.from('orders').select('id,no_order,customer_nama,produk,total_nilai,status,pembayaran,created_at,catatan').eq('customer_id',currentCustomer.id).order('created_at',{ascending:false}).limit(20);
     if(error)throw error;
     renderHistory(data||[]);
   }catch(e){
