@@ -149,6 +149,32 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .pcard-add.added{background:var(--teal);border-color:var(--teal);color:var(--white)}
 .pcard-add:disabled{background:var(--red-light);border-color:rgba(220,38,38,.12);color:var(--red);cursor:not-allowed;transform:none}
 
+/* ══════ ORDER TRACKING (GoFood-style) ══════ */
+.tr-header{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.5px;margin-bottom:2px}
+.tr-order-no{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:18px;letter-spacing:.3px}
+.tr-steps{display:flex;flex-direction:column;gap:0;padding:8px 0 4px}
+.tr-step{display:flex;gap:14px;position:relative;padding:0 0 22px}
+.tr-step:last-child{padding-bottom:0}
+.tr-step::before{content:'';position:absolute;left:15px;top:32px;bottom:0;width:2px;background:var(--border);transition:background .4s}
+.tr-step:last-child::before{display:none}
+.tr-step.done::before{background:var(--teal)}
+.tr-step-dot{width:32px;height:32px;border-radius:50%;background:var(--bg);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .4s;font-size:14px}
+.tr-step.done .tr-step-dot{background:var(--teal);border-color:var(--teal);color:var(--white)}
+.tr-step.active .tr-step-dot{background:var(--white);border-color:var(--teal);color:var(--teal);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(13,148,136,.4)}50%{box-shadow:0 0 0 10px rgba(13,148,136,0)}}
+.tr-step-body{flex:1;padding-top:2px}
+.tr-step-label{font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.2px}
+.tr-step.done .tr-step-label,.tr-step.active .tr-step-label{color:var(--text)}
+.tr-step:not(.done):not(.active) .tr-step-label{color:var(--subtle)}
+.tr-step-time{font-size:11px;color:var(--subtle);font-weight:500;margin-top:2px}
+.tr-cancel{background:var(--red-light);color:var(--red);border:1px solid rgba(220,38,38,.15);padding:12px 16px;border-radius:var(--radius);font-size:13px;font-weight:600;margin-top:14px;text-align:center}
+.tr-total-row{display:flex;justify-content:space-between;padding:16px 0 0;border-top:1px solid var(--border);margin-top:14px}
+.tr-total-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.tr-total-val{font-size:18px;font-weight:800;color:var(--text);letter-spacing:-.3px}
+.tr-wa-btn{width:100%;padding:14px;background:#25D366;color:var(--white);border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);border-radius:var(--radius);margin-top:16px;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s}
+.tr-wa-btn:hover{opacity:.9}
+.tr-wa-btn svg{width:18px;height:18px;fill:var(--white)}
+
 /* ══════ ORDER HISTORY LIST ══════ */
 .oh-empty{text-align:center;padding:32px 20px;color:var(--muted);font-size:13px}
 .oh-item{padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:opacity .15s}
@@ -230,6 +256,8 @@ textarea.form-input{resize:none}
 
 /* ══════ PAYMENT ══════ */
 .pay-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.pay-grid.with-termin{grid-template-columns:1fr 1fr 1fr}
+@media(max-width:480px){.pay-grid.with-termin{grid-template-columns:1fr 1fr;gap:8px}.pay-grid.with-termin .pay-option:nth-child(3){grid-column:1/-1}}
 .pay-option{border:1px solid var(--border2);border-radius:var(--radius);padding:16px;cursor:pointer;text-align:center;background:var(--white);transition:all .2s}
 .pay-option:hover{border-color:var(--border3);background:var(--bg)}
 .pay-option.selected{border-color:var(--teal);background:var(--teal-light);box-shadow:0 0 0 1px var(--teal)}
@@ -395,6 +423,9 @@ textarea.form-input{resize:none}
 <div class="overlay" id="historyModal" onclick="bgClose(event,'historyModal')">
   <div class="sheet"><div class="sheet-handle"></div><div class="sheet-body" id="historyContent"></div></div>
 </div>
+<div class="overlay" id="trackModal" onclick="bgClose(event,'trackModal')">
+  <div class="sheet"><div class="sheet-handle"></div><div class="sheet-body" id="trackContent"></div></div>
+</div>
 <div class="video-ov" id="videoOv">
   <button class="video-close" onclick="closeVideo()">&#10005;</button>
   <iframe id="videoFrame" allow="autoplay"></iframe>
@@ -406,8 +437,30 @@ const SB=supabase.createClient('https://wuejoxgbtvmlrriwlofk.supabase.co','eyJhb
 let products=[],cart={},activeCat='all',searchQ='',modalQty=1,selPayment='';
 let salesWA='',salesName='Findest Sport',bankNama='',bankRekening='',bankAtasNama='',qrisUrl='';
 let currentCustomer=null; // set jika ?c=<id> di URL
+let trackChannel=null; // Supabase Realtime subscription
 const fmt=n=>'Rp '+Math.round(n||0).toLocaleString('id-ID');
 const EM={ON:'🏆',BSN:'💪',ISOPURE:'❄️'};
+
+// Termin 30-day payment: hanya untuk customer B2B yg authed
+const TERMIN_ALLOWED_TIPE=['Fitness Plus','Gym Partner','Distributor','Apotek','Gym Lain','F&B','Reseller'];
+const isTerminEligible=()=>currentCustomer&&currentCustomer.tipe&&TERMIN_ALLOWED_TIPE.includes(currentCustomer.tipe);
+
+// Status tracking steps (order matters — index = progress)
+const STATUS_STEPS=[
+  {key:'Pending',label:'Order Diterima',icon:'📥',aliases:['Pending','Baru']},
+  {key:'Diterima',label:'Dikonfirmasi Sales',icon:'✅',aliases:['Diterima','Konfirmasi','Proses']},
+  {key:'Disiapkan',label:'Sedang Disiapkan',icon:'📦',aliases:['Disiapkan','Prep']},
+  {key:'Dikirim',label:'Dalam Pengiriman',icon:'🚚',aliases:['Dikirim','Antar','Otw']},
+  {key:'Selesai',label:'Sudah Sampai',icon:'🎉',aliases:['Selesai','Done','Sampai','Diterima Customer']}
+];
+const stepIndex=(status)=>{
+  if(!status)return 0;
+  const s=status.toLowerCase().trim();
+  for(let i=STATUS_STEPS.length-1;i>=0;i--){
+    if(STATUS_STEPS[i].aliases.some(a=>a.toLowerCase()===s))return i;
+  }
+  return 0;
+};
 
 // ══════ URL param: customer_id from QR scan ══════
 function getCustomerIdFromUrl(){
@@ -534,7 +587,10 @@ function updateFab(){
 }
 
 function openOverlay(id){document.getElementById(id).classList.add('open');}
-function closeOverlay(id){document.getElementById(id).classList.remove('open');}
+function closeOverlay(id){
+  document.getElementById(id).classList.remove('open');
+  if(id==='trackModal'&&trackChannel){SB.removeChannel(trackChannel);trackChannel=null;}
+}
 function bgClose(e,id){if(e.target.classList.contains('overlay'))closeOverlay(id);}
 
 function openProd(id){
@@ -582,9 +638,10 @@ function openCart(){
     <input class="form-input" id="buyerAddress" placeholder="Alamat pengiriman (opsional)" type="text" value="${currentCustomer&&currentCustomer.alamat?currentCustomer.alamat.replace(/"/g,'&quot;'):''}">
     <textarea class="form-input" id="buyerNote" placeholder="Catatan: flavor, ukuran, dll..." rows="2"></textarea>
     <div class="form-label">Metode Pembayaran</div>
-    <div class="pay-grid">
+    <div class="pay-grid${isTerminEligible()?' with-termin':''}">
       <div class="pay-option" id="pc-qris" onclick="selPay('QRIS')"><div class="pay-option-icon">💳</div><div class="pay-option-name">QRIS</div><div class="pay-option-desc">Scan & Pay</div></div>
       <div class="pay-option" id="pc-transfer" onclick="selPay('Transfer Bank')"><div class="pay-option-icon">🏦</div><div class="pay-option-name">Transfer</div><div class="pay-option-desc">Via rekening</div></div>
+      ${isTerminEligible()?`<div class="pay-option" id="pc-termin" onclick="selPay('Termin 30 Hari')"><div class="pay-option-icon">📆</div><div class="pay-option-name">Termin 30 Hari</div><div class="pay-option-desc">Bayar nanti</div></div>`:''}
     </div>
     <div class="pay-detail" id="info-qris">
       <div class="pay-detail-label">QRIS</div>
@@ -593,6 +650,12 @@ function openCart(){
     <div class="pay-detail" id="info-transfer">
       <div class="pay-detail-label">Info Transfer</div>
       ${bankNama||bankRekening?`<div class="pay-detail-row"><span>Bank</span><b>${bankNama}</b></div><div class="pay-detail-row"><span>Rekening</span><b>${bankRekening}</b></div><div class="pay-detail-row"><span>Atas Nama</span><b>${bankAtasNama}</b></div>`:`<div style="font-size:12px;color:var(--muted)">Info rekening dikonfirmasi via WhatsApp</div>`}
+    </div>
+    <div class="pay-detail" id="info-termin">
+      <div class="pay-detail-label">Termin 30 Hari</div>
+      <div class="pay-detail-row"><span>Jatuh Tempo</span><b id="termin-due-date">—</b></div>
+      <div class="pay-detail-row"><span>Kredit Line</span><b>${currentCustomer?currentCustomer.tipe||'B2B':''}</b></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5">Faktur elektronik dikirim via email/WA. Bayar dalam 30 hari sejak barang diterima. Late fee 1%/minggu setelah jatuh tempo.</div>
     </div>
     <button class="checkout-btn" onclick="sendOrder()">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
@@ -607,9 +670,20 @@ function openCart(){
 function selPay(method){
   selPayment=method;
   document.querySelectorAll('.pay-option').forEach(c=>c.classList.remove('selected'));
-  document.getElementById(method==='QRIS'?'pc-qris':'pc-transfer').classList.add('selected');
+  const idMap={'QRIS':'pc-qris','Transfer Bank':'pc-transfer','Termin 30 Hari':'pc-termin'};
+  const el=document.getElementById(idMap[method]);
+  if(el)el.classList.add('selected');
   document.getElementById('info-qris').classList.toggle('show',method==='QRIS');
   document.getElementById('info-transfer').classList.toggle('show',method==='Transfer Bank');
+  const infoTermin=document.getElementById('info-termin');
+  if(infoTermin){
+    infoTermin.classList.toggle('show',method==='Termin 30 Hari');
+    if(method==='Termin 30 Hari'){
+      const due=new Date();due.setDate(due.getDate()+30);
+      const dueLabel=due.toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
+      document.getElementById('termin-due-date').textContent=dueLabel;
+    }
+  }
 }
 
 async function sendOrder(){
@@ -633,11 +707,21 @@ async function sendOrder(){
     catch(e){alert(msg);}
     return;
   }
+  let insertedOrder=null;
   try{
     const produkText=items.map(c=>`${c.product.brand} ${c.product.nama} x${c.qty}`).join(', ');
+    const produkJson=items.map(c=>({
+      product_id:c.product.id,
+      nama:c.product.nama,
+      brand:c.product.brand,
+      qty:c.qty,
+      harga:c.product.harga||0,
+      subtotal:(c.product.harga||0)*c.qty
+    }));
     const orderRow={
       customer_nama:name,
       produk:produkText,
+      produk_json:produkJson,
       total_nilai:total,
       status:'Pending',
       pembayaran:selPayment,
@@ -646,10 +730,82 @@ async function sendOrder(){
       catatan:`WA: ${phone}${gym?' | Gym: '+gym:''}${address?' | Alamat: '+address:''}${selPayment?' | Bayar: '+selPayment:''}${note?' | Note: '+note:''}${currentCustomer?' | customer_id:'+currentCustomer.id:''}`
     };
     if(currentCustomer)orderRow.customer_id=currentCustomer.id;
-    await SB.from('orders').insert([orderRow]);
+    if(selPayment==='Termin 30 Hari'){
+      orderRow.credit_days=30;
+      const due=new Date();due.setDate(due.getDate()+30);
+      orderRow.due_date=due.toISOString().slice(0,10);
+    }
+    const{data,error}=await SB.from('orders').insert([orderRow]).select('id,no_order,status,total_nilai').single();
+    if(error)throw error;
+    insertedOrder=data;
   }catch(e){console.log('Order save:',e);}
   cart={};updateFab();closeOverlay('cartModal');render();
   showToast('Order berhasil dikirim!');
+  // Open tracking modal kalo order sukses saved
+  if(insertedOrder&&insertedOrder.id){
+    setTimeout(()=>openTracking(insertedOrder.id,{status:insertedOrder.status,no_order:insertedOrder.no_order,total_nilai:insertedOrder.total_nilai,pembayaran:selPayment}),400);
+  }
+}
+
+// ══════ ORDER TRACKING (GoFood-style + Realtime) ══════
+function renderTracker(order){
+  const c=document.getElementById('trackContent');
+  if(!c)return;
+  const st=(order.status||'Pending');
+  const cancelled=['Batal','Dibatalkan','Cancel'].some(x=>st.toLowerCase().includes(x.toLowerCase()));
+  const activeIdx=stepIndex(st);
+  const stepsHtml=STATUS_STEPS.map((s,i)=>{
+    const done=i<activeIdx||i===activeIdx&&i===STATUS_STEPS.length-1;
+    const active=i===activeIdx&&i!==STATUS_STEPS.length-1;
+    const cls=done?'done':active?'active':'';
+    const time=(done||active)&&order._times&&order._times[s.key]?order._times[s.key]:'';
+    return `<div class="tr-step ${cls}">
+      <div class="tr-step-dot">${done?'✓':s.icon}</div>
+      <div class="tr-step-body">
+        <div class="tr-step-label">${s.label}</div>
+        ${time?`<div class="tr-step-time">${time}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  const waMsg=encodeURIComponent(`Halo, mau cek status order ${order.no_order||'#'+order.id}. Bisa dibantu?`);
+  const waLink=salesWA?`https://wa.me/${salesWA}?text=${waMsg}`:'#';
+  c.innerHTML=`
+    <div class="tr-header">Lacak Pesanan</div>
+    <div class="tr-order-no">${order.no_order||'ORDER #'+order.id} · ${order.pembayaran||'—'}</div>
+    ${cancelled?`<div class="tr-cancel">⚠️ Pesanan ini dibatalkan</div>`:`<div class="tr-steps">${stepsHtml}</div>`}
+    <div class="tr-total-row">
+      <span class="tr-total-label">Total</span>
+      <span class="tr-total-val">${fmt(order.total_nilai)}</span>
+    </div>
+    <button class="tr-wa-btn" onclick="window.open('${waLink}','_blank')">
+      <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+      Chat Sales via WhatsApp
+    </button>
+  `;
+}
+
+function openTracking(orderId,initialData){
+  if(!orderId)return;
+  const initial=initialData||{status:'Pending',no_order:'ORDER #'+orderId,total_nilai:0,pembayaran:''};
+  initial.id=orderId;
+  renderTracker(initial);
+  openOverlay('trackModal');
+  // Cleanup existing subscription
+  if(trackChannel){SB.removeChannel(trackChannel);trackChannel=null;}
+  // Subscribe to realtime updates for this order
+  try{
+    trackChannel=SB.channel(`order-${orderId}`)
+      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'orders',filter:`id=eq.${orderId}`},payload=>{
+        const merged={...initial,...payload.new};
+        renderTracker(merged);
+        showToast('Status updated: '+(payload.new.status||'—'));
+      })
+      .subscribe();
+  }catch(e){console.warn('[Findest] realtime subscribe:',e.message);}
+  // Also fetch fresh (in case status changed while modal was closed)
+  SB.from('orders').select('id,no_order,status,total_nilai,pembayaran,created_at,tanggal').eq('id',orderId).maybeSingle().then(({data})=>{
+    if(data)renderTracker({...initial,...data});
+  });
 }
 
 async function openHistory(){
@@ -670,10 +826,16 @@ function renderHistory(rows){
   const c=document.getElementById('historyContent');
   if(!rows.length){c.innerHTML=`<div class="cart-header">Riwayat Pesanan</div><div class="cart-sub">${currentCustomer.nama}</div><div class="oh-empty">Belum ada order — mulai belanja sekarang!</div>`;return;}
   const fmtDate=d=>{if(!d)return'—';const dt=new Date(d);return dt.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});};
-  c.innerHTML=`<div class="cart-header">Riwayat Pesanan</div><div class="cart-sub">${rows.length} order &middot; ${currentCustomer.nama}</div>${rows.map(r=>{
+  c.innerHTML=`<div class="cart-header">Riwayat Pesanan</div><div class="cart-sub">${rows.length} order &middot; klik untuk lacak status</div>${rows.map(r=>{
     const st=(r.status||'Pending').toLowerCase();
-    return`<div class="oh-item"><div class="oh-top"><div class="oh-no">${r.no_order||'#'+r.id}</div><div class="oh-date">${fmtDate(r.tanggal||r.created_at)}</div></div><div class="oh-produk">${(r.produk||'—').replace(/</g,'&lt;')}</div><div class="oh-bottom"><div class="oh-total">${fmt(r.total_nilai)}</div><div class="oh-status ${st}">${r.status||'Pending'}</div></div></div>`;
+    const stripped=st.replace(/[^a-z]/g,'');
+    return`<div class="oh-item" onclick="openTrackingFromHistory(${r.id},${JSON.stringify({no_order:r.no_order,status:r.status,total_nilai:r.total_nilai,pembayaran:r.pembayaran}).replace(/"/g,'&quot;')})"><div class="oh-top"><div class="oh-no">${r.no_order||'#'+r.id}</div><div class="oh-date">${fmtDate(r.tanggal||r.created_at)}</div></div><div class="oh-produk">${(r.produk||'—').replace(/</g,'&lt;')}</div><div class="oh-bottom"><div class="oh-total">${fmt(r.total_nilai)}</div><div class="oh-status ${stripped}">${r.status||'Pending'}</div></div></div>`;
   }).join('')}`;
+}
+
+function openTrackingFromHistory(id,meta){
+  closeOverlay('historyModal');
+  setTimeout(()=>openTracking(id,meta),350);
 }
 
 function openVideo(url){let e=url;const yt=url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);if(yt)e='https://www.youtube.com/embed/'+yt[1]+'?autoplay=1';document.getElementById('videoFrame').src=e;document.getElementById('videoOv').classList.add('open');}
