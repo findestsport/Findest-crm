@@ -827,6 +827,22 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
     </div>
   </div>
 
+  <!-- ED ALERT KONSOLIDASI (FP + Konsinyasi) -->
+  <div class="card" style="margin-top:16px;border-left:4px solid var(--red)">
+    <div class="card-h" style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div class="card-title">⚠️ ED Alert Konsolidasi</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">FP Outlets + Konsinyasi Partners · <b id="ed-alert-badge-total" style="color:var(--red)">-</b></div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="loadEDAlertConsolidated()">↻ Refresh</button>
+    </div>
+    <div class="card-b">
+      <div id="ed-consolidated">
+        <div class="empty" style="padding:20px"><div class="empty-icon">⏳</div><div class="empty-txt" style="font-size:11px">Loading ED data...</div></div>
+      </div>
+    </div>
+  </div>
+
   <!-- HISTORY BULANAN (Snapshots) -->
   <div class="card" style="margin-top:16px" id="history-snapshot-card">
     <div class="card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
@@ -1701,6 +1717,77 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
 </div>
 
 <!-- EDIT KARYAWAN MODAL -->
+<!-- OUTLET STOK Drawer -->
+<div class="mo" id="mo-outlet-stok">
+  <div class="mo-c" style="max-width:900px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column">
+    <div class="mo-h" style="flex-shrink:0"><div class="mo-title" id="os-title">📦 Kelola Stok Outlet</div><button class="mo-x" onclick="closeMo('mo-outlet-stok')">×</button></div>
+    <div class="mo-b" style="overflow-y:auto;flex:1">
+      <!-- Summary bar -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px">
+        <div class="kpi" style="--kc:var(--teal);border-left:3px solid var(--teal);padding:12px"><div class="kpi-label">Total Unit</div><div class="kpi-val c-teal" id="os-total-unit" style="font-size:22px">0</div></div>
+        <div class="kpi" style="--kc:var(--gold);border-left:3px solid var(--gold);padding:12px"><div class="kpi-label">Nilai Aset</div><div class="kpi-val c-gold" id="os-nilai-aset" style="font-size:20px">Rp 0</div></div>
+        <div class="kpi" style="--kc:var(--red);border-left:3px solid var(--red);padding:12px"><div class="kpi-label">🚨 Expired</div><div class="kpi-val c-red" id="os-expired" style="font-size:22px">0</div></div>
+        <div class="kpi" style="--kc:var(--gold);border-left:3px solid var(--gold);padding:12px"><div class="kpi-label">⏰ Near ED (60d)</div><div class="kpi-val c-gold" id="os-near-ed" style="font-size:22px">0</div></div>
+      </div>
+
+      <!-- Add form -->
+      <div class="card" style="background:var(--surface-1);margin-bottom:14px">
+        <div class="card-h"><div class="card-title" style="font-size:14px">➕ Tambah Stok / Update Batch</div></div>
+        <div class="card-b">
+          <div class="frow">
+            <div class="fg">
+              <label class="fl">Produk</label>
+              <select class="fi" id="os-product-id">
+                <option value="">Pilih produk...</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label class="fl">Qty</label>
+              <input class="fi" type="number" id="os-qty" placeholder="0" min="0"/>
+            </div>
+          </div>
+          <div class="frow">
+            <div class="fg">
+              <label class="fl">⏰ Exp Date (ED)</label>
+              <input class="fi" type="date" id="os-ed-date"/>
+            </div>
+            <div class="fg">
+              <label class="fl">🏷 Batch No (opsional)</label>
+              <input class="fi" type="text" id="os-batch-no" placeholder="BATCH-2026-001"/>
+            </div>
+          </div>
+          <div class="frow">
+            <div class="fg" style="flex:1">
+              <label class="fl">Catatan (opsional)</label>
+              <input class="fi" type="text" id="os-catatan" placeholder="misal: dari delivery DO-XXX"/>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="saveOutletStok()">💾 Simpan Stok</button>
+        </div>
+      </div>
+
+      <!-- Stok list -->
+      <div class="tbl-wrap">
+        <table style="width:100%;font-size:13px">
+          <thead>
+            <tr>
+              <th style="text-align:left">Produk</th>
+              <th style="text-align:left">Batch</th>
+              <th style="text-align:right">Qty</th>
+              <th style="text-align:center">ED Status</th>
+              <th style="text-align:right">Nilai</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="os-stok-list">
+            <tr><td colspan="6"><div class="empty">Loading...</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- CUSTOMER QR CODE Modal -->
 <div class="mo" id="mo-cust-qr">
   <div class="mo-c" style="max-width:440px">
@@ -3550,7 +3637,7 @@ function renderOut() {
     const edClass = (o.ed_alert||0)>20?'c-red':(o.ed_alert||0)>0?'c-gold':'c-green';
     const edIcon = (o.ed_alert||0)>0?'⚠️':'✅';
     const stClass = o.status==='Aman'?'s-ok':o.status==='Urgent'?'s-bad':'s-warn';
-    const editBtns = canEdit ? '<div style="display:flex;gap:3px"><button class="btn btn-sm btn-ghost" onclick="editOutlet('+o.id+')">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteOutlet('+o.id+',\''+o.nama+'\')">🗑️</button></div>' : '-';
+    const editBtns = canEdit ? '<div style="display:flex;gap:3px"><button class="btn btn-sm btn-ghost" onclick="openOutletStok('+o.id+')" title="Kelola Stok">📦</button><button class="btn btn-sm btn-ghost" onclick="editOutlet('+o.id+')" title="Edit">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteOutlet('+o.id+',\''+o.nama+'\')" title="Hapus">🗑️</button></div>' : '<button class="btn btn-sm btn-ghost" onclick="openOutletStok('+o.id+')" title="Lihat Stok">📦</button>';
     const picDisplay = o.pic || '<span style="color:var(--text-dim);font-size:11px">–</span>';
     const hpDisplay = o.no_hp ? '<a href="https://wa.me/'+o.no_hp.replace(/\D/g,'')+'" target="_blank" style="color:var(--teal);font-size:11px">'+o.no_hp+'</a>' : '<span style="color:var(--text-dim);font-size:11px">–</span>';
     return '<tr '+dragAttr+'><td class="c-muted mono drag-handle" title="Drag to reorder">⠿ '+(i+1)+'</td><td class="fw6">'+o.nama+'<br><span style="font-size:10px;color:var(--text-muted)">'+(o.alamat||'')+'</span></td><td><span class="badge '+(badgeMap[o.tipe]||'b-gym')+'">'+o.tipe+'</span></td><td style="font-size:12px">'+picDisplay+'</td><td>'+hpDisplay+'</td><td class="mono c-teal">'+fmt(o.nilai_aset||o.total_aset||0)+'</td><td class="mono">'+(o.total_unit||0)+'</td><td class="mono fw6 '+edClass+'">'+(o.ed_alert||0)+' '+edIcon+'</td><td><span class="s '+stClass+'">'+(o.status||'Aktif')+'</span></td><td>'+editBtns+'</td></tr>';
@@ -7558,6 +7645,182 @@ async function logActivity(action, tabel, data) {
     }]);
   } catch(e) { /* silent fail */ }
 }
+
+// ════════════════════════════════════════════
+// OUTLET STOK — track FP inventory + ED alerts per batch
+// ════════════════════════════════════════════
+let currentOutletId = null;
+let outletStokRows = [];
+
+async function openOutletStok(outletId) {
+  const o = cache.outlets?.find(x => x.id === outletId);
+  if(!o) { showToast('Outlet ga ketemu','error'); return; }
+  currentOutletId = outletId;
+  document.getElementById('os-title').innerHTML = '📦 Stok — <span style="color:var(--teal-light)">'+o.nama+'</span>';
+  // Populate product dropdown
+  const sel = document.getElementById('os-product-id');
+  if(sel && cache.products?.length) {
+    sel.innerHTML = '<option value="">Pilih produk...</option>' +
+      cache.products.filter(p=>p.status==='Aktif').sort((a,b)=>a.nama.localeCompare(b.nama)).map(p=>
+        `<option value="${p.id}">${p.brand||''} ${p.nama} — ${fmt(p.harga||0)}</option>`
+      ).join('');
+  }
+  // Reset form
+  ['os-qty','os-ed-date','os-batch-no','os-catatan'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  if(sel) sel.value = '';
+  await loadOutletStok(outletId);
+  openMo('mo-outlet-stok');
+}
+
+async function loadOutletStok(outletId) {
+  try {
+    const { data, error } = await sb.from('outlet_inventory')
+      .select('*, products(nama, brand, harga)')
+      .eq('outlet_id', outletId).order('ed_date', {ascending:true});
+    if(error) throw error;
+    outletStokRows = data || [];
+    renderOutletStok();
+  } catch(e) {
+    document.getElementById('os-stok-list').innerHTML = `<tr><td colspan="6"><div class="empty">${e.message}</div></td></tr>`;
+  }
+}
+
+function renderOutletStok() {
+  const tbody = document.getElementById('os-stok-list');
+  const activeRows = outletStokRows.filter(r=>r.qty>0);
+  if(!activeRows.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty" style="padding:24px"><div class="empty-icon">📦</div><div class="empty-txt">Belum ada stok — tambah lewat form di atas</div></div></td></tr>';
+    updateOutletStokKPI([]);
+    return;
+  }
+  const today = new Date();
+  tbody.innerHTML = activeRows.map(r => {
+    const nilai = r.qty * (r.products?.harga || r.harga_beli || 0);
+    let edBadge = '<span style="color:var(--text-dim);font-size:11px">–</span>';
+    if(r.ed_date) {
+      const ed = new Date(r.ed_date);
+      const days = Math.floor((ed - today) / 86400000);
+      const edStr = ed.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
+      if(days < 0) edBadge = `<span style="background:rgba(220,38,38,.15);color:#dc2626;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:700;border:1px solid rgba(220,38,38,.3)">🚨 ${edStr} (expired ${-days}d)</span>`;
+      else if(days <= 30) edBadge = `<span style="background:rgba(220,38,38,.1);color:#dc2626;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:700;border:1px solid rgba(220,38,38,.2)">⏰ ${edStr} (${days}d)</span>`;
+      else if(days <= 60) edBadge = `<span style="background:rgba(217,119,6,.1);color:#d97706;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:700;border:1px solid rgba(217,119,6,.2)">⏰ ${edStr} (${days}d)</span>`;
+      else if(days <= 90) edBadge = `<span style="background:rgba(217,119,6,.06);color:#d97706;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:500;border:1px solid rgba(217,119,6,.15)">${edStr} (${days}d)</span>`;
+      else edBadge = `<span style="color:var(--green);font-size:11px">${edStr}</span>`;
+    }
+    return `<tr>
+      <td><b>${r.products?.nama||'?'}</b><br><span style="font-size:10px;color:var(--text-muted)">${r.products?.brand||''}</span></td>
+      <td><span style="font-size:11px;font-family:monospace;color:var(--text-muted)">${r.batch_no||'-'}</span></td>
+      <td style="text-align:right;font-weight:700">${r.qty}</td>
+      <td style="text-align:center">${edBadge}</td>
+      <td style="text-align:right;color:var(--gold);font-weight:600">${fmt(nilai)}</td>
+      <td style="text-align:right"><button class="btn btn-sm btn-ghost" onclick="editStokRow(${r.id})" title="Edit qty">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteStokRow(${r.id})" title="Hapus batch">🗑️</button></td>
+    </tr>`;
+  }).join('');
+  updateOutletStokKPI(activeRows);
+}
+
+function updateOutletStokKPI(rows) {
+  const today = new Date();
+  const totalUnit = rows.reduce((s,r)=>s+(r.qty||0),0);
+  const totalNilai = rows.reduce((s,r)=>s + (r.qty * (r.products?.harga || r.harga_beli || 0)), 0);
+  const expired = rows.filter(r=>r.ed_date && new Date(r.ed_date) < today).length;
+  const nearED = rows.filter(r=>{
+    if(!r.ed_date) return false;
+    const d = new Date(r.ed_date); const days = (d-today)/86400000;
+    return days >= 0 && days <= 60;
+  }).length;
+  document.getElementById('os-total-unit').textContent = totalUnit;
+  document.getElementById('os-nilai-aset').textContent = fmt(totalNilai);
+  document.getElementById('os-expired').textContent = expired;
+  document.getElementById('os-near-ed').textContent = nearED;
+}
+
+async function saveOutletStok() {
+  if(!currentOutletId) return;
+  const product_id = parseInt(document.getElementById('os-product-id')?.value);
+  const qty = parseInt(document.getElementById('os-qty')?.value);
+  if(!product_id) { showToast('Pilih produk dulu','error'); return; }
+  if(!qty || qty < 0) { showToast('Qty invalid','error'); return; }
+  const prod = cache.products?.find(p=>p.id===product_id);
+  const payload = {
+    outlet_id: currentOutletId,
+    product_id,
+    qty,
+    ed_date: document.getElementById('os-ed-date')?.value || null,
+    batch_no: document.getElementById('os-batch-no')?.value.trim() || null,
+    catatan: document.getElementById('os-catatan')?.value.trim() || null,
+    harga_beli: prod?.harga || 0,
+    last_updated: new Date().toISOString().slice(0,10),
+    created_by: currentProfile?.nama || null
+  };
+  const { error } = await sb.from('outlet_inventory').insert([payload]);
+  if(error) { showToast('Gagal: '+error.message,'error'); return; }
+  showToast('✅ Stok ditambahkan');
+  ['os-qty','os-ed-date','os-batch-no','os-catatan'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('os-product-id').value = '';
+  await loadOutletStok(currentOutletId);
+  await loadOutlets();
+}
+
+async function editStokRow(id) {
+  const row = outletStokRows.find(r=>r.id===id);
+  if(!row) return;
+  const newQty = prompt(`Update qty ${row.products?.nama||''} (batch: ${row.batch_no||'-'}):`, row.qty);
+  if(newQty === null) return;
+  const qty = parseInt(newQty);
+  if(isNaN(qty) || qty < 0) { showToast('Qty invalid','error'); return; }
+  const { error } = await sb.from('outlet_inventory').update({ qty, last_updated: new Date().toISOString().slice(0,10) }).eq('id', id);
+  if(error) { showToast(error.message,'error'); return; }
+  showToast('✅ Qty diupdate');
+  await loadOutletStok(currentOutletId);
+  await loadOutlets();
+}
+
+async function deleteStokRow(id) {
+  const row = outletStokRows.find(r=>r.id===id);
+  if(!row) return;
+  if(!confirm(`Hapus batch stok ${row.products?.nama||''} (qty ${row.qty})?`)) return;
+  const { error } = await sb.from('outlet_inventory').delete().eq('id', id);
+  if(error) { showToast(error.message,'error'); return; }
+  showToast('Batch dihapus');
+  await loadOutletStok(currentOutletId);
+  await loadOutlets();
+}
+
+// ED ALERT DASHBOARD KPI — consolidated FP + Consignment
+async function loadEDAlertConsolidated() {
+  try {
+    const { data, error } = await sb.from('ed_alert_summary').select('*');
+    if(error) return; // View belum ada = SQL belum di-run
+    const el = document.getElementById('ed-consolidated');
+    if(!el) return;
+    const totals = { expired: {c:0,v:0}, d30: {c:0,v:0}, d60: {c:0,v:0}, d90: {c:0,v:0} };
+    (data||[]).forEach(r => {
+      totals.expired.c += r.ed_expired_count||0;
+      totals.expired.v += Number(r.ed_expired_nilai||0);
+      totals.d30.c += r.ed_30d_count||0;
+      totals.d30.v += Number(r.ed_30d_nilai||0);
+      totals.d60.c += r.ed_60d_count||0;
+      totals.d60.v += Number(r.ed_60d_nilai||0);
+      totals.d90.c += r.ed_90d_count||0;
+      totals.d90.v += Number(r.ed_90d_nilai||0);
+    });
+    el.innerHTML = `
+      <div class="mstat"><span class="mstat-l">🚨 Sudah Expired</span><span class="mstat-v c-red">${totals.expired.c} batch · ${fmt(totals.expired.v)}</span></div>
+      <div class="mstat"><span class="mstat-l">⏰ ED ≤30 hari</span><span class="mstat-v c-red">${totals.d30.c} batch · ${fmt(totals.d30.v)}</span></div>
+      <div class="mstat"><span class="mstat-l">⏰ ED 31–60 hari</span><span class="mstat-v c-gold">${totals.d60.c} batch · ${fmt(totals.d60.v)}</span></div>
+      <div class="mstat"><span class="mstat-l">⏰ ED 61–90 hari</span><span class="mstat-v c-gold" style="opacity:.7">${totals.d90.c} batch · ${fmt(totals.d90.v)}</span></div>
+    `;
+    // Update global card badge
+    const totalRisky = totals.expired.c + totals.d30.c;
+    const totalNilai = totals.expired.v + totals.d30.v;
+    const badgeEl = document.getElementById('ed-alert-badge-total');
+    if(badgeEl) badgeEl.textContent = totalRisky > 0 ? `${totalRisky} batch · ${fmt(totalNilai)}` : 'Aman';
+  } catch(e) { console.warn('ed alert:', e.message); }
+}
+
+// Auto-load on dashboard
+setTimeout(() => { if(typeof sb !== 'undefined') loadEDAlertConsolidated(); }, 2000);
 
 // ════════════════════════════════════════════
 // CUSTOMER QR CODE — quick access to catalog link + QR
