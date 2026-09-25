@@ -827,18 +827,32 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
     </div>
   </div>
 
-  <!-- ED ALERT KONSOLIDASI (FP + Konsinyasi) -->
+  <!-- ED ALERT KONSOLIDASI + WATCHLIST (FP + Konsinyasi) -->
   <div class="card" style="margin-top:16px;border-left:4px solid var(--red)">
-    <div class="card-h" style="display:flex;justify-content:space-between;align-items:center">
+    <div class="card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <div>
-        <div class="card-title">⚠️ ED Alert Konsolidasi</div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">FP Outlets + Konsinyasi Partners · <b id="ed-alert-badge-total" style="color:var(--red)">-</b></div>
+        <div class="card-title">🚨 ED Alert · Urgent Watchlist</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">FP Outlets + Konsinyasi · <b id="ed-alert-badge-total" style="color:var(--red)">-</b> · Klik WA buat kontak PIC</div>
       </div>
-      <button class="btn btn-ghost btn-sm" onclick="loadEDAlertConsolidated()">↻ Refresh</button>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        <button class="btn btn-sm" id="ed-tab-urgent" onclick="setEDFilter('urgent',this)" style="background:var(--red);color:#fff">🚨 Urgent (≤30d)</button>
+        <button class="btn btn-sm btn-ghost" id="ed-tab-60d" onclick="setEDFilter('60d',this)">⏰ 31-60d</button>
+        <button class="btn btn-sm btn-ghost" id="ed-tab-90d" onclick="setEDFilter('90d',this)">61-90d</button>
+        <button class="btn btn-sm btn-ghost" id="ed-tab-all" onclick="setEDFilter('all',this)">Semua</button>
+        <button class="btn btn-sm btn-ghost" onclick="loadEDAlertConsolidated();loadEDWatchlist()" title="Refresh">↻</button>
+      </div>
     </div>
     <div class="card-b">
-      <div id="ed-consolidated">
-        <div class="empty" style="padding:20px"><div class="empty-icon">⏳</div><div class="empty-txt" style="font-size:11px">Loading ED data...</div></div>
+      <!-- Summary strip -->
+      <div id="ed-consolidated" style="margin-bottom:14px">
+        <div class="empty" style="padding:12px"><div style="font-size:11px;color:var(--text-muted)">Loading...</div></div>
+      </div>
+      <!-- Actionable watchlist -->
+      <div style="border-top:1px solid var(--border);padding-top:12px">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">📋 Watchlist — sorted by urgency</div>
+        <div id="ed-watchlist" style="max-height:400px;overflow-y:auto">
+          <div class="empty" style="padding:20px"><div class="empty-icon">⏳</div></div>
+        </div>
       </div>
     </div>
   </div>
@@ -7819,8 +7833,102 @@ async function loadEDAlertConsolidated() {
   } catch(e) { console.warn('ed alert:', e.message); }
 }
 
+// URGENT ED WATCHLIST — actionable list dgn kontak PIC + WA quick-action
+let edWatchlistData = [];
+let edCurrentFilter = 'urgent';
+
+async function loadEDWatchlist() {
+  try {
+    const { data, error } = await sb.from('ed_alert_all')
+      .select('*').order('days_to_ed', {ascending: true}).limit(100);
+    if(error) return;
+    edWatchlistData = data || [];
+    renderEDWatchlist();
+  } catch(e) { console.warn('watchlist:', e.message); }
+}
+
+function setEDFilter(f, btn) {
+  edCurrentFilter = f;
+  ['ed-tab-urgent','ed-tab-60d','ed-tab-90d','ed-tab-all'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) { el.classList.add('btn-ghost'); el.style.background=''; el.style.color=''; }
+  });
+  btn.classList.remove('btn-ghost');
+  const colorMap = { urgent:'var(--red)', '60d':'var(--gold)', '90d':'var(--gold)', all:'var(--text)' };
+  btn.style.background = colorMap[f];
+  btn.style.color = '#fff';
+  renderEDWatchlist();
+}
+
+function renderEDWatchlist() {
+  const el = document.getElementById('ed-watchlist');
+  if(!el) return;
+  let filtered = edWatchlistData;
+  if(edCurrentFilter === 'urgent') filtered = edWatchlistData.filter(r => r.days_to_ed <= 30);
+  else if(edCurrentFilter === '60d') filtered = edWatchlistData.filter(r => r.days_to_ed > 30 && r.days_to_ed <= 60);
+  else if(edCurrentFilter === '90d') filtered = edWatchlistData.filter(r => r.days_to_ed > 60 && r.days_to_ed <= 90);
+  if(!filtered.length) {
+    el.innerHTML = '<div class="empty" style="padding:20px"><div class="empty-icon">✅</div><div class="empty-txt" style="font-size:12px">Ga ada batch di filter ini — semua aman!</div></div>';
+    return;
+  }
+  el.innerHTML = filtered.map(r => {
+    const days = r.days_to_ed;
+    let urgencyBadge, urgencyColor;
+    if(days < 0) { urgencyBadge = `🚨 EXPIRED ${-days}d`; urgencyColor = '#dc2626'; }
+    else if(days <= 7) { urgencyBadge = `🚨 ${days}d lagi`; urgencyColor = '#dc2626'; }
+    else if(days <= 30) { urgencyBadge = `⏰ ${days}d`; urgencyColor = '#dc2626'; }
+    else if(days <= 60) { urgencyBadge = `⏰ ${days}d`; urgencyColor = '#d97706'; }
+    else { urgencyBadge = `${days}d`; urgencyColor = '#059669'; }
+    const locBadge = r.location_type === 'FP'
+      ? `<span style="background:rgba(37,99,235,.1);color:#2563eb;padding:2px 7px;border-radius:6px;font-size:10px;font-weight:600">FP</span>`
+      : `<span style="background:rgba(139,92,246,.1);color:#7c3aed;padding:2px 7px;border-radius:6px;font-size:10px;font-weight:600">KONSI</span>`;
+    const hasWA = r.contact_wa && r.contact_wa.replace(/\D/g,'').length >= 8;
+    const waBtn = hasWA
+      ? `<button class="btn btn-sm" style="background:#25D366;color:#fff" onclick="waPullOut('${r.location_type}',${r.ref_id})" title="WA ke ${r.contact_pic||r.location_name}">💬 WA PIC</button>`
+      : `<button class="btn btn-sm btn-ghost" disabled title="No contact">💬 (no WA)</button>`;
+    const edStr = r.ed_date ? new Date(r.ed_date).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'2-digit'}) : '-';
+    return `<div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;padding:10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;border-left:3px solid ${urgencyColor}">
+      <div style="min-width:80px">
+        ${locBadge}
+        <div style="font-size:11px;font-weight:700;color:${urgencyColor};margin-top:3px;white-space:nowrap">${urgencyBadge}</div>
+      </div>
+      <div style="min-width:0">
+        <div style="font-weight:700;font-size:13px;color:var(--text);line-height:1.3">${r.location_name}</div>
+        <div style="font-size:11px;color:var(--text-muted);line-height:1.4;margin-top:2px">${r.produk||'?'} ${r.brand?'· '+r.brand:''}${r.batch_no?' · '+r.batch_no:''}</div>
+        ${r.contact_pic ? `<div style="font-size:10px;color:var(--text-dim);margin-top:2px">👤 ${r.contact_pic}</div>` : ''}
+      </div>
+      <div style="text-align:right;min-width:80px">
+        <div style="font-size:13px;font-weight:700">${r.qty} unit</div>
+        <div style="font-size:11px;color:var(--gold);font-weight:600">${fmt(r.nilai||0)}</div>
+        <div style="font-size:10px;color:var(--text-muted)">ED ${edStr}</div>
+      </div>
+      <div>${waBtn}</div>
+    </div>`;
+  }).join('');
+}
+
+function waPullOut(locationType, refId) {
+  const row = edWatchlistData.find(r => r.location_type === locationType && r.ref_id === refId);
+  if(!row) return;
+  if(!row.contact_wa) { showToast('No WA number','error'); return; }
+  let wa = row.contact_wa.replace(/[\s\-+]/g,'');
+  if(wa.startsWith('08')) wa = '62' + wa.slice(1);
+  else if(wa.startsWith('8') && !wa.startsWith('62')) wa = '62' + wa;
+  const days = row.days_to_ed;
+  const urgency = days < 0 ? `sudah expired ${-days} hari` : days <= 7 ? `expired dalam ${days} hari` : `ED ${days} hari lagi`;
+  const edStr = row.ed_date ? new Date(row.ed_date).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'}) : '';
+  const brandProd = row.brand ? `${row.brand} ${row.produk}` : row.produk;
+  const msg = `Halo ${row.contact_pic || row.location_name} 🙏\n\nMau info: produk *${brandProd}* qty *${row.qty} unit*${row.batch_no?' batch '+row.batch_no:''} yg dititip di outlet, ${urgency} (${edStr}).\n\n📦 Nilai: Rp ${(row.nilai||0).toLocaleString('id-ID')}\n\nMohon dibantu push penjualan-nya sebelum tanggal ED, atau kalo emang ga bisa terjual bisa retur ke gudang kami.\n\nMakasih ya! 🙌\n\n_Findest Sport — via CRM_`;
+  window.open('https://wa.me/'+wa+'?text='+encodeURIComponent(msg), '_blank');
+}
+
 // Auto-load on dashboard
-setTimeout(() => { if(typeof sb !== 'undefined') loadEDAlertConsolidated(); }, 2000);
+setTimeout(() => {
+  if(typeof sb !== 'undefined') {
+    loadEDAlertConsolidated();
+    loadEDWatchlist();
+  }
+}, 2000);
 
 // ════════════════════════════════════════════
 // CUSTOMER QR CODE — quick access to catalog link + QR
