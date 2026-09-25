@@ -3564,11 +3564,20 @@ const renderInvoices = renderInv;
 function renderEmp() {
   const tbody = document.getElementById('tb-emp');
   if(!cache.employees.length) {
-    tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="empty-icon">👥</div><div class="empty-txt">Belum ada karyawan</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="empty-icon">👥</div><div class="empty-txt">Belum ada karyawan</div></div></td></tr>`;
     return;
   }
   const badgeMap = {'GM':'b-gm','Sales':'b-gym','Finance':'b-fin','Gudang':'b-fp','HR':'b-hr'};
-  tbody.innerHTML = cache.employees.map((e,i)=>`
+  const canEdit = ['GM','HR'].includes(currentProfile?.divisi);
+  tbody.innerHTML = cache.employees.map((e,i)=>{
+    const statusOk = e.status === 'Aktif';
+    const actions = canEdit
+      ? `<div style="display:flex;gap:3px">
+          <button class="btn btn-sm btn-ghost" onclick="openEditEmp(${e.id})" title="Edit">✏️</button>
+          <button class="btn btn-sm btn-danger" onclick="quickDeleteEmp(${e.id})" title="Hapus">🗑️</button>
+        </div>`
+      : '<span class="c-muted">-</span>';
+    return `
     <tr data-id="${e.id}" data-table="employees" class="drag-row">
       <td class="c-muted mono drag-handle" title="Drag to reorder">⠿ ${i+1}</td>
       <td class="fw6">${e.nama}</td>
@@ -3576,9 +3585,20 @@ function renderEmp() {
       <td><span class="badge ${badgeMap[e.divisi]||'b-gym'}">${e.divisi}</span></td>
       <td><span class="badge b-gm">${e.grade}</span></td>
       <td class="mono">${fmt(e.gaji)}</td>
-      <td><span class="s s-ok">${e.status}</span></td>
-    </tr>
-  `).join('');
+      <td><span class="s ${statusOk?'s-ok':'s-warn'}">${e.status}</span></td>
+      <td>${actions}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function quickDeleteEmp(id) {
+  const emp = cache.employees.find(x => x.id === id);
+  if(!emp) return;
+  if(!confirm(`Hapus karyawan "${emp.nama}"?\n\nCatatan: data absensi, cuti, dan KPI karyawan ini tidak ikut terhapus (biar rekap historis aman). Kalo cuma mau non-aktifkan, gunakan tombol Edit → ubah Status ke Nonaktif.`)) return;
+  const { error } = await sb.from('employees').delete().eq('id', id);
+  if(error) { showToast(error.message,'error'); return; }
+  showToast(`${emp.nama} dihapus`);
+  await loadEmployees();
 }
 
 function renderDel() {
