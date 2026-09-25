@@ -739,6 +739,7 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
 <div class="page active" id="page-dashboard">
   <div class="pg-header">
     <div><div style="display:flex;align-items:center;gap:10px"><div class="pg-title">Dashboard</div><button class="btn btn-ghost btn-sm" onclick="showOwnerView()" id="btn-owner-view" style="display:none">👑 Owner View</button></div><div class="pg-sub" id="dash-sub">Findest Sport Overview</div></div>
+    <button class="btn btn-danger btn-sm" id="btn-reset-trial" onclick="openResetModal()" style="display:none" title="Wipe semua data transaksi (buat trial & error)">🧨 Reset Data Trial</button>
   </div>
 
   <div class="kpi-grid" id="dash-kpi">
@@ -1267,8 +1268,25 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
       </select>
       <button class="btn btn-primary" onclick="loadRekapKas()">🔍 Tampilkan</button>
     </div>
+    <!-- Kas Awal Bulan (Starting Balance) -->
+    <div class="card" style="margin-bottom:16px;background:linear-gradient(135deg,rgba(13,148,136,.06),rgba(37,99,235,.04));border:1px solid rgba(13,148,136,.15)">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:4px 2px">
+        <div style="flex:1;min-width:200px">
+          <div style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">🏦 Kas Awal Bulan</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.4">Saldo kas di awal periode (suntikan dana, sisa bulan lalu, dll). Digunakan buat compute Saldo Akhir.</div>
+        </div>
+        <input class="fi" type="number" id="rekap-start-balance" placeholder="0" style="max-width:200px;font-family:monospace;font-size:15px;font-weight:700"/>
+        <button class="btn btn-primary btn-sm" onclick="saveStartingBalance()">💾 Simpan</button>
+      </div>
+    </div>
+
     <!-- Balance Summary -->
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:20px">
+      <div class="kpi" style="--kc:var(--teal);border-left:4px solid var(--teal)">
+        <div class="kpi-label">🏦 Saldo Awal</div>
+        <div class="kpi-val c-teal" id="rekap-saldo-awal">Rp 0</div>
+        <div class="kpi-sub">Kas awal bulan</div>
+      </div>
       <div class="kpi" style="--kc:var(--green);border-left:4px solid var(--green)">
         <div class="kpi-label">💰 Total Kas Masuk</div>
         <div class="kpi-val c-green" id="rekap-masuk">Rp 0</div>
@@ -1278,6 +1296,11 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
         <div class="kpi-label">📤 Total Kas Keluar</div>
         <div class="kpi-val c-red" id="rekap-keluar">Rp 0</div>
         <div class="kpi-sub">Semua pengeluaran</div>
+      </div>
+      <div class="kpi" style="--kc:var(--gold);border-left:4px solid var(--gold)" id="rekap-saldo-akhir-card">
+        <div class="kpi-label">💵 Saldo Akhir</div>
+        <div class="kpi-val c-gold" id="rekap-saldo-akhir">Rp 0</div>
+        <div class="kpi-sub">Awal + Masuk - Keluar</div>
       </div>
       <div class="kpi" style="--kc:var(--teal);border-left:4px solid var(--teal)" id="rekap-net-card">
         <div class="kpi-label">⚖️ Net Cash Flow</div>
@@ -1659,6 +1682,32 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
 </div>
 
 <!-- EDIT KARYAWAN MODAL -->
+<!-- RESET DATA TRIAL Modal -->
+<div class="mo" id="mo-reset-trial">
+  <div class="mo-c" style="max-width:520px">
+    <div class="mo-h"><div class="mo-title">🧨 Reset Data Trial</div><button class="mo-x" onclick="closeMo('mo-reset-trial')">×</button></div>
+    <div class="mo-b">
+      <div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.25);border-radius:10px;padding:14px;margin-bottom:14px">
+        <div style="font-weight:700;color:#dc2626;margin-bottom:8px">⚠️ BAHAYA — Ini permanent!</div>
+        <div style="font-size:13px;line-height:1.5;color:var(--text-2)">Akan menghapus <b>SEMUA data transaksi</b> — orders, invoices, deliveries, expenses, payments, batches, visit logs, konsinyasi.</div>
+      </div>
+      <div style="background:rgba(5,150,105,.08);border:1px solid rgba(5,150,105,.2);border-radius:10px;padding:14px;margin-bottom:14px">
+        <div style="font-weight:700;color:#059669;margin-bottom:8px">✅ Data yg AMAN (tetep ada)</div>
+        <div style="font-size:12px;line-height:1.5;color:var(--text-2)">Customers · Products · Employees · Outlets · Config · KPI · Cuti · Notice · Invites</div>
+      </div>
+      <div class="fg">
+        <label class="fl">Ketik <b style="color:#dc2626">RESET FINDEST</b> buat konfirmasi:</label>
+        <input class="fi" type="text" id="reset-confirm-input" placeholder="RESET FINDEST" autocomplete="off" oninput="document.getElementById('btn-do-reset').disabled = this.value.trim() !== 'RESET FINDEST'"/>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:8px">Setelah tekan tombol merah, data yang hilang ga bisa di-restore. Buat backup dulu kalo perlu.</div>
+    </div>
+    <div class="mo-f">
+      <button class="btn btn-ghost" onclick="closeMo('mo-reset-trial')">Batal</button>
+      <button class="btn btn-danger" id="btn-do-reset" onclick="doResetTrial()" disabled>🧨 Reset Sekarang</button>
+    </div>
+  </div>
+</div>
+
 <div class="mo" id="mo-edit-emp">
   <div class="mo-box">
     <div class="mo-h"><div class="mo-title">✏️ Edit Karyawan</div><button class="mo-x" onclick="closeMo('mo-edit-emp')">×</button></div>
@@ -3338,6 +3387,8 @@ async function loadAllData() {
   if(role === 'gm') {
     const ownerBtn = document.getElementById('btn-owner-view');
     if(ownerBtn) ownerBtn.style.display = '';
+    const resetBtn = document.getElementById('btn-reset-trial');
+    if(resetBtn) resetBtn.style.display = '';
     const logCard = document.getElementById('activity-log-card');
     if(logCard) logCard.style.display = '';
     loadActivityLog();
@@ -7432,6 +7483,77 @@ async function logActivity(action, tabel, data) {
 }
 
 // ════════════════════════════════════════════
+// KAS AWAL BULAN — starting balance per bulan (stored in config)
+// ════════════════════════════════════════════
+async function saveStartingBalance() {
+  const bulan = document.getElementById('rekap-bulan')?.value;
+  const tahun = document.getElementById('rekap-tahun')?.value;
+  if(!bulan || !tahun) { showToast('Pilih bulan + tahun dulu','error'); return; }
+  const val = parseFloat(document.getElementById('rekap-start-balance')?.value) || 0;
+  const key = 'cash_start_' + tahun + '-' + bulan;
+  // Upsert to config table
+  const { error } = await sb.from('config').upsert({ key, value: String(val) }, { onConflict: 'key' });
+  if(error) { showToast(error.message,'error'); return; }
+  showToast('✅ Saldo awal '+tahun+'-'+bulan+' tersimpan: '+fmt(val));
+  loadRekapKas();
+}
+
+// ════════════════════════════════════════════
+// RESET DATA TRIAL — wipe all transactional data
+// ════════════════════════════════════════════
+function openResetModal() {
+  const inp = document.getElementById('reset-confirm-input');
+  if(inp) inp.value = '';
+  const btn = document.getElementById('btn-do-reset');
+  if(btn) btn.disabled = true;
+  openMo('mo-reset-trial');
+}
+
+async function doResetTrial() {
+  const input = document.getElementById('reset-confirm-input')?.value.trim();
+  if(input !== 'RESET FINDEST') { showToast('Ketik "RESET FINDEST" persis','error'); return; }
+  const btn = document.getElementById('btn-do-reset');
+  if(btn) { btn.disabled = true; btn.textContent = '⏳ Menghapus…'; }
+
+  // Tables to wipe (transactional). Ordered so FKs don't complain.
+  const targets = [
+    'payments','deliveries','orders','invoices','expenses',
+    'batches','visit_logs','konsinyasi','activity_log','cash_flow_manual'
+  ];
+
+  let deletedTotal = 0;
+  const errors = [];
+  for(const t of targets) {
+    try {
+      // delete WHERE id > 0 supaya kena semua row (Supabase requires filter)
+      const { error, count } = await sb.from(t).delete({ count:'exact' }).gt('id', 0);
+      if(error && !/relation .* does not exist/i.test(error.message)) {
+        errors.push(t+': '+error.message);
+      } else if(count) {
+        deletedTotal += count;
+      }
+    } catch(e) {
+      errors.push(t+': '+(e.message||e));
+    }
+  }
+
+  if(errors.length) {
+    showToast('Beberapa tabel gagal: '+errors.slice(0,2).join(' · '),'error');
+    console.error('Reset errors:', errors);
+  } else {
+    showToast(`✅ Reset selesai — ${deletedTotal} row dihapus`);
+  }
+
+  closeMo('mo-reset-trial');
+  if(btn) { btn.disabled = false; btn.textContent = '🧨 Reset Sekarang'; }
+
+  // Reload semua yg terpengaruh
+  ['loadOrders','loadInvoices','loadDeliveries','loadExpenses','loadPayments','loadKonsi','updateDashboard'].forEach(fn => {
+    if(typeof window[fn]==='function') try { window[fn](); } catch(e){}
+  });
+}
+
+// ════════════════════════════════════════════
 // PAK GUN OWNER VIEW
 // ════════════════════════════════════════════
 function showOwnerView() {
@@ -9315,12 +9437,35 @@ async function loadRekapKas() {
 
   const net = totalMasuk - totalKeluar;
 
+  // KAS AWAL BULAN: dari config table (key: cash_start_YYYY-MM)
+  const startKey = 'cash_start_' + prefix;
+  let saldoAwal = 0;
+  try {
+    const { data: cfg } = await sb.from('config').select('value').eq('key', startKey).maybeSingle();
+    if(cfg?.value) saldoAwal = parseFloat(cfg.value) || 0;
+  } catch(e) {}
+  const saldoAkhir = saldoAwal + totalMasuk - totalKeluar;
+
   // Update cards
   const setText=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  setText('rekap-saldo-awal', fmt(saldoAwal));
   setText('rekap-masuk', fmt(totalMasuk));
   setText('rekap-keluar', fmt(totalKeluar));
+  setText('rekap-saldo-akhir', (saldoAkhir>=0?'':'-')+fmt(Math.abs(saldoAkhir)));
   setText('rekap-net', (net>=0?'+':'')+fmt(Math.abs(net)));
   setText('rekap-piutang', fmt(piutang));
+
+  // Color saldo akhir card berdasarkan positive/negative
+  const saldoCard = document.getElementById('rekap-saldo-akhir-card');
+  const saldoEl = document.getElementById('rekap-saldo-akhir');
+  if(saldoCard && saldoEl) {
+    if(saldoAkhir >= 0) { saldoCard.style.borderColor='var(--gold)'; saldoEl.style.color='var(--gold)'; }
+    else { saldoCard.style.borderColor='var(--red)'; saldoEl.style.color='var(--red)'; }
+  }
+
+  // Populate starting balance input
+  const startInp = document.getElementById('rekap-start-balance');
+  if(startInp && !startInp.matches(':focus')) startInp.value = saldoAwal || '';
 
   // Net card color
   const netCard = document.getElementById('rekap-net-card');
