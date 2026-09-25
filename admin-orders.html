@@ -245,7 +245,7 @@ async function loadAll(){
   try{
     // Load 200 latest orders (buat performance)
     const{data,error}=await SB.from('orders')
-      .select('id,no_order,customer_nama,channel_tipe,channel_sistem,produk,total_nilai,status,pembayaran,catatan,credit_days,due_date,tanggal,created_at')
+      .select('id,no_order,customer_nama,channel_tipe,channel_sistem,produk,total_nilai,status,pembayaran,catatan,credit_days,due_date,created_at')
       .order('created_at',{ascending:false})
       .limit(200);
     if(error)throw error;
