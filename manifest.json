@@ -1,0 +1,26 @@
+{
+  "name": "Findest Sport — Catalog",
+  "short_name": "Findest",
+  "description": "Distributor suplemen premium ON, BSN, ISOPURE — Bali. Order langsung via QR outlet.",
+  "start_url": "./catalog.html",
+  "scope": "./",
+  "id": "/Findest-crm/catalog",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F7F7F8",
+  "theme_color": "#0D9488",
+  "lang": "id",
+  "categories": ["business", "shopping", "food"],
+  "icons": [
+    {"src": "icon-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any"},
+    {"src": "icon-512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any"},
+    {"src": "icon-maskable.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "maskable"}
+  ],
+  "shortcuts": [
+    {
+      "name": "Buka Catalog",
+      "url": "./catalog.html",
+      "description": "Browse produk & order"
+    }
+  ]
+}
