@@ -6364,8 +6364,31 @@ function renderKonsiCards() {
     const hasOverdue = items.some(k=>k.status==='Aktif');
     const hasRetur = items.some(k=>k.status==='Retur');
     const allLunas = items.every(k=>k.status==='Lunas'||k.status==='Rekonsiliasi');
-    const borderColor = hasRetur ? 'var(--red)' : hasOverdue ? 'var(--gold)' : 'var(--green)';
     const pct = totalTitip > 0 ? Math.round(totalTerjual/totalTitip*100) : 0;
+
+    // ED alert calc — count active items dgn ED near/past
+    const today = new Date();
+    const activeItems = items.filter(k => k.status === 'Aktif' && k.ed_date);
+    const edExpired = activeItems.filter(k => new Date(k.ed_date) < today).length;
+    const edNear30 = activeItems.filter(k => {
+      const d = new Date(k.ed_date);
+      const diffDays = (d - today) / 86400000;
+      return diffDays >= 0 && diffDays <= 30;
+    }).length;
+    const edNear60 = activeItems.filter(k => {
+      const d = new Date(k.ed_date);
+      const diffDays = (d - today) / 86400000;
+      return diffDays > 30 && diffDays <= 60;
+    }).length;
+    const hasED = edExpired > 0 || edNear30 > 0;
+    const borderColor = edExpired > 0 ? 'var(--red)' : edNear30 > 0 ? 'var(--red)' : hasRetur ? 'var(--red)' : hasOverdue ? 'var(--gold)' : 'var(--green)';
+    const edBadge = edExpired > 0
+      ? `<span style="background:rgba(220,38,38,.12);color:#dc2626;padding:2px 7px;border-radius:100px;font-size:10px;font-weight:700;border:1px solid rgba(220,38,38,.25)" title="${edExpired} produk expired">🚨 ${edExpired} expired</span>`
+      : edNear30 > 0
+      ? `<span style="background:rgba(217,119,6,.12);color:#d97706;padding:2px 7px;border-radius:100px;font-size:10px;font-weight:700;border:1px solid rgba(217,119,6,.25)" title="${edNear30} produk ED <30 hari">⏰ ${edNear30} near ED</span>`
+      : edNear60 > 0
+      ? `<span style="background:rgba(217,119,6,.06);color:#d97706;padding:2px 7px;border-radius:100px;font-size:10px;font-weight:600;border:1px solid rgba(217,119,6,.15)" title="${edNear60} produk ED <60 hari">⏰ ${edNear60} ED 60d</span>`
+      : '';
 
     // Get produk list (max 3)
     const produkList = [...new Set(items.map(k=>k.produk).filter(Boolean))];
@@ -6377,11 +6400,14 @@ function renderKonsiCards() {
 
     return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:all 0.2s;border-left:3px solid ${borderColor}" onclick="openKonsiDrawer('${outletName.replace(/'/g,"\'")}')">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
-        <div>
+        <div style="flex:1;min-width:0">
           <div style="font-size:14px;font-weight:700;color:var(--teal-light)">${outletName}</div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${items.length} titipan aktif</div>
         </div>
-        <span class="s s-${statusColor[latestStatus]||'warn'}" style="font-size:10px">${latestStatus}</span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <span class="s s-${statusColor[latestStatus]||'warn'}" style="font-size:10px">${latestStatus}</span>
+          ${edBadge}
+        </div>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${produkDisplay}${moreProd}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
@@ -6651,7 +6677,9 @@ async function saveKonsi() {
     nilai: parseInt(document.getElementById('konsi-nilai')?.value)||0,
     tgl_rekon: document.getElementById('konsi-tgl-rekon')?.value||null,
     status: document.getElementById('konsi-status')?.value||'Aktif',
-    catatan: document.getElementById('konsi-catatan')?.value.trim()||null
+    catatan: document.getElementById('konsi-catatan')?.value.trim()||null,
+    ed_date: document.getElementById('konsi-ed-date')?.value||null,
+    batch_no: document.getElementById('konsi-batch-no')?.value.trim()||null
   };
 
   let error;
@@ -10447,6 +10475,17 @@ function dcEditCust() {
         <div class="fg">
           <label class="fl">Qty Dititip</label>
           <input class="fi" type="number" id="konsi-qty-titip" placeholder="Unit" min="1" oninput="hitungKonsiNilai()"/>
+        </div>
+      </div>
+      <div class="frow">
+        <div class="fg">
+          <label class="fl">⏰ Exp Date (ED) <span style="font-weight:400;color:var(--text-muted);font-size:11px">— buat alert pull-out</span></label>
+          <input class="fi" type="date" id="konsi-ed-date"/>
+          <div id="konsi-ed-hint" style="font-size:11px;margin-top:4px"></div>
+        </div>
+        <div class="fg">
+          <label class="fl">🏷 Batch No <span style="font-weight:400;color:var(--text-muted);font-size:11px">— traceable (opsional)</span></label>
+          <input class="fi" type="text" id="konsi-batch-no" placeholder="BATCH-2026-001"/>
         </div>
       </div>
       <div class="frow">
