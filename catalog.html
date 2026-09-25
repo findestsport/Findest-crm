@@ -638,7 +638,7 @@ async function sendOrder(){
     const orderRow={
       customer_nama:name,
       produk:produkText,
-      total,
+      total_nilai:total,
       status:'Pending',
       pembayaran:selPayment,
       channel_sistem:'Findest Sport Catalog',
@@ -658,7 +658,7 @@ async function openHistory(){
   c.innerHTML=`<div class="cart-header">Riwayat Pesanan</div><div class="cart-sub">${currentCustomer.nama}</div><div class="oh-empty"><div class="spinner" style="margin:0 auto 12px;width:24px;height:24px;border:2px solid var(--surface2);border-top-color:var(--text);border-radius:50%;animation:spin .8s linear infinite"></div>Memuat...</div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
   openOverlay('historyModal');
   try{
-    const{data,error}=await SB.from('orders').select('id,no_order,customer_nama,produk,total,status,pembayaran,tanggal,created_at,catatan').eq('customer_id',currentCustomer.id).order('created_at',{ascending:false}).limit(20);
+    const{data,error}=await SB.from('orders').select('id,no_order,customer_nama,produk,total_nilai,status,pembayaran,tanggal,created_at,catatan').eq('customer_id',currentCustomer.id).order('created_at',{ascending:false}).limit(20);
     if(error)throw error;
     renderHistory(data||[]);
   }catch(e){
@@ -672,7 +672,7 @@ function renderHistory(rows){
   const fmtDate=d=>{if(!d)return'—';const dt=new Date(d);return dt.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});};
   c.innerHTML=`<div class="cart-header">Riwayat Pesanan</div><div class="cart-sub">${rows.length} order &middot; ${currentCustomer.nama}</div>${rows.map(r=>{
     const st=(r.status||'Pending').toLowerCase();
-    return`<div class="oh-item"><div class="oh-top"><div class="oh-no">${r.no_order||'#'+r.id}</div><div class="oh-date">${fmtDate(r.tanggal||r.created_at)}</div></div><div class="oh-produk">${(r.produk||'—').replace(/</g,'&lt;')}</div><div class="oh-bottom"><div class="oh-total">${fmt(r.total)}</div><div class="oh-status ${st}">${r.status||'Pending'}</div></div></div>`;
+    return`<div class="oh-item"><div class="oh-top"><div class="oh-no">${r.no_order||'#'+r.id}</div><div class="oh-date">${fmtDate(r.tanggal||r.created_at)}</div></div><div class="oh-produk">${(r.produk||'—').replace(/</g,'&lt;')}</div><div class="oh-bottom"><div class="oh-total">${fmt(r.total_nilai)}</div><div class="oh-status ${st}">${r.status||'Pending'}</div></div></div>`;
   }).join('')}`;
 }
 

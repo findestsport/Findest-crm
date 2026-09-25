@@ -14,7 +14,7 @@ CREATE POLICY "customer_app_insert" ON public.orders
   WITH CHECK (
     customer_nama IS NOT NULL
     AND LENGTH(TRIM(customer_nama)) > 0
-    AND COALESCE(total, total_nilai, 0) > 0
+    AND total_nilai > 0
     AND channel_sistem = 'Findest Sport Catalog'
   );
 
