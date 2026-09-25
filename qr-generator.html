@@ -185,7 +185,7 @@ body {
   </div>
 
   <div class="info-banner">
-    <b>Cara pakai:</b> Sesuaikan base URL di bawah kalo app deploy di URL lain, filter customer yg mau dicetak, terus tap <b>Print</b> (⌘+P / Ctrl+P). QR akan otomatis nge-load Findest Order app dgn parameter customer.
+    <b>Cara pakai:</b> Base URL di bawah otomatis nunjuk ke <code style="background:rgba(255,255,255,.15);padding:1px 6px;border-radius:4px">catalog.html</code>. Filter customer, tap <b>Print</b> (⌘+P / Ctrl+P), tempel QR di gym/apotek. Customer scan → catalog auto-login pakai identity outlet.
   </div>
 
   <div class="toolbar">
@@ -208,9 +208,9 @@ const SB_URL = 'https://wuejoxgbtvmlrriwlofk.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZWpveGdidHZtbHJyaXdsb2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNjY1NTQsImV4cCI6MjA5Mjg0MjU1NH0.nq0xlsuXeJNXtb8SisPQ3Ml5fXNy2vguVRJ8pNFGai0';
 const sb = supabase.createClient(SB_URL, SB_KEY);
 
-// Detect base URL: use current origin+path minus filename
+// Detect base URL: use current origin+path minus filename → point to catalog
 const currentPath = window.location.pathname.replace(/[^/]+$/, '');
-const defaultBase = window.location.origin + currentPath + 'order.html';
+const defaultBase = window.location.origin + currentPath + 'catalog.html';
 document.getElementById('baseUrl').value = defaultBase;
 
 let customers = [];
