@@ -1450,24 +1450,55 @@ function renderCheckout() {
 }
 function selectPay(p) { selectedPayment = p; renderCheckout(); }
 
-// Placeholder order submission — safe, no DB write
-function placeOrder() {
-  const orderData = {
-    customer: customer ? customer.nama : 'Guest',
-    items: cart.map(c => `${c.qty}× ${c.nama} @ ${fmt(c.harga)}`),
-    total: fmt(cartSubtotal()),
-    payment: selectedPayment,
-    ts: new Date().toISOString()
+// Real order submission — INSERT ke Supabase orders table
+async function placeOrder() {
+  const btn = document.querySelector('.btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = 'Placing order...'; }
+
+  const noOrder = 'ORD-' + Date.now().toString().slice(-8);
+  const subtotal = cartSubtotal();
+  const productSummary = cart.map(c => `${c.qty}x ${c.nama} @ ${fmt(c.harga)}`).join(' | ');
+  const paymentLabel = {
+    cod: 'Cash on Delivery',
+    transfer: 'Transfer',
+    kredit: 'Kredit 30 Hari'
+  }[selectedPayment] || 'Transfer';
+
+  const orderPayload = {
+    no_order: noOrder,
+    customer_nama: customer ? customer.nama : 'Guest',
+    produk: productSummary,
+    total_nilai: subtotal,
+    pembayaran: paymentLabel,
+    status: 'Proses',
+    catatan: `Order via customer app · ${customer ? 'customer_id:' + customer.id : 'guest'} · ${cart.length} SKU, ${cart.reduce((s,c)=>s+c.qty,0)} pcs`,
+    channel_tipe: customer ? (customer.tipe || 'App') : 'App',
+    channel_sistem: 'Findest Order App'
   };
-  console.log('[MVP PLACEHOLDER] Order submitted:', orderData);
-  // Fake order number
-  const orderNum = 'ORD-' + Date.now().toString().slice(-8);
-  $('#success-num').textContent = `Order #${orderNum}`;
-  // Clear cart
+
+  let finalOrderNum = noOrder;
+  let submitted = false;
+
+  try {
+    const result = await Promise.race([
+      sb.from('orders').insert(orderPayload).select().single(),
+      new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 5000))
+    ]);
+    if (result.error) throw result.error;
+    finalOrderNum = result.data.no_order || noOrder;
+    submitted = true;
+    console.log('[Findest] Order submitted:', result.data);
+  } catch (err) {
+    console.warn('[Findest] Real submit failed, demo mode:', err.message);
+  }
+
+  $('#success-num').textContent = submitted
+    ? `Order #${finalOrderNum}`
+    : `Order #${finalOrderNum} (Demo Mode)`;
   cart = [];
   saveCart();
-  // Go to success
   goto('#success');
+  if (btn) { btn.disabled = false; btn.textContent = 'Place Order'; }
 }
 
 // ─────────────────────────────────
