@@ -5,13 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Findest Sport — CRM</title>
 <!-- ── PWA: installable to home screen, fullscreen native feel ── -->
-<meta name="theme-color" content="#FFFFFF">
+<meta name="theme-color" content="#0D9488">
+<meta name="description" content="CRM & ERP internal Findest Sport">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Findest Sport">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Crect width='180' height='180' rx='40' fill='%23fff'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial,sans-serif' font-size='80' font-weight='700' fill='%230A0A0A' text-anchor='middle' dominant-baseline='central' letter-spacing='-4'%3EFS%3C/text%3E%3C/svg%3E">
-<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Findest%20Sport%20CRM%22%2C%22short_name%22%3A%22Findest%20Sport%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230A0A0A%22%2C%22theme_color%22%3A%22%230A0A0A%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%253D%2527http%253A%252F%252Fwww.w3.org%252F2000%252Fsvg%2527%2520width%253D%2527192%2527%2520height%253D%2527192%2527%253E%253Crect%2520width%253D%2527192%2527%2520height%253D%2527192%2527%2520rx%253D%252742%2527%2520fill%253D%2527%2523fff%2527%252F%253E%253Ctext%2520x%253D%252750%2525%2527%2520y%253D%252750%2525%2527%2520font-family%253D%2527Arial%2527%2520font-size%253D%252785%2527%2520font-weight%253D%2527700%2527%2520fill%253D%2527%25230A0A0A%2527%2520text-anchor%253D%2527middle%2527%2520dominant-baseline%253D%2527central%2527%253EFS%253C%252Ftext%253E%253C%252Fsvg%253E%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Findest CRM">
+<link rel="manifest" href="manifest-crm.json">
+<link rel="apple-touch-icon" href="icon-192.svg">
+<link rel="icon" type="image/svg+xml" href="icon-192.svg">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
@@ -12498,6 +12500,12 @@ async function generateLaporanPPT() {
   }
 }
 
+// PWA — register service worker (installable + offline shell)
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(err => console.warn('[PWA] SW register failed:', err));
+  });
+}
 
 </script>
 
