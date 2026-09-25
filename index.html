@@ -1427,7 +1427,7 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
 <!-- GUDANG -->
 <div class="page" id="page-gudang">
   <div class="pg-header">
-    <div><div class="pg-title">Gudang & Logistik</div><div class="pg-sub">18 Outlet · Delivery · ED Alert</div></div>
+    <div><div class="pg-title">Gudang & Logistik</div><div class="pg-sub" id="gudang-sub">FP + Konsinyasi · Delivery · ED Alert</div></div>
     <button class="btn btn-primary" id="btn-add-del" onclick="resetDelModal();openMo('mo-del')">+ Delivery Order</button>
   </div>
   <div class="ptabs">
@@ -3562,6 +3562,10 @@ async function loadOutlets() {
   const { data, error } = await sb.from('outlets').select('*').order('nilai_aset', { ascending: false });
   if(error) { console.error(error); return; }
   cache.outlets = data || [];
+  // Ensure konsi data ready sebelum render (buat merge konsi customers)
+  if(typeof allKonsi === 'undefined' || !allKonsi || !allKonsi.length) {
+    try { await loadKonsi(); } catch(e) {}
+  }
   renderOut();
 }
 async function loadOrders() {
@@ -3640,21 +3644,69 @@ function renderCust() {
 
 function renderOut() {
   const tbody = document.getElementById('tb-out');
-  if(!cache.outlets.length) {
-    tbody.innerHTML = '<tr><td colspan="9"><div class="empty"><div class="empty-icon">🏪</div><div class="empty-txt">Belum ada outlet</div></div></td></tr>';
+  const badgeMap = {'Fitness Plus':'b-fp','Gym Lain':'b-gym','Apotek':'b-apot','F&B':'b-fb','Findest Point':'b-fp','Reseller':'b-gym'};
+  const canEdit = ['GM','Gudang'].includes(currentProfile?.divisi);
+  const today = new Date();
+
+  // FP outlets — pake outlet_inventory (via outlets.total_unit/nilai_aset/ed_alert yg di-maintain trigger)
+  const fpRows = (cache.outlets || []).map(o => ({...o, _type: 'fp'}));
+
+  // Konsi customers — aggregate stats dari cache konsi
+  const konsiCustomers = (cache.customers || []).filter(c => c.sistem === 'Konsinyasi' && c.status === 'Aktif');
+  const konsiRows = konsiCustomers.map(c => {
+    const items = (typeof allKonsi !== 'undefined' ? allKonsi : []).filter(k => k.outlet === c.nama && k.status === 'Aktif');
+    const total_unit = items.reduce((s,k)=>s + Math.max(0,(k.qty_titip||0)-(k.qty_terjual||0)-(k.qty_retur||0)), 0);
+    const nilai_aset = items.reduce((s,k)=>s + Math.max(0,(k.qty_titip||0)-(k.qty_terjual||0)-(k.qty_retur||0))*(k.harga||0), 0);
+    const ed_alert = items.filter(k => {
+      if(!k.ed_date) return false;
+      const days = (new Date(k.ed_date) - today)/86400000;
+      return days <= 60;
+    }).length;
+    return {
+      id: c.id,
+      _type: 'konsi',
+      _customer_nama: c.nama,
+      nama: c.nama,
+      tipe: c.tipe || 'Konsinyasi',
+      alamat: c.alamat || '',
+      pic: c.pic || '',
+      no_hp: c.wa || '',
+      total_unit, nilai_aset, ed_alert,
+      status: c.status
+    };
+  });
+
+  const all = [...fpRows, ...konsiRows];
+  if(!all.length) {
+    tbody.innerHTML = '<tr><td colspan="10"><div class="empty"><div class="empty-icon">🏪</div><div class="empty-txt">Belum ada outlet</div></div></td></tr>';
     return;
   }
-  const badgeMap = {'Fitness Plus':'b-fp','Gym Lain':'b-gym','Apotek':'b-apot','F&B':'b-fb'};
-  const canEdit = ['GM','Gudang'].includes(currentProfile?.divisi);
-  tbody.innerHTML = cache.outlets.map((o,i)=>{
-    const dragAttr = `data-id="${o.id}" data-table="outlets" class="drag-row"`;
-    const edClass = (o.ed_alert||0)>20?'c-red':(o.ed_alert||0)>0?'c-gold':'c-green';
+
+  tbody.innerHTML = all.map((o,i)=>{
+    const isKonsi = o._type === 'konsi';
+    const dragAttr = isKonsi
+      ? `data-id="konsi-${o.id}"`
+      : `data-id="${o.id}" data-table="outlets" class="drag-row"`;
+    const edClass = (o.ed_alert||0)>10?'c-red':(o.ed_alert||0)>0?'c-gold':'c-green';
     const edIcon = (o.ed_alert||0)>0?'⚠️':'✅';
     const stClass = o.status==='Aman'?'s-ok':o.status==='Urgent'?'s-bad':'s-warn';
-    const editBtns = canEdit ? '<div style="display:flex;gap:3px"><button class="btn btn-sm btn-ghost" onclick="openOutletStok('+o.id+')" title="Kelola Stok">📦</button><button class="btn btn-sm btn-ghost" onclick="editOutlet('+o.id+')" title="Edit">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteOutlet('+o.id+',\''+o.nama+'\')" title="Hapus">🗑️</button></div>' : '<button class="btn btn-sm btn-ghost" onclick="openOutletStok('+o.id+')" title="Lihat Stok">📦</button>';
+    const stokBtn = isKonsi
+      ? `<button class="btn btn-sm btn-ghost" onclick="openKonsiDrawer('${(o.nama||'').replace(/'/g,"\\'")}')" title="Lihat Titipan Konsinyasi">📦</button>`
+      : `<button class="btn btn-sm btn-ghost" onclick="openOutletStok(${o.id})" title="Kelola Stok FP">📦</button>`;
+    const editBtns = canEdit
+      ? (isKonsi
+          ? `<div style="display:flex;gap:3px">${stokBtn}<button class="btn btn-sm btn-ghost" onclick="editCust(${o.id})" title="Edit Customer">✏️</button></div>`
+          : `<div style="display:flex;gap:3px">${stokBtn}<button class="btn btn-sm btn-ghost" onclick="editOutlet(${o.id})" title="Edit">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteOutlet(${o.id},'${(o.nama||'').replace(/'/g,"\\'")}')" title="Hapus">🗑️</button></div>`)
+      : stokBtn;
     const picDisplay = o.pic || '<span style="color:var(--text-dim);font-size:11px">–</span>';
-    const hpDisplay = o.no_hp ? '<a href="https://wa.me/'+o.no_hp.replace(/\D/g,'')+'" target="_blank" style="color:var(--teal);font-size:11px">'+o.no_hp+'</a>' : '<span style="color:var(--text-dim);font-size:11px">–</span>';
-    return '<tr '+dragAttr+'><td class="c-muted mono drag-handle" title="Drag to reorder">⠿ '+(i+1)+'</td><td class="fw6">'+o.nama+'<br><span style="font-size:10px;color:var(--text-muted)">'+(o.alamat||'')+'</span></td><td><span class="badge '+(badgeMap[o.tipe]||'b-gym')+'">'+o.tipe+'</span></td><td style="font-size:12px">'+picDisplay+'</td><td>'+hpDisplay+'</td><td class="mono c-teal">'+fmt(o.nilai_aset||o.total_aset||0)+'</td><td class="mono">'+(o.total_unit||0)+'</td><td class="mono fw6 '+edClass+'">'+(o.ed_alert||0)+' '+edIcon+'</td><td><span class="s '+stClass+'">'+(o.status||'Aktif')+'</span></td><td>'+editBtns+'</td></tr>';
+    const hpDisplay = o.no_hp ? `<a href="https://wa.me/${o.no_hp.replace(/\D/g,'')}" target="_blank" style="color:var(--teal);font-size:11px">${o.no_hp}</a>` : '<span style="color:var(--text-dim);font-size:11px">–</span>';
+    const typeBadge = isKonsi
+      ? `<span class="badge b-gym" style="background:rgba(139,92,246,.12);color:#7c3aed;border-color:rgba(139,92,246,.25)">KONSI · ${o.tipe}</span>`
+      : `<span class="badge ${badgeMap[o.tipe]||'b-gym'}">${o.tipe}</span>`;
+    const numHandle = isKonsi
+      ? `<td class="c-muted mono" style="opacity:.6">${i+1}</td>`
+      : `<td class="c-muted mono drag-handle" title="Drag to reorder">⠿ ${i+1}</td>`;
+    return `<tr ${dragAttr}>${numHandle}<td class="fw6">${o.nama}<br><span style="font-size:10px;color:var(--text-muted)">${o.alamat||''}</span></td><td>${typeBadge}</td><td style="font-size:12px">${picDisplay}</td><td>${hpDisplay}</td><td class="mono c-teal">${fmt(o.nilai_aset||0)}</td><td class="mono">${o.total_unit||0}</td><td class="mono fw6 ${edClass}">${o.ed_alert||0} ${edIcon}</td><td><span class="s ${stClass}">${o.status||'Aktif'}</span></td><td>${editBtns}</td></tr>`;
   }).join('');
 }
 function renderOrd() {
