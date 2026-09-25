@@ -13,6 +13,7 @@
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Crect width='180' height='180' rx='40' fill='%23fff'/%3E%3Ctext x='50%25' y='50%25' font-family='Arial,sans-serif' font-size='80' font-weight='700' fill='%230A0A0A' text-anchor='middle' dominant-baseline='central' letter-spacing='-4'%3EFS%3C/text%3E%3C/svg%3E">
 <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Findest%20Sport%20CRM%22%2C%22short_name%22%3A%22Findest%20Sport%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230A0A0A%22%2C%22theme_color%22%3A%22%230A0A0A%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%253D%2527http%253A%252F%252Fwww.w3.org%252F2000%252Fsvg%2527%2520width%253D%2527192%2527%2520height%253D%2527192%2527%253E%253Crect%2520width%253D%2527192%2527%2520height%253D%2527192%2527%2520rx%253D%252742%2527%2520fill%253D%2527%2523fff%2527%252F%253E%253Ctext%2520x%253D%252750%2525%2527%2520y%253D%252750%2525%2527%2520font-family%253D%2527Arial%2527%2520font-size%253D%252785%2527%2520font-weight%253D%2527700%2527%2520fill%253D%2527%25230A0A0A%2527%2520text-anchor%253D%2527middle%2527%2520dominant-baseline%253D%2527central%2527%253EFS%253C%252Ftext%253E%253C%252Fsvg%253E%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <script>
 /* GSAP embedded (self-contained, no CDN) */
@@ -1700,6 +1701,30 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
 </div>
 
 <!-- EDIT KARYAWAN MODAL -->
+<!-- CUSTOMER QR CODE Modal -->
+<div class="mo" id="mo-cust-qr">
+  <div class="mo-c" style="max-width:440px">
+    <div class="mo-h"><div class="mo-title">🔗 Link Catalog Customer</div><button class="mo-x" onclick="closeMo('mo-cust-qr')">×</button></div>
+    <div class="mo-b" style="text-align:center">
+      <div id="cust-qr-name" style="font-size:18px;font-weight:800;letter-spacing:-.3px;margin-bottom:2px">-</div>
+      <div id="cust-qr-tipe" style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px">-</div>
+      <div id="cust-qr-holder" style="width:220px;height:220px;margin:0 auto 14px;padding:12px;background:#fff;border:1px solid var(--border);border-radius:12px;display:grid;place-items:center">
+        <div style="color:var(--text-muted);font-size:12px">Loading...</div>
+      </div>
+      <div style="background:var(--surface-1);padding:10px 12px;border-radius:8px;font-size:12px;font-family:monospace;word-break:break-all;color:var(--text-2);margin-bottom:14px" id="cust-qr-url">-</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="btn btn-ghost" onclick="copyCustQR()">📋 Copy Link</button>
+        <button class="btn btn-primary" onclick="shareCustQRWA()" id="cust-qr-wa-btn">💬 Kirim WA</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+        <button class="btn btn-ghost" onclick="downloadCustQR()">⬇️ Download PNG</button>
+        <button class="btn btn-ghost" onclick="printCustQR()">🖨️ Print</button>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:12px;line-height:1.5">Customer scan QR → auto-buka catalog dgn identity outlet ini. Setiap order dari QR ini otomatis tagged ke customer.</div>
+    </div>
+  </div>
+</div>
+
 <!-- RESET DATA TRIAL Modal -->
 <div class="mo" id="mo-reset-trial">
   <div class="mo-c" style="max-width:520px">
@@ -3507,7 +3532,7 @@ function renderCust() {
       <td>${c.sales_pic ? '<span class="badge b-gym" style="font-size:10px">'+c.sales_pic+'</span>' : '<span style="color:var(--text-dim);font-size:11px">–</span>'}</td>
       <td class="mono c-teal">${fmt(c.omzet_estimasi)}</td>
       <td><span class="s s-${c.status==='Aktif'?'ok':'bad'}">${c.status}</span></td>
-      <td>${canEdit ? `<div style="display:flex;gap:3px"><button class="btn btn-sm btn-ghost" onclick="editCust(${c.id})">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteCust(${c.id},'${c.nama.replace(/'/g,"\'")}')">🗑️</button></div>` : '-'}</td>
+      <td>${canEdit ? `<div style="display:flex;gap:3px"><button class="btn btn-sm btn-ghost" onclick="openCustQR(${c.id})" title="QR + Link Catalog">🔗</button><button class="btn btn-sm btn-ghost" onclick="editCust(${c.id})" title="Edit">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteCust(${c.id},'${c.nama.replace(/'/g,"\'")}')" title="Hapus">🗑️</button></div>` : `<button class="btn btn-sm btn-ghost" onclick="openCustQR(${c.id})" title="QR + Link Catalog">🔗</button>`}</td>
     </tr>
   `).join('');
 }
@@ -7504,6 +7529,106 @@ async function logActivity(action, tabel, data) {
       created_at: new Date().toISOString()
     }]);
   } catch(e) { /* silent fail */ }
+}
+
+// ════════════════════════════════════════════
+// CUSTOMER QR CODE — quick access to catalog link + QR
+// ════════════════════════════════════════════
+let currentCustQR = null;
+
+function catalogBaseUrl() {
+  // Base URL buat catalog: same origin + path, replace filename
+  const path = window.location.pathname.replace(/[^/]+$/, '');
+  return window.location.origin + path + 'catalog.html';
+}
+
+function openCustQR(id) {
+  const c = cache.customers?.find(x => x.id === id);
+  if(!c) { showToast('Customer ga ketemu','error'); return; }
+  currentCustQR = c;
+  const url = catalogBaseUrl() + '?c=' + c.id;
+  document.getElementById('cust-qr-name').textContent = c.nama;
+  document.getElementById('cust-qr-tipe').textContent = (c.tipe||'') + (c.alamat?' · '+c.alamat.substring(0,40):'');
+  document.getElementById('cust-qr-url').textContent = url;
+  const waBtn = document.getElementById('cust-qr-wa-btn');
+  if(waBtn) waBtn.disabled = !c.wa;
+  if(waBtn && !c.wa) { waBtn.textContent = '💬 WA (no number)'; waBtn.style.opacity='.5'; }
+  else if(waBtn) { waBtn.textContent = '💬 Kirim WA'; waBtn.style.opacity='1'; }
+  // Render QR
+  const holder = document.getElementById('cust-qr-holder');
+  if(typeof qrcode === 'undefined') {
+    holder.innerHTML = '<div style="color:var(--red);font-size:11px;padding:20px">QR lib not loaded</div>';
+  } else {
+    try {
+      const qr = qrcode(0, 'M');
+      qr.addData(url);
+      qr.make();
+      holder.innerHTML = qr.createImgTag(6, 0);
+      const img = holder.querySelector('img');
+      if(img) { img.style.maxWidth='100%'; img.style.height='auto'; }
+    } catch(e) {
+      holder.innerHTML = '<div style="color:var(--red);font-size:11px">Gagal generate: '+e.message+'</div>';
+    }
+  }
+  openMo('mo-cust-qr');
+}
+
+async function copyCustQR() {
+  const url = document.getElementById('cust-qr-url')?.textContent;
+  if(!url) return;
+  try {
+    await navigator.clipboard.writeText(url);
+    showToast('✅ Link di-copy!');
+  } catch(e) { prompt('Copy link:', url); }
+}
+
+function shareCustQRWA() {
+  if(!currentCustQR || !currentCustQR.wa) { showToast('Customer belum punya nomor WA','error'); return; }
+  const url = catalogBaseUrl() + '?c=' + currentCustQR.id;
+  let wa = (currentCustQR.wa||'').replace(/[\s\-+]/g,'');
+  if(wa.startsWith('08')) wa = '62' + wa.slice(1);
+  else if(wa.startsWith('8') && !wa.startsWith('62')) wa = '62' + wa;
+  const msg = `Halo ${currentCustQR.nama} 👋\n\nIni link catalog Findest Sport khusus buat outlet kamu:\n${url}\n\nSetiap kali mau order, tinggal tap link ini — udah auto-login jadi outlet ${currentCustQR.nama}. Riwayat order juga bisa dilacak di sana.\n\nSave nomor WA ini biar gampang kalo ada pesanan ya! 🙌\n\n_Findest Sport — Distributor Suplemen Bali_`;
+  window.open('https://wa.me/'+wa+'?text='+encodeURIComponent(msg), '_blank');
+}
+
+function downloadCustQR() {
+  const img = document.querySelector('#cust-qr-holder img');
+  if(!img || !currentCustQR) return;
+  const link = document.createElement('a');
+  link.href = img.src;
+  const safeName = currentCustQR.nama.replace(/[^a-z0-9]/gi,'-').toLowerCase();
+  link.download = 'findest-qr-' + safeName + '.gif';
+  link.click();
+  showToast('QR di-download');
+}
+
+function printCustQR() {
+  const url = document.getElementById('cust-qr-url')?.textContent;
+  const img = document.querySelector('#cust-qr-holder img');
+  if(!img || !currentCustQR) return;
+  const w = window.open('','_blank','width=400,height=600');
+  w.document.write(`
+    <html><head><title>QR ${currentCustQR.nama}</title>
+    <style>
+      body{font-family:sans-serif;text-align:center;padding:40px;margin:0}
+      h2{font-size:28px;margin:0 0 4px;letter-spacing:-.5px}
+      .tipe{font-size:12px;color:#666;text-transform:uppercase;letter-spacing:.5px;margin-bottom:24px}
+      img{width:280px;height:280px;border:1px solid #ddd;padding:12px;border-radius:12px}
+      .brand{font-size:20px;font-weight:800;margin-bottom:20px;color:#0D9488}
+      .url{font-size:10px;color:#999;word-break:break-all;margin-top:16px;font-family:monospace}
+      .footer{margin-top:24px;font-size:11px;color:#999}
+    </style></head><body>
+    <div class="brand">Findest Sport</div>
+    <h2>${currentCustQR.nama}</h2>
+    <div class="tipe">${currentCustQR.tipe||'Customer'}</div>
+    <img src="${img.src}"/>
+    <div class="url">${url}</div>
+    <div class="footer">Scan QR → auto-buka catalog · Order instant</div>
+    <script>window.print();setTimeout(()=>window.close(),500);<\/script>
+    </body></html>
+  `);
+  w.document.close();
 }
 
 // ════════════════════════════════════════════
