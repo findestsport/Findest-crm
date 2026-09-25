@@ -6,6 +6,14 @@
 -- Link:  https://supabase.com/dashboard/project/wuejoxgbtvmlrriwlofk/sql/new
 -- ═══════════════════════════════════════════════════════════════
 
+-- 0) Add customer_id column to orders (buat link order ke customer record)
+ALTER TABLE public.orders
+  ADD COLUMN IF NOT EXISTS customer_id BIGINT;
+
+CREATE INDEX IF NOT EXISTS idx_orders_customer_id
+  ON public.orders(customer_id)
+  WHERE customer_id IS NOT NULL;
+
 -- 1) Allow anonymous customers to INSERT orders via catalog.html
 --    (they cannot READ/UPDATE/DELETE — hanya create baru)
 DROP POLICY IF EXISTS "customer_app_insert" ON public.orders;
