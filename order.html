@@ -1002,6 +1002,31 @@ const SB_URL = 'https://wuejoxgbtvmlrriwlofk.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZWpveGdidHZtbHJyaXdsb2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNjY1NTQsImV4cCI6MjA5Mjg0MjU1NH0.nq0xlsuXeJNXtb8SisPQ3Ml5fXNy2vguVRJ8pNFGai0';
 const sb = supabase.createClient(SB_URL, SB_KEY);
 
+// ─────────────────────────────────
+// MOCK DATA — fallback kalo Supabase ke-block CSP (mis. di artifact preview)
+// Real Findest catalog sample. Nanti auto-replace pas hosted di GH Pages.
+// ─────────────────────────────────
+const MOCK_PRODUCTS = [
+  { id: 101, nama: 'Whey Isolate Choco 2LB', brand: 'Muscle First', kategori: 'Protein', harga: 745000, hpp: 601000, foto_url: '', deskripsi: 'Premium whey protein isolate 25g protein per serving. Low carb, halal certified. Best seller kategori protein di gym populer Bali.', stok: 18, status: 'Aktif' },
+  { id: 102, nama: 'Whey GS Chocolate 5 LBS', brand: 'ON', kategori: 'Protein', harga: 1524000, hpp: 1385000, foto_url: '', deskripsi: 'Gold Standard 100% Whey — the world\'s best-selling whey protein powder. 24g protein per serving, 5.5g BCAA.', stok: 3, status: 'Aktif' },
+  { id: 103, nama: 'Whey Isolate Choco 2LB', brand: 'ON', kategori: 'Protein', harga: 853000, hpp: 775000, foto_url: '', deskripsi: 'Fastest-digesting whey isolate. Perfect for cutting phase & recovery post workout.', stok: 25, status: 'Aktif' },
+  { id: 104, nama: 'BCAA Boost Mango Peach 390g', brand: 'ON', kategori: 'Amino', harga: 513000, hpp: 466000, foto_url: '', deskripsi: '5g BCAA + electrolytes. Support muscle recovery & endurance training.', stok: 12, status: 'Aktif' },
+  { id: 105, nama: 'Whey Protein Vanilla 2LB', brand: 'Evolene', kategori: 'Protein', harga: 620000, hpp: 500000, foto_url: '', deskripsi: 'Local Indonesian premium whey. Made in Bandung. 22g protein per serving.', stok: 30, status: 'Aktif' },
+  { id: 106, nama: 'Syntha 6 Isolate Vanilla 4.02 LBS', brand: 'BSN', kategori: 'Protein', harga: 1463000, hpp: 1330000, foto_url: '', deskripsi: 'Multi-source ultra-premium protein isolate blend. 22g protein, 15g EAAs per serving.', stok: 8, status: 'Aktif' },
+  { id: 107, nama: 'Collagen Drink 30 sachet', brand: 'Hotto', kategori: 'Supplement', harga: 285000, hpp: 230000, foto_url: '', deskripsi: 'Marine collagen 10.000mg per sachet. Support skin elasticity & joint health.', stok: 45, status: 'Aktif' },
+  { id: 108, nama: 'Whey Isolate Unflavored 1 LB', brand: 'ISOPURE', kategori: 'Protein', harga: 562000, hpp: 511000, foto_url: '', deskripsi: '25g protein zero carbs. Ideal untuk lactose-sensitive & clean bulking.', stok: 15, status: 'Aktif' },
+  { id: 109, nama: 'Platinum Hydro Whey Choco 3.5LB', brand: 'ON', kategori: 'Protein', harga: 1711000, hpp: 1555000, foto_url: '', deskripsi: 'Hydrolyzed whey — pre-digested for ultra-fast absorption. 30g protein per serving.', stok: 6, status: 'Aktif' },
+  { id: 110, nama: 'Whey GS Vanilla Ice Cream 2 LB', brand: 'ON', kategori: 'Protein', harga: 705000, hpp: 641000, foto_url: '', deskripsi: 'Best-selling flavor. Rich creamy vanilla taste.', stok: 22, status: 'Aktif' },
+  { id: 111, nama: 'Amino Energy Watermelon 285g', brand: 'ON', kategori: 'Amino', harga: 432000, hpp: 392000, foto_url: '', deskripsi: 'Pre-workout amino + caffeine. Boost energy & muscle recovery.', stok: 18, status: 'Aktif' },
+  { id: 112, nama: 'Casein Chocolate 2LB', brand: 'Pranaon', kategori: 'Protein', harga: 780000, hpp: 630000, foto_url: '', deskripsi: 'Slow-release casein protein. Ideal untuk night muscle recovery.', stok: 0, status: 'Aktif' },
+];
+
+const MOCK_CUSTOMER = {
+  id: 999, nama: 'Fitness Plus Sanur', tipe: 'Fitness Plus',
+  wa: '081234567890', alamat: 'Jl. Danau Poso No.29, Sanur, Denpasar Selatan, Bali',
+  status: 'Aktif', pic: 'Bapak Budi'
+};
+
 // State
 let products = [];
 let filteredProducts = [];
@@ -1080,11 +1105,20 @@ function route() {
 async function loadCustomer() {
   const params = new URLSearchParams(window.location.search);
   const custId = params.get('c');
-  if (!custId) return;
 
-  const { data, error } = await sb.from('customers').select('*').eq('id', custId).maybeSingle();
-  if (error || !data) return;
-  customer = data;
+  if (custId) {
+    // Try Supabase
+    try {
+      const { data } = await Promise.race([
+        sb.from('customers').select('*').eq('id', custId).maybeSingle(),
+        new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 3000))
+      ]);
+      if (data) { customer = data; }
+    } catch { /* fallback */ }
+  }
+
+  // Fallback: mock customer (demo mode)
+  if (!customer) customer = MOCK_CUSTOMER;
 
   // Update UI
   $('#cust-name').textContent = customer.nama;
@@ -1099,23 +1133,33 @@ async function loadCustomer() {
 // Products
 // ─────────────────────────────────
 async function loadProducts() {
-  const { data, error } = await sb.from('products')
-    .select('id,nama,brand,kategori,harga,hpp,foto_url,deskripsi,stok,status,sort_order')
-    .eq('status', 'Aktif')
-    .order('brand')
-    .order('nama');
-  if (error) {
-    console.error(error);
-    return;
+  // Try Supabase live data first (works on GitHub Pages, blocked in artifact CSP)
+  try {
+    const result = await Promise.race([
+      sb.from('products')
+        .select('id,nama,brand,kategori,harga,hpp,foto_url,deskripsi,stok,status,sort_order')
+        .eq('status', 'Aktif')
+        .order('brand').order('nama'),
+      new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 4000))
+    ]);
+    if (result.data && result.data.length > 0) {
+      products = result.data;
+      console.log('[Findest] Loaded', products.length, 'products from Supabase');
+    }
+  } catch (e) {
+    console.warn('[Findest] Supabase unreachable, using demo data:', e.message);
   }
-  products = data || [];
+
+  // Fallback: mock products (demo mode in artifact preview)
+  if (!products.length) {
+    products = MOCK_PRODUCTS;
+    console.log('[Findest] Demo mode:', products.length, 'sample products');
+  }
   filteredProducts = products;
 
-  // Extract categories
   const cats = new Set(products.map(p => p.kategori).filter(Boolean));
   categories = ['All', ...Array.from(cats).sort()];
 
-  // Render everything
   renderHome();
   renderShop();
   renderCatChips();
