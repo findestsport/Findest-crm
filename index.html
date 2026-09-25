@@ -826,6 +826,24 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
     </div>
   </div>
 
+  <!-- HISTORY BULANAN (Snapshots) -->
+  <div class="card" style="margin-top:16px" id="history-snapshot-card">
+    <div class="card-h" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div class="card-title">📸 History Bulanan (Archive)</div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <select class="filt" id="snap-picker" style="max-width:180px" onchange="loadHistorySnapshot()">
+          <option value="">Pilih bulan...</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="takeSnapshotNow()" title="Save snapshot bulan ini">💾 Snap Now</button>
+      </div>
+    </div>
+    <div class="card-b">
+      <div id="snap-content">
+        <div class="empty" style="padding:24px"><div class="empty-icon">📸</div><div class="empty-txt" style="font-size:12px">Pilih bulan di dropdown buat liat history</div></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ACTIVITY LOG - GM only -->
   <div class="card" id="activity-log-card" style="display:none;margin-top:16px">
     <div class="card-h"><div class="card-title">📋 Activity Log</div></div>
@@ -1687,9 +1705,13 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
   <div class="mo-c" style="max-width:520px">
     <div class="mo-h"><div class="mo-title">🧨 Reset Data Trial</div><button class="mo-x" onclick="closeMo('mo-reset-trial')">×</button></div>
     <div class="mo-b">
+      <div style="background:rgba(217,119,6,.08);border:1px solid rgba(217,119,6,.25);border-radius:10px;padding:14px;margin-bottom:12px">
+        <div style="font-weight:700;color:#d97706;margin-bottom:8px">📸 History bakal auto-archive</div>
+        <div style="font-size:13px;line-height:1.5;color:var(--text-2)">Sebelum wipe, snapshot semua bulan (omzet, top produk, top customer, kas) di-save ke <code>monthly_snapshots</code>. Bisa lo browse kapan aja di History Bulanan.</div>
+      </div>
       <div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.25);border-radius:10px;padding:14px;margin-bottom:14px">
-        <div style="font-weight:700;color:#dc2626;margin-bottom:8px">⚠️ BAHAYA — Ini permanent!</div>
-        <div style="font-size:13px;line-height:1.5;color:var(--text-2)">Akan menghapus <b>SEMUA data transaksi</b> — orders, invoices, deliveries, expenses, payments, batches, visit logs, konsinyasi.</div>
+        <div style="font-weight:700;color:#dc2626;margin-bottom:8px">⚠️ Data mentah bakal hilang</div>
+        <div style="font-size:13px;line-height:1.5;color:var(--text-2)">Setelah snapshot, akan menghapus row mentah dari: orders, invoices, deliveries, expenses, payments, batches, visit logs, konsinyasi. Aggregate history tetap ada.</div>
       </div>
       <div style="background:rgba(5,150,105,.08);border:1px solid rgba(5,150,105,.2);border-radius:10px;padding:14px;margin-bottom:14px">
         <div style="font-weight:700;color:#059669;margin-bottom:8px">✅ Data yg AMAN (tetep ada)</div>
@@ -3377,6 +3399,8 @@ async function loadAllData() {
     checkRestockAlerts();
     checkEDBanner();
     checkOverdueBanner();
+    // Auto-snapshot bulan lalu kalo belum ada
+    autoSnapshotPrevMonth();
   }, 1500);
 
   // Load absensi if page accessible
@@ -7483,6 +7507,127 @@ async function logActivity(action, tabel, data) {
 }
 
 // ════════════════════════════════════════════
+// MONTHLY SNAPSHOTS — auto-archive history per bulan
+// ════════════════════════════════════════════
+async function autoSnapshotPrevMonth() {
+  try {
+    const now = new Date();
+    const dayOfMonth = now.getDate();
+    // Skip 3 hari pertama bulan biar sales bulan lalu ke-record dulu
+    if(dayOfMonth < 4) return;
+    const prev = new Date(now.getFullYear(), now.getMonth()-1, 1);
+    const period = prev.getFullYear() + '-' + String(prev.getMonth()+1).padStart(2,'0');
+    // Cek udah ada snapshot 'auto' untuk period ini
+    const { data: existing } = await sb.from('monthly_snapshots')
+      .select('id').eq('period', period).eq('snapshot_type', 'auto').maybeSingle();
+    if(existing) return;
+    // Belum ada → auto-take
+    await sb.rpc('take_monthly_snapshot', { p_period: period, p_type: 'auto' });
+    console.log('[Findest] Auto-snapshot saved:', period);
+    loadSnapshotList();
+  } catch(e) {
+    console.warn('[Findest] auto-snapshot skipped:', e.message);
+  }
+}
+
+async function takeSnapshotNow() {
+  const now = new Date();
+  const period = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  if(!confirm(`Save snapshot untuk bulan ${period}?\n\nIni akan overwrite snapshot manual yg udah ada (kalo ada).`)) return;
+  try {
+    const { data, error } = await sb.rpc('take_monthly_snapshot', { p_period: period, p_type: 'manual' });
+    if(error) throw error;
+    showToast('📸 Snapshot ' + period + ' tersimpan!');
+    await loadSnapshotList();
+    document.getElementById('snap-picker').value = period + ':manual';
+    loadHistorySnapshot();
+  } catch(e) {
+    showToast('Gagal snapshot: ' + e.message, 'error');
+  }
+}
+
+async function loadSnapshotList() {
+  try {
+    const { data } = await sb.from('monthly_snapshots')
+      .select('id,period,snapshot_type,created_at').order('period', {ascending: false}).order('created_at', {ascending: false});
+    const sel = document.getElementById('snap-picker');
+    if(!sel) return;
+    if(!data || !data.length) {
+      sel.innerHTML = '<option value="">Belum ada snapshot</option>';
+      return;
+    }
+    const monthNames = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    sel.innerHTML = '<option value="">Pilih bulan...</option>' + data.map(s=>{
+      const [yr, mo] = s.period.split('-');
+      const typeIcon = s.snapshot_type === 'auto' ? '🤖' : s.snapshot_type === 'pre_reset' ? '🧨' : '👤';
+      return `<option value="${s.period}:${s.snapshot_type}">${monthNames[parseInt(mo)-1]} ${yr} ${typeIcon} ${s.snapshot_type}</option>`;
+    }).join('');
+  } catch(e) { console.warn('load snapshots:', e.message); }
+}
+
+async function loadHistorySnapshot() {
+  const val = document.getElementById('snap-picker')?.value;
+  const el = document.getElementById('snap-content');
+  if(!val) { el.innerHTML = '<div class="empty" style="padding:24px"><div class="empty-icon">📸</div><div class="empty-txt" style="font-size:12px">Pilih bulan di dropdown buat liat history</div></div>'; return; }
+  const [period, type] = val.split(':');
+  el.innerHTML = '<div class="empty"><div class="spinner"></div></div>';
+  try {
+    const { data, error } = await sb.from('monthly_snapshots')
+      .select('*').eq('period', period).eq('snapshot_type', type).maybeSingle();
+    if(error) throw error;
+    if(!data) { el.innerHTML = '<div class="empty">Snapshot ga ketemu</div>'; return; }
+    renderSnapshot(data);
+  } catch(e) {
+    el.innerHTML = `<div class="empty">Gagal load: ${e.message}</div>`;
+  }
+}
+
+function renderSnapshot(s) {
+  const el = document.getElementById('snap-content');
+  const savedAt = new Date(s.created_at).toLocaleString('id-ID',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const [yr, mo] = s.period.split('-');
+  const periodLabel = monthNames[parseInt(mo)-1] + ' ' + yr;
+  const topProds = s.top_products || [];
+  const topCusts = s.top_customers || [];
+  const channels = s.channel_breakdown || {};
+  const expenses = s.expenses_breakdown || {};
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:18px;font-weight:800;letter-spacing:-.3px">${periodLabel}</div>
+      <div style="font-size:11px;color:var(--text-muted)">Snapshot ${s.snapshot_type} · ${savedAt}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:16px">
+      <div class="kpi" style="--kc:var(--teal);border-left:3px solid var(--teal);padding:14px"><div class="kpi-label">Omzet</div><div class="kpi-val c-teal" style="font-size:22px">${fmt(s.total_omzet)}</div></div>
+      <div class="kpi" style="--kc:var(--green);border-left:3px solid var(--green);padding:14px"><div class="kpi-label">Kas Masuk</div><div class="kpi-val c-green" style="font-size:22px">${fmt(s.kas_masuk)}</div></div>
+      <div class="kpi" style="--kc:var(--red);border-left:3px solid var(--red);padding:14px"><div class="kpi-label">Kas Keluar</div><div class="kpi-val c-red" style="font-size:22px">${fmt(s.kas_keluar)}</div></div>
+      <div class="kpi" style="--kc:var(--gold);border-left:3px solid var(--gold);padding:14px"><div class="kpi-label">Saldo Akhir</div><div class="kpi-val c-gold" style="font-size:22px">${fmt(s.saldo_akhir)}</div></div>
+      <div class="kpi" style="--kc:var(--gold);border-left:3px solid var(--gold);padding:14px"><div class="kpi-label">Piutang</div><div class="kpi-val c-gold" style="font-size:22px">${fmt(s.piutang_outstanding)}</div></div>
+      <div class="kpi" style="--kc:var(--teal);border-left:3px solid var(--teal);padding:14px"><div class="kpi-label">Total Order</div><div class="kpi-val c-teal" style="font-size:22px">${s.total_order||0}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px" class="snap-grid">
+      <div class="card"><div class="card-h"><div class="card-title" style="font-size:14px">🏆 Top 10 Produk</div></div><div class="card-b">
+        ${topProds.length ? topProds.map((p,i)=>`<div class="mstat"><span class="mstat-l">${i+1}. ${p.nama||'-'} <span style="color:var(--text-muted);font-size:10px">${p.brand||''} · ${p.qty||0} pcs</span></span><span class="mstat-v c-teal">${fmt(p.revenue||0)}</span></div>`).join('') : '<div style="color:var(--text-muted);font-size:12px">Belum ada data</div>'}
+      </div></div>
+      <div class="card"><div class="card-h"><div class="card-title" style="font-size:14px">👑 Top Customer</div></div><div class="card-b">
+        ${topCusts.length ? topCusts.map((c,i)=>`<div class="mstat"><span class="mstat-l">${i+1}. ${c.nama||'-'} <span style="color:var(--text-muted);font-size:10px">${c.order_count||0} order</span></span><span class="mstat-v c-teal">${fmt(c.revenue||0)}</span></div>`).join('') : '<div style="color:var(--text-muted);font-size:12px">Belum ada data</div>'}
+      </div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" class="snap-grid">
+      <div class="card"><div class="card-h"><div class="card-title" style="font-size:14px">📡 Breakdown per Channel</div></div><div class="card-b">
+        ${Object.keys(channels).length ? Object.entries(channels).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="mstat"><span class="mstat-l">${k}</span><span class="mstat-v c-teal">${fmt(v)}</span></div>`).join('') : '<div style="color:var(--text-muted);font-size:12px">-</div>'}
+      </div></div>
+      <div class="card"><div class="card-h"><div class="card-title" style="font-size:14px">📤 Breakdown Pengeluaran</div></div><div class="card-b">
+        ${Object.keys(expenses).length ? Object.entries(expenses).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="mstat"><span class="mstat-l">${k}</span><span class="mstat-v c-red">${fmt(v)}</span></div>`).join('') : '<div style="color:var(--text-muted);font-size:12px">-</div>'}
+      </div></div>
+    </div>
+  `;
+}
+
+// Load snapshot list on dashboard init
+setTimeout(() => { if(typeof sb !== 'undefined') loadSnapshotList(); }, 2500);
+
+// ════════════════════════════════════════════
 // KAS AWAL BULAN — starting balance per bulan (stored in config)
 // ════════════════════════════════════════════
 async function saveStartingBalance() {
@@ -7513,7 +7658,21 @@ async function doResetTrial() {
   const input = document.getElementById('reset-confirm-input')?.value.trim();
   if(input !== 'RESET FINDEST') { showToast('Ketik "RESET FINDEST" persis','error'); return; }
   const btn = document.getElementById('btn-do-reset');
-  if(btn) { btn.disabled = true; btn.textContent = '⏳ Menghapus…'; }
+  if(btn) { btn.disabled = true; btn.textContent = '⏳ Snapshot history dulu…'; }
+
+  // PRE-RESET: auto-archive semua bulan yg ada data ke monthly_snapshots
+  try {
+    const { data: snapshots, error: snapErr } = await sb.rpc('snapshot_all_months', { p_type: 'pre_reset' });
+    if(snapErr) {
+      console.warn('Snapshot warning:', snapErr.message);
+    } else if(snapshots?.length) {
+      showToast(`📸 ${snapshots.length} bulan history di-archive`);
+    }
+  } catch(e) {
+    console.warn('Snapshot skipped:', e.message);
+  }
+
+  if(btn) { btn.textContent = '⏳ Menghapus data…'; }
 
   // Tables to wipe (transactional). Ordered so FKs don't complain.
   const targets = [
