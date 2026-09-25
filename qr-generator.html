@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Findest QR Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+
+<style>
+:root {
+  --ink: #111; --canvas: #fff; --soft: #f5f5f5;
+  --hairline: #cacacb; --hairline-soft: #e5e5e5;
+  --mute: #707072; --sale: #d30005;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 24px;
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--soft); color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+.container { max-width: 1200px; margin: 0 auto; }
+
+.head {
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--ink);
+  margin-bottom: 24px;
+}
+.head h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 48px; line-height: 0.95;
+  text-transform: uppercase;
+  margin: 0 0 6px;
+}
+.head p {
+  font-size: 14px; color: var(--mute);
+  margin: 0;
+  max-width: 640px; line-height: 1.5;
+}
+
+.toolbar {
+  background: var(--canvas);
+  padding: 16px;
+  display: flex; gap: 12px; align-items: center;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.toolbar input, .toolbar select {
+  padding: 10px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 24px;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  background: var(--soft);
+}
+.toolbar input:focus, .toolbar select:focus { border-color: var(--ink); background: var(--canvas); }
+.toolbar .count { margin-left: auto; font-size: 13px; color: var(--mute); }
+.toolbar .count span { color: var(--ink); font-weight: 600; }
+.toolbar button {
+  padding: 10px 20px;
+  background: var(--ink); color: var(--canvas);
+  border: none; border-radius: 30px;
+  font-family: inherit; font-size: 14px; font-weight: 500;
+  cursor: pointer;
+}
+
+.base-url-input {
+  flex: 1; min-width: 300px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.qr-card {
+  background: var(--canvas);
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid var(--hairline-soft);
+}
+.qr-card .qr-holder {
+  width: 200px; height: 200px;
+  margin: 0 auto 12px;
+  padding: 12px;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  display: grid; place-items: center;
+}
+.qr-card .qr-holder img,
+.qr-card .qr-holder table {
+  width: 100%; height: auto; max-width: 100%;
+}
+.qr-card .brand-mark {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px; line-height: 1;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+.qr-card .brand-mark .dot { color: var(--ink); }
+.qr-card .nama {
+  font-size: 14px; font-weight: 500;
+  margin-bottom: 4px;
+  min-height: 40px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.qr-card .tipe {
+  font-size: 11px; color: var(--mute);
+  text-transform: uppercase; letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+.qr-card .url {
+  font-size: 10px; color: var(--mute);
+  word-break: break-all;
+  padding: 6px 8px;
+  background: var(--soft);
+  border-radius: 6px;
+}
+.qr-card .actions {
+  margin-top: 10px;
+  display: flex; gap: 6px; justify-content: center;
+}
+.qr-card button {
+  padding: 6px 12px;
+  background: var(--soft);
+  border: 1px solid var(--hairline);
+  border-radius: 20px;
+  font-size: 11px; font-weight: 500;
+  cursor: pointer;
+}
+.qr-card button:hover { background: var(--ink); color: var(--canvas); border-color: var(--ink); }
+
+.loading {
+  padding: 60px; text-align: center;
+  color: var(--mute); font-size: 14px;
+}
+.spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--soft);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  margin: 0 auto 12px;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.info-banner {
+  background: var(--ink); color: var(--canvas);
+  padding: 14px 18px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-size: 13px; line-height: 1.5;
+}
+.info-banner b { color: #fff; }
+
+/* Print styles */
+@media print {
+  body { background: white; padding: 0; }
+  .toolbar, .info-banner, .head p, .qr-card .actions { display: none; }
+  .head h1 { font-size: 24px; }
+  .grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .qr-card { break-inside: avoid; border: 1px solid #ddd; padding: 10px; }
+  .qr-card .qr-holder { width: 160px; height: 160px; padding: 8px; }
+  .qr-card .url { font-size: 8px; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="head">
+    <h1>QR Generator</h1>
+    <p>Generate QR code per customer/outlet. Scan → auto-buka Findest Order app dgn identity outlet mereka. Print → distribusi ke gym/apotek partner.</p>
+  </div>
+
+  <div class="info-banner">
+    <b>Cara pakai:</b> Base URL di bawah otomatis nunjuk ke <code style="background:rgba(255,255,255,.15);padding:1px 6px;border-radius:4px">catalog.html</code>. Filter customer, tap <b>Print</b> (⌘+P / Ctrl+P), tempel QR di gym/apotek. Customer scan → catalog auto-login pakai identity outlet.
+  </div>
+
+  <div class="toolbar">
+    <input type="text" id="search" placeholder="Cari customer / tipe..." oninput="renderCards()">
+    <select id="filterTipe" onchange="renderCards()">
+      <option value="">Semua Tipe</option>
+    </select>
+    <input type="text" id="baseUrl" class="base-url-input" placeholder="Base URL app" value="">
+    <div class="count"><span id="count">0</span> customer</div>
+    <button onclick="window.print()">🖨 Print</button>
+  </div>
+
+  <div id="grid" class="grid">
+    <div class="loading"><div class="spinner"></div>Loading customers...</div>
+  </div>
+</div>
+
+<script>
+const SB_URL = 'https://wuejoxgbtvmlrriwlofk.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZWpveGdidHZtbHJyaXdsb2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNjY1NTQsImV4cCI6MjA5Mjg0MjU1NH0.nq0xlsuXeJNXtb8SisPQ3Ml5fXNy2vguVRJ8pNFGai0';
+const sb = supabase.createClient(SB_URL, SB_KEY);
+
+// Detect base URL: use current origin+path minus filename → point to catalog
+const currentPath = window.location.pathname.replace(/[^/]+$/, '');
+const defaultBase = window.location.origin + currentPath + 'catalog.html';
+document.getElementById('baseUrl').value = defaultBase;
+
+let customers = [];
+
+// Mock data (fallback kalo Supabase blocked oleh CSP artifact)
+const MOCK_CUSTOMERS = [
+  { id: 1, nama: 'Fitness Plus Sanur', tipe: 'Fitness Plus', wa: '081200000001', alamat: 'Sanur, Denpasar' },
+  { id: 2, nama: 'Fitness Plus Canggu', tipe: 'Fitness Plus', wa: '081200000002', alamat: 'Canggu, Badung' },
+  { id: 3, nama: 'Semeton Pharmacy Kuta', tipe: 'Apotek', wa: '081200000003', alamat: 'Kuta, Badung' },
+  { id: 4, nama: 'RAW Gym Canggu', tipe: 'Gym Lain', wa: '081200000004', alamat: 'Canggu, Badung' },
+  { id: 5, nama: 'Brew Cafe Yes Fitness', tipe: 'F&B', wa: '081200000005', alamat: 'Denpasar' },
+  { id: 6, nama: 'Hotto Bali', tipe: 'F&B', wa: '081200000006', alamat: 'Seminyak' },
+  { id: 7, nama: 'Reload Sanctuary Gym', tipe: 'Gym Lain', wa: '081200000007', alamat: 'Sanur' },
+  { id: 8, nama: 'Apotek Nadi Farma', tipe: 'Apotek', wa: '081200000008', alamat: 'Denpasar' },
+];
+
+async function loadCustomers() {
+  try {
+    const result = await Promise.race([
+      sb.from('customers').select('id,nama,tipe,wa,alamat').eq('status', 'Aktif').order('nama'),
+      new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 4000))
+    ]);
+    if (result.data && result.data.length) {
+      customers = result.data;
+      console.log('[Findest] Loaded', customers.length, 'customers from Supabase');
+    }
+  } catch (e) {
+    console.warn('[Findest] Supabase unreachable, using demo data:', e.message);
+  }
+  if (!customers.length) customers = MOCK_CUSTOMERS;
+
+  // Populate tipe filter
+  const tipes = [...new Set(customers.map(c => c.tipe).filter(Boolean))].sort();
+  const sel = document.getElementById('filterTipe');
+  tipes.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t; opt.textContent = t;
+    sel.appendChild(opt);
+  });
+
+  renderCards();
+}
+
+function renderCards() {
+  const q = document.getElementById('search').value.toLowerCase().trim();
+  const tipe = document.getElementById('filterTipe').value;
+  const base = document.getElementById('baseUrl').value;
+
+  const filtered = customers.filter(c => {
+    const qMatch = !q || (c.nama || '').toLowerCase().includes(q) || (c.tipe || '').toLowerCase().includes(q);
+    const tipeMatch = !tipe || c.tipe === tipe;
+    return qMatch && tipeMatch;
+  });
+
+  document.getElementById('count').textContent = filtered.length;
+
+  const grid = document.getElementById('grid');
+  if (!filtered.length) {
+    grid.innerHTML = '<div class="loading">Ga ada customer yg cocok filter.</div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map(c => {
+    const url = `${base}?c=${c.id}`;
+    return `
+      <div class="qr-card">
+        <div class="brand-mark">Findest<span class="dot">.</span></div>
+        <div class="qr-holder" data-url="${encodeURIComponent(url)}" data-id="${c.id}"></div>
+        <div class="nama">${c.nama}</div>
+        <div class="tipe">${c.tipe || 'Customer'}</div>
+        <div class="url">${url}</div>
+        <div class="actions">
+          <button onclick="copyUrl('${url.replace(/'/g,"\\'")}')">Copy URL</button>
+          <button onclick="downloadQR('${c.id}', '${c.nama.replace(/'/g,"\\'")}')">Download PNG</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Render QR codes
+  document.querySelectorAll('.qr-holder').forEach(el => {
+    const url = decodeURIComponent(el.dataset.url);
+    const qr = qrcode(0, 'M');
+    qr.addData(url);
+    qr.make();
+    el.innerHTML = qr.createImgTag(4, 0);
+  });
+}
+
+function copyUrl(url) {
+  navigator.clipboard.writeText(url).then(() => {
+    alert('URL copied!');
+  }).catch(() => {
+    prompt('Copy URL:', url);
+  });
+}
+
+function downloadQR(custId, custName) {
+  const el = document.querySelector(`.qr-holder[data-id="${custId}"] img`);
+  if (!el) return;
+  const link = document.createElement('a');
+  link.href = el.src;
+  link.download = `findest-qr-${custName.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.gif`;
+  link.click();
+}
+
+// Re-render pada base URL change
+document.getElementById('baseUrl').addEventListener('input', renderCards);
+
+loadCustomers();
+</script>
+</body>
+</html>

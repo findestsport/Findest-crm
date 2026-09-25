@@ -1,0 +1,1880 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="Preview aplikasi Findest Order — mockup customer app supplement store, 6 layar wireframe.">
+<title>FINDEST — Order</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   Findest — Nike DNA design system
+   Colors from Nike DESIGN.md (VoltAgent/awesome-design-md)
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --ink: #111111;
+  --canvas: #ffffff;
+  --soft-cloud: #f5f5f5;
+  --hairline: #cacacb;
+  --hairline-soft: #e5e5e5;
+  --charcoal: #39393b;
+  --mute: #707072;
+  --stone: #9e9ea0;
+  --sale: #d30005;
+  --success: #007d48;
+
+  /* Radii — pills everywhere per Nike */
+  --r-none: 0;
+  --r-sm: 18px;
+  --r-md: 24px;
+  --r-lg: 30px;
+  --r-full: 9999px;
+
+  /* Spacing 8px base */
+  --s-xxs: 2px; --s-xs: 4px; --s-sm: 8px; --s-md: 12px;
+  --s-lg: 18px; --s-xl: 24px; --s-xxl: 30px; --s-sec: 48px;
+
+  --frame: #dfdfdc;
+  color-scheme: light;
+}
+
+:root:not([data-theme="light"]) {
+  @media (prefers-color-scheme: dark) {
+    --canvas: #111111;
+    --soft-cloud: #1a1a1a;
+    --ink: #ffffff;
+    --charcoal: #cccccc;
+    --mute: #9e9ea0;
+    --stone: #707072;
+    --hairline: #333;
+    --hairline-soft: #222;
+    --frame: #000;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --canvas: #111111;
+  --soft-cloud: #1a1a1a;
+  --ink: #ffffff;
+  --charcoal: #cccccc;
+  --mute: #9e9ea0;
+  --stone: #707072;
+  --hairline: #333;
+  --hairline-soft: #222;
+  --frame: #000;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--frame);
+  color: var(--ink);
+  font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+  padding-block: 40px;
+  padding-inline: 20px;
+  margin: 0;
+}
+
+.doc { max-width: 1440px; margin: 0 auto; }
+
+/* ═══════════════════════════════════════════════════════════════
+   Doc header — editorial magazine style
+   ═══════════════════════════════════════════════════════════════ */
+.doc-head {
+  margin-bottom: 56px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--ink);
+}
+
+.doc-eye {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px; font-weight: 500;
+  color: var(--mute);
+  text-transform: uppercase;
+  letter-spacing: 0;
+  margin-bottom: 20px;
+}
+
+.doc-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(64px, 12vw, 128px);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  line-height: 0.9;
+  text-transform: uppercase;
+  margin: 0 0 20px;
+  color: var(--ink);
+}
+
+.doc-sub {
+  font-size: 16px; font-weight: 400;
+  color: var(--charcoal);
+  max-width: 620px;
+  line-height: 1.5;
+}
+
+.doc-meta {
+  display: flex; flex-wrap: wrap;
+  gap: 8px 32px;
+  margin-top: 24px;
+  font-size: 12px; font-weight: 500;
+  color: var(--mute);
+}
+
+.doc-meta span::before {
+  content: ""; display: inline-block;
+  width: 6px; height: 6px;
+  background: var(--ink);
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Screens grid
+   ═══════════════════════════════════════════════════════════════ */
+.screens {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 48px 28px;
+}
+
+.screen { display: flex; flex-direction: column; gap: 16px; }
+
+.screen-lbl {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px; font-weight: 500;
+  color: var(--ink);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--hairline);
+  display: flex; justify-content: space-between;
+}
+.screen-lbl .num { color: var(--mute); }
+
+.screen-cap {
+  font-size: 14px; font-weight: 400;
+  color: var(--mute);
+  line-height: 1.5;
+  padding-top: 4px;
+}
+.screen-cap b { color: var(--ink); font-weight: 500; }
+
+/* ═══════════════════════════════════════════════════════════════
+   Phone frame — flat, editorial
+   ═══════════════════════════════════════════════════════════════ */
+.phone {
+  background: var(--ink);
+  padding: 8px;
+  border-radius: var(--r-lg);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+  aspect-ratio: 390 / 780;
+  max-width: 340px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.phone-screen {
+  background: var(--canvas);
+  height: 100%;
+  border-radius: 22px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.status-bar {
+  display: flex; justify-content: space-between;
+  padding: 12px 20px 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px; font-weight: 500;
+  color: var(--ink);
+  flex-shrink: 0;
+}
+
+/* Icons */
+.i { width: 20px; height: 20px; flex-shrink: 0; }
+.i-sm { width: 16px; height: 16px; flex-shrink: 0; }
+.i-lg { width: 24px; height: 24px; flex-shrink: 0; }
+
+/* Product silhouettes on soft-cloud (Nike "studio" stage) */
+.psilo {
+  background: var(--soft-cloud);
+  aspect-ratio: 1;
+  display: grid; place-items: center;
+  position: relative;
+}
+.psilo svg { width: 60%; height: 60%; color: var(--charcoal); }
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN 1 — HOME (editorial hero)
+   ═══════════════════════════════════════════════════════════════ */
+.s-home { overflow-y: auto; flex: 1; padding-bottom: 72px; }
+
+/* Utility bar */
+.util-bar {
+  background: var(--soft-cloud);
+  height: 28px;
+  display: flex; justify-content: flex-end; align-items: center;
+  padding: 0 16px;
+  gap: 16px;
+  font-size: 10px; font-weight: 500;
+  color: var(--ink);
+}
+.util-bar span { cursor: pointer; }
+.util-bar .sep { color: var(--mute); }
+
+/* Primary nav */
+.nav {
+  height: 52px;
+  padding: 0 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--canvas);
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px; letter-spacing: -0.005em;
+  color: var(--ink);
+  line-height: 1;
+  text-transform: uppercase;
+}
+.nav-right {
+  display: flex; gap: 8px; align-items: center;
+}
+.icon-btn {
+  width: 36px; height: 36px;
+  background: var(--soft-cloud);
+  border-radius: var(--r-full);
+  display: grid; place-items: center;
+  color: var(--ink);
+  position: relative;
+}
+.badge-num {
+  position: absolute; top: -2px; right: -2px;
+  background: var(--ink); color: var(--canvas);
+  min-width: 16px; height: 16px;
+  border-radius: var(--r-full);
+  font-size: 10px; font-weight: 600;
+  display: grid; place-items: center;
+  padding: 0 4px;
+}
+
+/* Sub greeting strip */
+.sub-strip {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--hairline-soft);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.sub-strip .greet {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px; font-weight: 500;
+  color: var(--charcoal);
+}
+.sub-strip .greet b { color: var(--ink); }
+.sub-strip .out-pill {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--soft-cloud);
+  padding: 4px 10px 4px 4px;
+  border-radius: var(--r-full);
+  font-size: 11px; font-weight: 500;
+}
+.sub-strip .out-pill .av {
+  width: 22px; height: 22px;
+  background: var(--ink); color: var(--canvas);
+  border-radius: var(--r-full);
+  display: grid; place-items: center;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 11px;
+}
+
+/* HERO — editorial campaign tile (Nike signature) */
+.hero-tile {
+  background: var(--ink);
+  aspect-ratio: 4/5;
+  position: relative;
+  overflow: hidden;
+}
+/* Photo placeholder — atmospheric gradient */
+.hero-tile::before {
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,0.08) 0%, transparent 40%),
+    linear-gradient(180deg, #2a2a2a 0%, #111 60%, #000 100%);
+}
+.hero-tile::after {
+  content: "";
+  position: absolute; inset: auto 0 0 0; height: 40%;
+  background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.6) 100%);
+}
+.hero-content {
+  position: absolute; inset: 0;
+  padding: 20px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  z-index: 2;
+}
+.hero-eye {
+  font-size: 11px; font-weight: 500;
+  color: var(--canvas);
+  text-transform: uppercase;
+  letter-spacing: 0;
+  opacity: 0.9;
+}
+.hero-headline {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 56px; font-weight: 500;
+  line-height: 0.9;
+  letter-spacing: -0.005em;
+  text-transform: uppercase;
+  color: var(--canvas);
+  margin: 8px 0 12px;
+}
+.hero-headline em { font-style: normal; color: #fff; }
+.hero-sub {
+  font-size: 12px; font-weight: 400;
+  color: rgba(255,255,255,0.75);
+  max-width: 200px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+.hero-cta {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--canvas); color: var(--ink);
+  padding: 10px 20px;
+  border-radius: var(--r-lg);
+  font-size: 13px; font-weight: 500;
+  align-self: flex-start;
+}
+
+/* Section header */
+.sec-h {
+  padding: 40px 16px 12px;
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.sec-h h2 {
+  font-family: 'Inter', sans-serif;
+  font-size: 20px; font-weight: 500;
+  letter-spacing: 0;
+  margin: 0;
+  color: var(--ink);
+}
+.sec-h a {
+  font-size: 13px; font-weight: 500;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Horizontal product scroll — Nike style, full-bleed grey squares */
+.p-scroll {
+  display: flex; gap: 8px;
+  overflow-x: auto;
+  padding: 0 16px 4px;
+  scrollbar-width: none;
+}
+.p-scroll::-webkit-scrollbar { display: none; }
+.p-mini { flex: 0 0 148px; background: var(--canvas); }
+.p-mini .psilo { border-radius: var(--r-none); }
+.p-mini .info { padding-top: 12px; }
+.p-mini .swatches {
+  display: flex; gap: 4px;
+  margin-bottom: 8px;
+}
+.p-mini .sw {
+  width: 10px; height: 10px;
+  border-radius: var(--r-full);
+  background: var(--ink);
+}
+.p-mini .sw.wh { background: var(--hairline); }
+.p-mini .sw.rd { background: var(--sale); }
+.p-mini .badge {
+  font-size: 11px; font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.p-mini .badge.promo {
+  color: var(--success);
+}
+.p-mini .nm {
+  font-size: 14px; font-weight: 500;
+  color: var(--ink);
+  line-height: 1.35;
+  margin-bottom: 2px;
+}
+.p-mini .cat {
+  font-size: 13px; font-weight: 400;
+  color: var(--mute);
+  margin-bottom: 6px;
+}
+.p-mini .prc {
+  font-size: 14px; font-weight: 500;
+  color: var(--ink);
+}
+.p-mini .prc.sale { color: var(--sale); }
+.p-mini .prc.sale + .prc-og {
+  color: var(--mute);
+  text-decoration: line-through;
+  margin-left: 6px;
+  font-weight: 400;
+}
+
+/* Secondary campaign tile (brand promo) */
+.brand-tile {
+  margin: 40px 0 0;
+  background: var(--soft-cloud);
+  aspect-ratio: 16/9;
+  padding: 20px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+.brand-tile::before {
+  content: "";
+  position: absolute; top: -20px; right: -30px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(17,17,17,0.06) 0%, transparent 60%);
+}
+.brand-tile-eye {
+  font-size: 11px; font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  color: var(--mute);
+}
+.brand-tile-h {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 36px; line-height: 0.9;
+  letter-spacing: -0.005em;
+  text-transform: uppercase;
+  margin: 6px 0 0;
+  color: var(--ink);
+}
+.brand-tile-cta {
+  align-self: flex-start;
+  background: var(--ink); color: var(--canvas);
+  padding: 10px 20px;
+  border-radius: var(--r-lg);
+  font-size: 13px; font-weight: 500;
+  margin-top: 12px;
+}
+
+/* Brand list */
+.brand-list { padding: 16px; display: flex; flex-direction: column; gap: 1px; }
+.brand-row {
+  background: var(--canvas);
+  padding: 14px 0;
+  border-bottom: 1px solid var(--hairline);
+  display: flex; align-items: center; gap: 14px;
+}
+.brand-row:last-child { border: 0; }
+.brand-row .sq {
+  width: 44px; height: 44px;
+  background: var(--soft-cloud);
+  display: grid; place-items: center;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  color: var(--ink);
+}
+.brand-row .info { flex: 1; }
+.brand-row .info-t {
+  font-size: 15px; font-weight: 500;
+  color: var(--ink);
+  display: flex; align-items: center; gap: 8px;
+}
+.brand-row .info-t .tag {
+  font-size: 10px; font-weight: 500;
+  color: var(--sale);
+  text-transform: uppercase;
+}
+.brand-row .info-s {
+  font-size: 13px; font-weight: 400;
+  color: var(--mute);
+  margin-top: 2px;
+}
+.brand-row .arr { color: var(--mute); }
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN 2 — KATALOG (product listing)
+   ═══════════════════════════════════════════════════════════════ */
+.s-cat { overflow-y: auto; flex: 1; padding-bottom: 72px; }
+.cat-head {
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.cat-head h1 {
+  font-family: 'Inter', sans-serif;
+  font-size: 24px; font-weight: 500;
+  color: var(--ink);
+  margin: 0;
+}
+.cat-head .breadcrumb {
+  font-size: 12px; color: var(--mute);
+  margin-top: 2px;
+}
+.cat-toolbar {
+  padding: 12px 16px;
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.cat-toolbar .count {
+  font-size: 13px; font-weight: 500;
+  color: var(--mute);
+}
+.cat-toolbar .sort {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 500;
+  color: var(--ink);
+}
+
+/* Search pill */
+.search-pill {
+  margin: 12px 16px;
+  background: var(--soft-cloud);
+  border-radius: var(--r-md);
+  padding: 10px 16px;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px;
+  color: var(--mute);
+  height: 40px;
+}
+
+/* Filter chips */
+.chips {
+  display: flex; gap: 8px;
+  overflow-x: auto;
+  padding: 0 16px 16px;
+  scrollbar-width: none;
+}
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex: 0 0 auto;
+  padding: 8px 16px;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  font-size: 14px; font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.chip.on {
+  background: var(--ink); color: var(--canvas);
+  border-color: var(--ink);
+}
+
+/* Product grid — 2-up, zero padding cards, soft-cloud images */
+.pg {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 0 16px;
+}
+.p-card { position: relative; }
+.p-card .psilo {
+  aspect-ratio: 1;
+  margin-bottom: 12px;
+  position: relative;
+}
+.p-card .p-badge {
+  position: absolute; top: 8px; left: 8px;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  padding: 4px 10px;
+  border-radius: var(--r-lg);
+  font-size: 11px; font-weight: 500;
+  color: var(--ink);
+  z-index: 2;
+}
+.p-card .wishlist {
+  position: absolute; top: 8px; right: 8px;
+  width: 32px; height: 32px;
+  background: transparent;
+  border-radius: var(--r-full);
+  display: grid; place-items: center;
+  color: var(--ink);
+  z-index: 2;
+}
+.p-card .info {}
+.p-card .p-swatches {
+  display: flex; gap: 4px; margin-bottom: 6px;
+}
+.p-card .p-swatches .sw {
+  width: 10px; height: 10px; border-radius: var(--r-full);
+  background: var(--ink);
+}
+.p-card .p-swatches .sw.wh { background: var(--hairline); }
+.p-card .p-swatches .sw.rd { background: var(--sale); }
+.p-card .p-color-c {
+  font-size: 11px; color: var(--mute);
+  margin-left: 4px;
+}
+.p-card .p-tag {
+  font-size: 12px; font-weight: 500;
+  color: var(--success);
+  margin-bottom: 4px;
+}
+.p-card .p-nm {
+  font-size: 14px; font-weight: 500;
+  color: var(--ink);
+  line-height: 1.35;
+  margin-bottom: 2px;
+}
+.p-card .p-cat {
+  font-size: 13px;
+  color: var(--mute);
+  margin-bottom: 6px;
+}
+.p-card .p-prc-row {
+  display: flex; align-items: baseline; gap: 8px;
+}
+.p-card .p-prc {
+  font-size: 14px; font-weight: 500;
+  color: var(--ink);
+}
+.p-card .p-prc.sale { color: var(--sale); }
+.p-card .p-og {
+  font-size: 13px;
+  color: var(--mute);
+  text-decoration: line-through;
+  font-weight: 400;
+}
+.p-card .p-off {
+  font-size: 13px; color: var(--sale);
+  font-weight: 500;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN 3 — PRODUCT DETAIL (PDP)
+   ═══════════════════════════════════════════════════════════════ */
+.s-pdp { overflow-y: auto; flex: 1; padding-bottom: 12px; }
+.pdp-topbar {
+  position: absolute; top: 32px; left: 0; right: 0; z-index: 3;
+  display: flex; justify-content: space-between;
+  padding: 8px 16px;
+}
+.pdp-topbar .circ {
+  width: 40px; height: 40px;
+  background: var(--soft-cloud);
+  border-radius: var(--r-full);
+  display: grid; place-items: center;
+  color: var(--ink);
+}
+.pdp-main-img {
+  background: var(--soft-cloud);
+  aspect-ratio: 1;
+  display: grid; place-items: center;
+  position: relative;
+}
+.pdp-main-img svg { width: 55%; height: 55%; color: var(--charcoal); }
+.pdp-thumbs {
+  display: flex; gap: 8px;
+  padding: 12px 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.pdp-thumbs::-webkit-scrollbar { display: none; }
+.pdp-thumb {
+  flex: 0 0 56px;
+  background: var(--soft-cloud);
+  aspect-ratio: 1;
+  display: grid; place-items: center;
+  color: var(--charcoal);
+  border: 1px solid transparent;
+}
+.pdp-thumb.on { border-color: var(--ink); }
+.pdp-thumb svg { width: 50%; height: 50%; }
+
+.pdp-info { padding: 16px; }
+.pdp-tag {
+  font-size: 12px; font-weight: 500;
+  color: var(--sale);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.pdp-brand {
+  font-size: 13px; font-weight: 500;
+  color: var(--mute);
+  margin-bottom: 4px;
+}
+.pdp-nm {
+  font-family: 'Inter', sans-serif;
+  font-size: 24px; font-weight: 500;
+  line-height: 1.2;
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+.pdp-cat {
+  font-size: 14px; font-weight: 400;
+  color: var(--mute);
+  margin-bottom: 12px;
+}
+.pdp-prc-row {
+  display: flex; align-items: baseline; gap: 10px;
+  margin-bottom: 20px;
+}
+.pdp-prc {
+  font-size: 20px; font-weight: 500;
+  color: var(--ink);
+}
+.pdp-prc.sale { color: var(--sale); }
+
+/* Macro / spec row — Nike "product details" density */
+.specs {
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+  padding: 20px 0;
+  margin-bottom: 24px;
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 16px 8px;
+}
+.spec {
+  text-align: left;
+}
+.spec .n {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px; line-height: 1;
+  color: var(--ink);
+}
+.spec .n .u {
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  color: var(--mute);
+  margin-left: 2px;
+}
+.spec .l {
+  font-size: 11px; font-weight: 500;
+  color: var(--mute);
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.pdp-cta-row { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+
+/* Primary Pill Button — Nike signature */
+.btn-primary {
+  background: var(--ink); color: var(--canvas);
+  padding: 14px 32px;
+  border-radius: var(--r-lg);
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px; font-weight: 500;
+  height: 52px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  width: 100%;
+}
+.btn-secondary {
+  background: var(--soft-cloud); color: var(--ink);
+  padding: 14px 32px;
+  border-radius: var(--r-lg);
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px; font-weight: 500;
+  height: 52px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px;
+}
+
+/* Disclosure rows */
+.disc-row {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--hairline);
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 15px; font-weight: 500;
+  color: var(--ink);
+}
+.disc-row .chev { color: var(--ink); }
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN 4 — CART / BAG
+   ═══════════════════════════════════════════════════════════════ */
+.s-cart { overflow-y: auto; flex: 1; padding-bottom: 24px; }
+.cart-head {
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.cart-head h1 {
+  font-family: 'Inter', sans-serif;
+  font-size: 24px; font-weight: 500;
+  color: var(--ink);
+  margin: 0;
+}
+.cart-head .sub {
+  font-size: 13px;
+  color: var(--mute);
+  margin-top: 4px;
+}
+
+.cart-items { padding: 8px 16px; }
+.cart-line {
+  display: flex; gap: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.cart-line .cl-img {
+  width: 72px; height: 72px;
+  background: var(--soft-cloud);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.cart-line .cl-img svg { width: 55%; height: 55%; color: var(--charcoal); }
+.cart-line .cl-body { flex: 1; min-width: 0; }
+.cart-line .cl-brand {
+  font-size: 12px; font-weight: 500;
+  color: var(--mute);
+  margin-bottom: 2px;
+}
+.cart-line .cl-nm {
+  font-size: 14px; font-weight: 500;
+  color: var(--ink);
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+.cart-line .cl-meta {
+  font-size: 12px;
+  color: var(--mute);
+  margin-bottom: 8px;
+}
+.cart-line .cl-row {
+  display: flex; justify-content: space-between; align-items: center;
+}
+.cart-line .cl-prc {
+  font-size: 15px; font-weight: 500;
+  color: var(--ink);
+}
+.qtyc {
+  display: flex; align-items: center;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-full);
+  padding: 2px;
+}
+.qtyc button {
+  width: 26px; height: 26px;
+  background: transparent; border: none;
+  color: var(--ink);
+  border-radius: var(--r-full);
+  font-size: 16px; font-weight: 500;
+  cursor: pointer;
+}
+.qtyc span {
+  padding: 0 6px;
+  font-size: 14px; font-weight: 500;
+  min-width: 22px; text-align: center;
+}
+
+/* Summary block */
+.sum-block {
+  margin: 24px 16px 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--hairline);
+}
+.sum-row {
+  display: flex; justify-content: space-between;
+  padding: 4px 0;
+  font-size: 14px;
+}
+.sum-row .k { color: var(--mute); font-weight: 400; }
+.sum-row .v { color: var(--ink); font-weight: 500; }
+.sum-row.disc .v { color: var(--sale); }
+.sum-row.total {
+  padding-top: 16px; margin-top: 8px;
+  border-top: 1px solid var(--hairline);
+}
+.sum-row.total .k, .sum-row.total .v {
+  font-size: 16px; font-weight: 500;
+  color: var(--ink);
+}
+
+.cart-actions {
+  padding: 16px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN 5 — CHECKOUT
+   ═══════════════════════════════════════════════════════════════ */
+.s-check { overflow-y: auto; flex: 1; padding-bottom: 24px; }
+.check-head {
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.check-head h1 {
+  font-family: 'Inter', sans-serif;
+  font-size: 24px; font-weight: 500;
+  color: var(--ink);
+  margin: 0;
+}
+
+.check-section {
+  padding: 20px 16px;
+  border-bottom: 1px solid var(--hairline);
+}
+.cs-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 12px;
+}
+.cs-head h3 {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px; font-weight: 500;
+  color: var(--ink);
+  margin: 0;
+}
+.cs-head .edit {
+  font-size: 13px; font-weight: 500;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.cs-val {
+  font-size: 14px; font-weight: 500;
+  color: var(--ink);
+  line-height: 1.5;
+}
+.cs-val .sub {
+  display: block;
+  color: var(--mute); font-weight: 400;
+  margin-top: 2px;
+}
+
+.pay-list { display: flex; flex-direction: column; gap: 8px; }
+.pay {
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  padding: 12px 16px;
+  display: flex; align-items: center; gap: 12px;
+  background: var(--canvas);
+}
+.pay.on {
+  border-color: var(--ink);
+  background: var(--canvas);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+.pay .pay-radio {
+  width: 20px; height: 20px;
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--r-full);
+}
+.pay.on .pay-radio {
+  border-color: var(--ink);
+  position: relative;
+}
+.pay.on .pay-radio::after {
+  content: "";
+  position: absolute; inset: 3px;
+  background: var(--ink);
+  border-radius: var(--r-full);
+}
+.pay .pay-txt {
+  flex: 1;
+  font-size: 14px; font-weight: 500;
+  color: var(--ink);
+}
+.pay .pay-txt .sub {
+  display: block;
+  font-size: 12px; color: var(--mute); font-weight: 400;
+  margin-top: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN 6 — ORDER TRACKING
+   ═══════════════════════════════════════════════════════════════ */
+.s-track { overflow-y: auto; flex: 1; padding-bottom: 72px; }
+.track-head {
+  padding: 16px 16px 24px;
+  border-bottom: 1px solid var(--hairline);
+}
+.track-head .num {
+  font-size: 12px; font-weight: 500;
+  color: var(--mute);
+  margin-bottom: 8px;
+}
+.track-head h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 42px; font-weight: 500;
+  letter-spacing: -0.005em;
+  line-height: 0.95;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+.track-head .eta {
+  font-size: 13px; color: var(--mute);
+  font-weight: 400;
+}
+.track-head .eta b { color: var(--ink); font-weight: 500; }
+
+/* Progress bar segments */
+.progress {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  padding: 20px 16px;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.progress .step {
+  height: 3px;
+  background: var(--hairline);
+  border-radius: var(--r-full);
+}
+.progress .step.done { background: var(--ink); }
+.progress .step.now { background: var(--success); }
+
+.timeline { padding: 20px 16px; }
+.tl {
+  display: flex; gap: 14px;
+  padding: 10px 0;
+  position: relative;
+}
+.tl-mark {
+  width: 12px;
+  display: flex; flex-direction: column; align-items: center;
+  position: relative;
+}
+.tl-dot {
+  width: 12px; height: 12px;
+  border-radius: var(--r-full);
+  background: var(--canvas);
+  border: 2px solid var(--hairline);
+}
+.tl.done .tl-dot { background: var(--ink); border-color: var(--ink); }
+.tl.now .tl-dot {
+  background: var(--success); border-color: var(--success);
+  box-shadow: 0 0 0 4px rgba(0,125,72,0.15);
+}
+.tl-mark::after {
+  content: "";
+  position: absolute; top: 14px; bottom: -10px;
+  left: 5px; width: 2px;
+  background: var(--hairline);
+}
+.tl.done .tl-mark::after { background: var(--ink); }
+.tl:last-child .tl-mark::after { display: none; }
+.tl-body { padding-top: -2px; flex: 1; }
+.tl-lbl {
+  font-size: 14px; font-weight: 500;
+  color: var(--ink);
+  line-height: 1.4;
+}
+.tl:not(.done):not(.now) .tl-lbl { color: var(--mute); font-weight: 400; }
+.tl-time {
+  font-size: 12px; color: var(--mute);
+  margin-top: 2px;
+}
+.tl-sub {
+  font-size: 12px; color: var(--mute);
+  margin-top: 4px; line-height: 1.4;
+}
+
+/* Driver info — Nike-style member card */
+.driver {
+  margin: 20px 16px;
+  padding: 16px;
+  background: var(--soft-cloud);
+  display: flex; align-items: center; gap: 12px;
+}
+.driver-av {
+  width: 44px; height: 44px;
+  background: var(--ink); color: var(--canvas);
+  border-radius: var(--r-full);
+  display: grid; place-items: center;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+}
+.driver-info { flex: 1; }
+.driver-nm {
+  font-size: 14px; font-weight: 500;
+  color: var(--ink);
+}
+.driver-sub {
+  font-size: 12px; color: var(--mute);
+  margin-top: 2px;
+}
+.driver-call {
+  background: var(--ink); color: var(--canvas);
+  padding: 10px 20px;
+  border-radius: var(--r-lg);
+  font-size: 13px; font-weight: 500;
+  display: flex; align-items: center; gap: 6px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Bottom tab bar — Nike doesn't have this but mobile PWA needs it
+   Keep it minimal chrome
+   ═══════════════════════════════════════════════════════════════ */
+.tabs {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: var(--canvas);
+  border-top: 1px solid var(--hairline-soft);
+  padding: 8px 8px 14px;
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+.tab {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 4px;
+  font-size: 10px; font-weight: 500;
+  color: var(--mute);
+}
+.tab.on { color: var(--ink); }
+.tab-ico {
+  width: 24px; height: 24px;
+  display: grid; place-items: center;
+  color: currentColor;
+  position: relative;
+}
+.tab .badge-t {
+  position: absolute; top: -2px; right: -4px;
+  background: var(--ink); color: var(--canvas);
+  min-width: 14px; height: 14px;
+  border-radius: var(--r-full);
+  font-size: 9px; font-weight: 600;
+  display: grid; place-items: center;
+  padding: 0 3px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Notes footer — editorial magazine
+   ═══════════════════════════════════════════════════════════════ */
+.notes {
+  margin-top: 72px;
+  padding: 48px 0 0;
+  border-top: 1px solid var(--ink);
+}
+.notes h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 56px; line-height: 0.95;
+  letter-spacing: -0.005em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+.notes .lead {
+  font-size: 15px;
+  color: var(--charcoal);
+  max-width: 620px;
+  margin: 0 0 40px;
+  line-height: 1.5;
+}
+.notes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 32px 40px;
+}
+.note-i {
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+}
+.note-i h3 {
+  font-size: 13px; font-weight: 500;
+  color: var(--mute);
+  text-transform: uppercase;
+  margin: 0 0 8px;
+}
+.note-i p {
+  font-size: 14px; font-weight: 400;
+  color: var(--ink);
+  line-height: 1.5;
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .screens { grid-template-columns: 1fr; }
+  .doc-title { font-size: 64px; }
+  .notes h2 { font-size: 36px; }
+}
+</style>
+</head>
+<body>
+
+
+<!-- SVG icon defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12l9-8 9 8v8h-6v-6h-6v6H3v-8z"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 7l8-4 8 4v10l-8 4-8-4V7z M4 7l8 4 8-4 M12 11v10"/></symbol>
+    <symbol id="i-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5h3l2.5 11h11L21 8H6"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s-7-8-7-14a7 7 0 1114 0c0 6-7 14-7 14z"/><circle cx="12" cy="9" r="2.5"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="6"/><path d="M15 15l6 6"/></symbol>
+    <symbol id="i-arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14 M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20s-8-5-8-11a5 5 0 0110-1 5 5 0 0110 1c0 6-8 11-8 11z"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 6l6 6-6 6"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6l-6 6 6 6"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12 M18 6l-12 12"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 5c0 8 6 14 14 14v-4l-4-1-2 2c-3-1-5-3-6-6l2-2-1-4H5z"/></symbol>
+    <symbol id="i-store" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8l1-4h14l1 4M4 8v12h16V8 M4 8h16 M9 20v-6h6v6"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5v14 M5 12h14"/></symbol>
+
+    <!-- Product silhouettes -->
+    <symbol id="s-tub" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5">
+      <path d="M32 22 h36 v4 h-36 z" fill="currentColor"/>
+      <path d="M28 26 h44 v66 h-44 z"/>
+      <path d="M40 40 h20 v6 h-20 z" fill="currentColor" stroke="none"/>
+      <path d="M36 55 h28 v3 h-28 z" fill="currentColor" stroke="none"/>
+      <path d="M36 62 h28 v3 h-28 z" fill="currentColor" stroke="none"/>
+    </symbol>
+    <symbol id="s-bot" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5">
+      <path d="M42 10 h16 v10 h-16 z" fill="currentColor"/>
+      <path d="M36 20 h28 v72 h-28 z"/>
+      <path d="M42 44 h16 v14 h-16 z" fill="currentColor" stroke="none"/>
+    </symbol>
+    <symbol id="s-sac" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5">
+      <path d="M22 20 h56 v60 h-56 z"/>
+      <path d="M22 32 h56"/>
+      <path d="M36 55 h28" stroke-width="1.5"/>
+      <path d="M36 62 h28" stroke-width="1.5"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="doc">
+
+  <div class="doc-head">
+    <div class="doc-eye">Wireframe · v0.3 · Nike DNA</div>
+    <h1 class="doc-title">Findest<br>Order.</h1>
+    <p class="doc-sub">Mockup 6 layar customer app supplement store — didesain pakai Nike's design language: photography-first commerce, pill-shaped chrome, editorial magazine layout, palette pure black/white/soft-cloud dengan red hanya buat sale price.</p>
+    <div class="doc-meta">
+      <span>Reference Nike DESIGN.md (VoltAgent)</span>
+      <span>Mobile PWA</span>
+      <span>Supabase + Realtime</span>
+    </div>
+  </div>
+
+  <div class="screens">
+
+    <!-- ══════ SCREEN 1 — HOME ══════ -->
+    <div class="screen">
+      <div class="screen-lbl"><span>Home</span><span class="num">01</span></div>
+      <div class="phone">
+        <div class="phone-screen">
+          <div class="status-bar">
+            <span>09:24</span>
+            <span>5G · 87%</span>
+          </div>
+
+          <!-- Utility bar -->
+          <div class="util-bar">
+            <span>Find a Store</span>
+            <span class="sep">·</span>
+            <span>Help</span>
+            <span class="sep">·</span>
+            <span>Sign In</span>
+          </div>
+
+          <!-- Primary nav -->
+          <div class="nav">
+            <div class="logo">Findest.</div>
+            <div class="nav-right">
+              <div class="icon-btn"><svg class="i-sm"><use href="#i-search"/></svg></div>
+              <div class="icon-btn"><svg class="i-sm"><use href="#i-heart"/></svg></div>
+              <div class="icon-btn"><svg class="i-sm"><use href="#i-cart"/></svg><span class="badge-num">3</span></div>
+            </div>
+          </div>
+
+          <div class="s-home">
+            <!-- Sub greeting -->
+            <div class="sub-strip">
+              <div class="greet">Halo, <b>Fitness Plus Sanur</b></div>
+              <div class="out-pill">
+                <div class="av">FP</div>
+                <span>Outlet</span>
+              </div>
+            </div>
+
+            <!-- HERO editorial campaign tile -->
+            <div class="hero-tile">
+              <div class="hero-content">
+                <div class="hero-eye">// New Drop</div>
+                <div>
+                  <h1 class="hero-headline">Fuel<br>The Session.<em></em></h1>
+                  <p class="hero-sub">Muscle First — 6 varian best seller udah masuk. Harga launching spesial.</p>
+                  <a class="hero-cta">Shop the Drop <svg class="i-sm"><use href="#i-arr"/></svg></a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Trending -->
+            <div class="sec-h">
+              <h2>Sering Lu Pesan</h2>
+              <a>View All</a>
+            </div>
+            <div class="p-scroll">
+              <div class="p-mini">
+                <div class="psilo"><svg><use href="#s-tub"/></svg></div>
+                <div class="info">
+                  <div class="swatches"><div class="sw"></div><div class="sw wh"></div><div class="sw rd"></div></div>
+                  <div class="nm">ON Whey Isolate</div>
+                  <div class="cat">Chocolate · 2 LB</div>
+                  <div class="prc">Rp 853k</div>
+                </div>
+              </div>
+              <div class="p-mini">
+                <div class="psilo"><svg><use href="#s-bot"/></svg></div>
+                <div class="info">
+                  <div class="swatches"><div class="sw"></div><div class="sw wh"></div></div>
+                  <div class="badge promo">Just In</div>
+                  <div class="nm">ON BCAA Boost</div>
+                  <div class="cat">Mango Peach · 390g</div>
+                  <div class="prc">Rp 513k</div>
+                </div>
+              </div>
+              <div class="p-mini">
+                <div class="psilo"><svg><use href="#s-tub"/></svg></div>
+                <div class="info">
+                  <div class="swatches"><div class="sw"></div></div>
+                  <div class="nm">BSN Syntha 6</div>
+                  <div class="cat">Vanilla · 4.02 LBS</div>
+                  <div class="prc sale">Rp 1.319k</div>
+                  <span class="prc-og">Rp 1.463k</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Secondary campaign tile -->
+            <div class="brand-tile">
+              <div class="brand-tile-eye">// Brand Story</div>
+              <div>
+                <h2 class="brand-tile-h">Evolene.<br>Made In Bandung.</h2>
+                <a class="brand-tile-cta">Discover <svg class="i-sm"><use href="#i-arr"/></svg></a>
+              </div>
+            </div>
+
+            <!-- Brand list -->
+            <div class="sec-h">
+              <h2>Brand Kami</h2>
+              <a>See All</a>
+            </div>
+            <div class="brand-list">
+              <div class="brand-row">
+                <div class="sq">MF</div>
+                <div class="info">
+                  <div class="info-t">Muscle First <span class="tag">Just In</span></div>
+                  <div class="info-s">Premium · 6 varian</div>
+                </div>
+                <svg class="i-sm arr"><use href="#i-chev"/></svg>
+              </div>
+              <div class="brand-row">
+                <div class="sq">EV</div>
+                <div class="info">
+                  <div class="info-t">Evolene <span class="tag">Just In</span></div>
+                  <div class="info-s">Bandung · 4 varian</div>
+                </div>
+                <svg class="i-sm arr"><use href="#i-chev"/></svg>
+              </div>
+              <div class="brand-row">
+                <div class="sq">PR</div>
+                <div class="info">
+                  <div class="info-t">Pranaon <span class="tag">Just In</span></div>
+                  <div class="info-s">Growing brand · 3 varian</div>
+                </div>
+                <svg class="i-sm arr"><use href="#i-chev"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="tabs">
+            <div class="tab on"><div class="tab-ico"><svg class="i-sm"><use href="#i-home"/></svg></div>Home</div>
+            <div class="tab"><div class="tab-ico"><svg class="i-sm"><use href="#i-box"/></svg></div>Shop</div>
+            <div class="tab"><div class="tab-ico"><svg class="i-sm"><use href="#i-cart"/></svg><span class="badge-t">3</span></div>Bag</div>
+            <div class="tab"><div class="tab-ico"><svg class="i-sm"><use href="#i-pin"/></svg></div>Orders</div>
+            <div class="tab"><div class="tab-ico"><svg class="i-sm"><use href="#i-user"/></svg></div>Me</div>
+          </div>
+        </div>
+      </div>
+      <div class="screen-cap"><b>Home.</b> Utility bar + primary nav Nike-style. Full-bleed campaign hero pakai Bebas Neue 56px burned into dark photography placeholder. Product cards zero-padding di atas soft-cloud grey (bukan card putih rounded).</div>
+    </div>
+
+    <!-- ══════ SCREEN 2 — KATALOG ══════ -->
+    <div class="screen">
+      <div class="screen-lbl"><span>Product Listing</span><span class="num">02</span></div>
+      <div class="phone">
+        <div class="phone-screen">
+          <div class="status-bar"><span>09:25</span><span>5G · 87%</span></div>
+          <div class="util-bar">
+            <span>Find a Store</span><span class="sep">·</span><span>Help</span>
+          </div>
+          <div class="nav">
+            <div class="logo">Findest.</div>
+            <div class="nav-right">
+              <div class="icon-btn"><svg class="i-sm"><use href="#i-search"/></svg></div>
+              <div class="icon-btn"><svg class="i-sm"><use href="#i-heart"/></svg></div>
+              <div class="icon-btn"><svg class="i-sm"><use href="#i-cart"/></svg><span class="badge-num">3</span></div>
+            </div>
+          </div>
+          <div class="s-cat">
+            <div class="cat-head">
+              <h1>Semua Produk</h1>
+              <div class="breadcrumb">Home / Shop / All</div>
+            </div>
+            <div class="cat-toolbar">
+              <div class="count">70 Produk</div>
+              <div class="sort">Sort By: Featured <svg class="i-sm"><use href="#i-chev"/></svg></div>
+            </div>
+            <div class="search-pill">
+              <svg class="i-sm"><use href="#i-search"/></svg>
+              Search products
+            </div>
+            <div class="chips">
+              <div class="chip on">All</div>
+              <div class="chip">Just In</div>
+              <div class="chip">Protein</div>
+              <div class="chip">Amino</div>
+              <div class="chip">Pre-Workout</div>
+              <div class="chip">Sale</div>
+            </div>
+
+            <div class="pg">
+              <div class="p-card">
+                <div class="psilo">
+                  <div class="p-badge">Just In</div>
+                  <div class="wishlist"><svg class="i-sm"><use href="#i-heart"/></svg></div>
+                  <svg><use href="#s-tub"/></svg>
+                </div>
+                <div class="info">
+                  <div class="p-swatches"><span class="sw"></span><span class="sw wh"></span><span class="p-color-c">2 Colors</span></div>
+                  <div class="p-tag">Just In</div>
+                  <div class="p-nm">Whey Isolate Choco 2LB</div>
+                  <div class="p-cat">Muscle First</div>
+                  <div class="p-prc-row"><span class="p-prc">Rp 745k</span></div>
+                </div>
+              </div>
+              <div class="p-card">
+                <div class="psilo">
+                  <div class="p-badge">Sale</div>
+                  <div class="wishlist"><svg class="i-sm"><use href="#i-heart"/></svg></div>
+                  <svg><use href="#s-tub"/></svg>
+                </div>
+                <div class="info">
+                  <div class="p-swatches"><span class="sw"></span><span class="p-color-c">1 Color</span></div>
+                  <div class="p-nm">Whey GS Chocolate 5 LBS</div>
+                  <div class="p-cat">ON · Optimum Nutrition</div>
+                  <div class="p-prc-row">
+                    <span class="p-prc sale">Rp 1.372k</span>
+                    <span class="p-og">Rp 1.524k</span>
+                    <span class="p-off">10% off</span>
+                  </div>
+                </div>
+              </div>
+              <div class="p-card">
+                <div class="psilo">
+                  <div class="wishlist"><svg class="i-sm"><use href="#i-heart"/></svg></div>
+                  <svg><use href="#s-tub"/></svg>
+                </div>
+                <div class="info">
+                  <div class="p-swatches"><span class="sw"></span><span class="sw wh"></span><span class="p-color-c">2 Colors</span></div>
+                  <div class="p-nm">Whey Protein Vanilla 2LB</div>
+                  <div class="p-cat">Evolene</div>
+                  <div class="p-prc-row"><span class="p-prc">Rp 620k</span></div>
+                </div>
+              </div>
+              <div class="p-card">
+                <div class="psilo">
+                  <div class="p-badge">Coming Soon</div>
+                  <div class="wishlist"><svg class="i-sm"><use href="#i-heart"/></svg></div>
+                  <svg><use href="#s-tub"/></svg>
+                </div>
+                <div class="info">
+                  <div class="p-swatches"><span class="sw"></span><span class="p-color-c">1 Color</span></div>
+                  <div class="p-nm">Casein Chocolate 2LB</div>
+                  <div class="p-cat">Pranaon</div>
+                  <div class="p-prc-row"><span class="p-prc">Rp 780k</span></div>
+                </div>
+              </div>
+              <div class="p-card">
+                <div class="psilo">
+                  <div class="wishlist"><svg class="i-sm"><use href="#i-heart"/></svg></div>
+                  <svg><use href="#s-sac"/></svg>
+                </div>
+                <div class="info">
+                  <div class="p-swatches"><span class="sw wh"></span><span class="p-color-c">1 Color</span></div>
+                  <div class="p-nm">Collagen Drink 30 sch</div>
+                  <div class="p-cat">Hotto</div>
+                  <div class="p-prc-row"><span class="p-prc">Rp 285k</span></div>
+                </div>
+              </div>
+              <div class="p-card">
+                <div class="psilo">
+                  <div class="wishlist"><svg class="i-sm"><use href="#i-heart"/></svg></div>
+                  <svg><use href="#s-bot"/></svg>
+                </div>
+                <div class="info">
+                  <div class="p-swatches"><span class="sw"></span><span class="sw rd"></span><span class="p-color-c">2 Colors</span></div>
+                  <div class="p-nm">Amino Energy Watermelon</div>
+                  <div class="p-cat">ON · 285g</div>
+                  <div class="p-prc-row"><span class="p-prc">Rp 432k</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tabs">
+            <div class="tab"><div class="tab-ico"><svg class="i-sm"><use href="#i-home"/></svg></div>Home</div>
+            <div class="tab on"><div class="tab-ico"><svg class="i-sm"><use href="#i-box"/></svg></div>Shop</div>
+            <div class="tab"><div class="tab-ico"><svg class="i-sm"><use href="#i-cart"/></svg><span class="badge-t">3</span></div>Bag</div>
+            <div class="tab"><div class="tab-ico"><svg class="i-sm"><use href="#i-pin"/></svg></div>Orders</div>
+            <div class="tab"><div class="tab-ico"><svg class="i-sm"><use href="#i-user"/></svg></div>Me</div>
+          </div>
+        </div>
+      </div>
+      <div class="screen-cap"><b>Product Listing.</b> Search pill 24px rounded, filter chips 30px pill (aktif = ink hitam solid). Product card zero radius, zero padding — foto full-bleed di soft-cloud stage. Sale price merah #d30005 dengan strike-through original.</div>
+    </div>
+
+    <!-- ══════ SCREEN 3 — PDP ══════ -->
+    <div class="screen">
+      <div class="screen-lbl"><span>Product Detail</span><span class="num">03</span></div>
+      <div class="phone">
+        <div class="phone-screen">
+          <div class="status-bar"><span>09:26</span><span>5G · 86%</span></div>
+          <div class="s-pdp">
+            <div class="pdp-topbar">
+              <div class="circ"><svg class="i-sm"><use href="#i-back"/></svg></div>
+              <div class="circ"><svg class="i-sm"><use href="#i-heart"/></svg></div>
+            </div>
+            <div class="pdp-main-img"><svg><use href="#s-tub"/></svg></div>
+            <div class="pdp-thumbs">
+              <div class="pdp-thumb on"><svg><use href="#s-tub"/></svg></div>
+              <div class="pdp-thumb"><svg><use href="#s-tub"/></svg></div>
+              <div class="pdp-thumb"><svg><use href="#s-tub"/></svg></div>
+              <div class="pdp-thumb"><svg><use href="#s-tub"/></svg></div>
+            </div>
+            <div class="pdp-info">
+              <div class="pdp-tag">Just In</div>
+              <div class="pdp-brand">Muscle First</div>
+              <h1 class="pdp-nm">Whey Protein<br>Isolate Choco 2LB</h1>
+              <div class="pdp-cat">Protein Isolate</div>
+              <div class="pdp-prc-row">
+                <span class="pdp-prc">Rp 745.000</span>
+              </div>
+
+              <div class="specs">
+                <div class="spec">
+                  <div class="n">25<span class="u">g</span></div>
+                  <div class="l">Protein</div>
+                </div>
+                <div class="spec">
+                  <div class="n">5.5<span class="u">g</span></div>
+                  <div class="l">BCAA</div>
+                </div>
+                <div class="spec">
+                  <div class="n">120<span class="u">kcal</span></div>
+                  <div class="l">Per Serve</div>
+                </div>
+                <div class="spec">
+                  <div class="n">30<span class="u"></span></div>
+                  <div class="l">Servings</div>
+                </div>
+              </div>
+
+              <div class="pdp-cta-row">
+                <button class="btn-primary">Add to Bag</button>
+                <button class="btn-secondary">Favorite <svg class="i-sm"><use href="#i-heart"/></svg></button>
+              </div>
+
+              <div class="disc-row">
+                View Product Details
+                <svg class="i-sm chev"><use href="#i-chev"/></svg>
+              </div>
+              <div class="disc-row">
+                Shipping & Returns
+                <svg class="i-sm chev"><use href="#i-chev"/></svg>
+              </div>
+              <div class="disc-row" style="border:0">
+                Sertifikasi BPOM & Halal
+                <svg class="i-sm chev"><use href="#i-chev"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="screen-cap"><b>PDP.</b> Foto product full-bleed 1:1 di soft-cloud stage, thumbnail row bawah. Nama produk Inter Medium 24px. CTA <b>Add to Bag</b> pill hitam 30px rounded (Nike primary button spec). Disclosure rows dengan 1px hairline divider.</div>
+    </div>
+
+    <!-- ══════ SCREEN 4 — CART ══════ -->
+    <div class="screen">
+      <div class="screen-lbl"><span>Bag</span><span class="num">04</span></div>
+      <div class="phone">
+        <div class="phone-screen">
+          <div class="status-bar"><span>09:28</span><span>5G · 86%</span></div>
+          <div class="nav">
+            <div class="logo">Findest.</div>
+            <div class="nav-right">
+              <div class="icon-btn"><svg class="i-sm"><use href="#i-search"/></svg></div>
+              <div class="icon-btn"><svg class="i-sm"><use href="#i-user"/></svg></div>
+            </div>
+          </div>
+          <div class="s-cart">
+            <div class="cart-head">
+              <h1>Bag</h1>
+              <div class="sub">3 items · Fitness Plus Sanur</div>
+            </div>
+
+            <div class="cart-items">
+              <div class="cart-line">
+                <div class="cl-img"><svg><use href="#s-tub"/></svg></div>
+                <div class="cl-body">
+                  <div class="cl-brand">Muscle First</div>
+                  <div class="cl-nm">Whey Isolate Choco 2LB</div>
+                  <div class="cl-meta">Chocolate · 2 LB</div>
+                  <div class="cl-row">
+                    <div class="cl-prc">Rp 745.000</div>
+                    <div class="qtyc"><button>−</button><span>2</span><button>+</button></div>
+                  </div>
+                </div>
+              </div>
+              <div class="cart-line">
+                <div class="cl-img"><svg><use href="#s-tub"/></svg></div>
+                <div class="cl-body">
+                  <div class="cl-brand">ON · Optimum Nutrition</div>
+                  <div class="cl-nm">Whey GS Chocolate 5 LBS</div>
+                  <div class="cl-meta">Chocolate · 5 LBS</div>
+                  <div class="cl-row">
+                    <div class="cl-prc">Rp 1.524.000</div>
+                    <div class="qtyc"><button>−</button><span>1</span><button>+</button></div>
+                  </div>
+                </div>
+              </div>
+              <div class="cart-line" style="border:0">
+                <div class="cl-img"><svg><use href="#s-sac"/></svg></div>
+                <div class="cl-body">
+                  <div class="cl-brand">Hotto</div>
+                  <div class="cl-nm">Collagen Drink Mix</div>
+                  <div class="cl-meta">Original · 30 sachet</div>
+                  <div class="cl-row">
+                    <div class="cl-prc">Rp 285.000</div>
+                    <div class="qtyc"><button>−</button><span>4</span><button>+</button></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="sum-block">
+              <div class="sum-row"><span class="k">Subtotal</span><span class="v">Rp 4.154.000</span></div>
+              <div class="sum-row"><span class="k">Estimated Shipping</span><span class="v">Free</span></div>
+              <div class="sum-row disc"><span class="k">Reorder Discount</span><span class="v">−Rp 100.000</span></div>
+              <div class="sum-row total"><span class="k">Total</span><span class="v">Rp 4.054.000</span></div>
+            </div>
+
+            <div class="cart-actions">
+              <button class="btn-primary">Checkout <svg class="i-sm"><use href="#i-arr"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="screen-cap"><b>Bag.</b> Cart items dengan thumb 72px di soft-cloud. Qty stepper pill-shape 26px rounded-full. Summary bordered by hairline. Primary pill "Checkout" — Nike button style.</div>
+    </div>
+
+    <!-- ══════ SCREEN 5 — CHECKOUT ══════ -->
+    <div class="screen">
+      <div class="screen-lbl"><span>Checkout</span><span class="num">05</span></div>
+      <div class="phone">
+        <div class="phone-screen">
+          <div class="status-bar"><span>09:29</span><span>5G · 86%</span></div>
+          <div class="nav">
+            <div class="logo">Findest.</div>
+          </div>
+          <div class="s-check">
+            <div class="check-head">
+              <h1>Checkout</h1>
+            </div>
+
+            <div class="check-section">
+              <div class="cs-head">
+                <h3>Shipping Address</h3>
+                <a class="edit">Edit</a>
+              </div>
+              <div class="cs-val">
+                Fitness Plus Sanur
+                <span class="sub">Jl. Danau Poso No.29, Sanur, Denpasar Selatan, Bali</span>
+              </div>
+            </div>
+
+            <div class="check-section">
+              <div class="cs-head">
+                <h3>Delivery</h3>
+                <a class="edit">Change</a>
+              </div>
+              <div class="cs-val">
+                Same-Day · Sore 16:00–18:00 WITA
+                <span class="sub">Driver Andi · order sebelum 12:00 WITA</span>
+              </div>
+            </div>
+
+            <div class="check-section">
+              <div class="cs-head">
+                <h3>Payment Method</h3>
+              </div>
+              <div class="pay-list">
+                <div class="pay">
+                  <div class="pay-radio"></div>
+                  <div class="pay-txt">
+                    Cash on Delivery
+                    <span class="sub">Bayar saat barang sampai</span>
+                  </div>
+                </div>
+                <div class="pay on">
+                  <div class="pay-radio"></div>
+                  <div class="pay-txt">
+                    Transfer Bank
+                    <span class="sub">BCA · Upload bukti setelah transfer</span>
+                  </div>
+                </div>
+                <div class="pay">
+                  <div class="pay-radio"></div>
+                  <div class="pay-txt">
+                    Kredit 30 Hari
+                    <span class="sub">Invoice payable · terverifikasi finance</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="check-section">
+              <div class="cs-head"><h3>Order Summary</h3></div>
+              <div class="sum-row"><span class="k">Subtotal</span><span class="v">Rp 4.154.000</span></div>
+              <div class="sum-row disc"><span class="k">Discount</span><span class="v">−Rp 100.000</span></div>
+              <div class="sum-row total"><span class="k">Total</span><span class="v">Rp 4.054.000</span></div>
+            </div>
+
+            <div class="cart-actions">
+              <button class="btn-primary">Place Order <svg class="i-sm"><use href="#i-arr"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="screen-cap"><b>Checkout.</b> Section-based layout dengan hairline dividers. Payment radio pakai Nike swatch pattern (12px concentric ring). CTA "Place Order" pill hitam 30px rounded — sama kaya PDP & Cart.</div>
+    </div>
+
+    <!-- ══════ SCREEN 6 — TRACKING ══════ -->
+    <div class="screen">
+      <div class="screen-lbl"><span>Order Tracking</span><span class="num">06</span></div>
+      <div class="phone">
+        <div class="phone-screen">
+          <div class="status-bar"><span>10:47</span><span>5G · 84%</span></div>
+          <div class="nav">
+            <div class="logo">Findest.</div>
+            <div class="nav-right">
+              <div class="icon-btn"><svg class="i-sm"><use href="#i-close"/></svg></div>
+            </div>
+          </div>
+          <div class="s-track">
+            <div class="track-head">
+              <div class="num">Order #ORD-2609240031</div>
+              <h1>On The Way.</h1>
+              <div class="eta">ETA arrival <b>11:15 WITA</b> · Driver Andi</div>
+            </div>
+
+            <div class="progress">
+              <div class="step done"></div>
+              <div class="step done"></div>
+              <div class="step done"></div>
+              <div class="step now"></div>
+              <div class="step"></div>
+            </div>
+
+            <div class="timeline">
+              <div class="tl done">
+                <div class="tl-mark"><div class="tl-dot"></div></div>
+                <div class="tl-body">
+                  <div class="tl-lbl">Order Received</div>
+                  <div class="tl-time">09:32 WITA</div>
+                </div>
+              </div>
+              <div class="tl done">
+                <div class="tl-mark"><div class="tl-dot"></div></div>
+                <div class="tl-body">
+                  <div class="tl-lbl">Payment Confirmed</div>
+                  <div class="tl-time">09:45 WITA</div>
+                  <div class="tl-sub">Transfer Rp 4.054.000 diverifikasi finance</div>
+                </div>
+              </div>
+              <div class="tl done">
+                <div class="tl-mark"><div class="tl-dot"></div></div>
+                <div class="tl-body">
+                  <div class="tl-lbl">Preparing at Warehouse</div>
+                  <div class="tl-time">10:05 WITA</div>
+                </div>
+              </div>
+              <div class="tl now">
+                <div class="tl-mark"><div class="tl-dot"></div></div>
+                <div class="tl-body">
+                  <div class="tl-lbl">Out for Delivery</div>
+                  <div class="tl-time">10:20 WITA · ETA 11:15</div>
+                  <div class="tl-sub">Driver Andi menuju Sanur — 3.2 km away</div>
+                </div>
+              </div>
+              <div class="tl">
+                <div class="tl-mark"><div class="tl-dot"></div></div>
+                <div class="tl-body">
+                  <div class="tl-lbl">Delivered</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="driver">
+              <div class="driver-av">A</div>
+              <div class="driver-info">
+                <div class="driver-nm">Andi Setiawan</div>
+                <div class="driver-sub">DK 4231 XYZ · Yamaha NMax</div>
+              </div>
+              <a class="driver-call">Call <svg class="i-sm"><use href="#i-phone"/></svg></a>
+            </div>
+          </div>
+
+          <div class="tabs">
+            <div class="tab"><div class="tab-ico"><svg class="i-sm"><use href="#i-home"/></svg></div>Home</div>
+            <div class="tab"><div class="tab-ico"><svg class="i-sm"><use href="#i-box"/></svg></div>Shop</div>
+            <div class="tab"><div class="tab-ico"><svg class="i-sm"><use href="#i-cart"/></svg></div>Bag</div>
+            <div class="tab on"><div class="tab-ico"><svg class="i-sm"><use href="#i-pin"/></svg></div>Orders</div>
+            <div class="tab"><div class="tab-ico"><svg class="i-sm"><use href="#i-user"/></svg></div>Me</div>
+          </div>
+        </div>
+      </div>
+      <div class="screen-cap"><b>Tracking.</b> Header pakai Bebas Neue 42px "ON THE WAY." Progress bar 5-segment (ink hitam untuk done, green success untuk now). Timeline vertikal dengan dot 12px. Call CTA pill hitam — konsisten sama primary buttons.</div>
+    </div>
+
+  </div>
+
+  <!-- Notes footer -->
+  <div class="notes">
+    <h2>Design DNA<br>Nike-Inspired.</h2>
+    <p class="lead">V0.3 — full re-do pakai Nike design system dari VoltAgent's DESIGN.md. Photography-first commerce, pill-shape chrome, editorial magazine layout. Buang semua "AI safe template" pattern (bright accent colors, sharp corners, mono font untuk data).</p>
+
+    <div class="notes-grid">
+      <div class="note-i">
+        <h3>Palette</h3>
+        <p>Pure black #111 (ink), pure white #FFF (canvas), soft-cloud grey #F5F5F5 (product stage). Red #d30005 HANYA untuk sale price — tidak pernah jadi decorative accent atau CTA color.</p>
+      </div>
+      <div class="note-i">
+        <h3>Typography</h3>
+        <p>Bebas Neue 96px untuk editorial hero (open-source Futura substitute per Nike spec). Inter Medium 16–32px untuk chrome. Extreme contrast: 96px → 16px langsung, no middle ground.</p>
+      </div>
+      <div class="note-i">
+        <h3>Rounded Corners</h3>
+        <p>Semua CTA & filter pill 30px rounded. Search & input 24px. Icon buttons 40px full-round. Cards, product images, campaign tiles: ZERO rounded. Two-shape vocabulary only.</p>
+      </div>
+      <div class="note-i">
+        <h3>Product Cards</h3>
+        <p>Zero padding, zero shadow. Foto full-bleed di soft-cloud "studio" grey. Metadata rows di bawah dengan 8px gap: swatch dots → tag → name → category → price row.</p>
+      </div>
+      <div class="note-i">
+        <h3>Voice / Copy</h3>
+        <p>Editorial magazine tone: "Fuel The Session", "On The Way", "Just In", "Sale". Short, imperative, athletic. Copy mixed English/Indonesian sesuai audience B2B distributor.</p>
+      </div>
+      <div class="note-i">
+        <h3>What's Missing</h3>
+        <p>Real product photography (butuh asset dari lu). Real hero campaign imagery. Real brand illustrations. Semua ini bikin design "beneran feel like Nike" — currently pakai SVG placeholders.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

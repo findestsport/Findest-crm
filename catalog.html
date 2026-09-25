@@ -35,6 +35,19 @@
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
 
+/* ══════ CUSTOMER BANNER (QR authed) ══════ */
+.cust-banner{background:linear-gradient(135deg,#0D9488,#0F766E);color:var(--white);padding:10px 20px;display:none;align-items:center;gap:10px;font-size:13px;font-weight:500}
+.cust-banner.show{display:flex}
+.cust-banner svg{width:16px;height:16px;flex-shrink:0;fill:var(--white);opacity:.9}
+.cust-banner-name{font-weight:700;letter-spacing:-.1px}
+.cust-banner-sub{opacity:.85;font-size:12px;font-weight:400}
+.cust-banner-orders{margin-left:auto;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.28);color:var(--white);padding:5px 12px;border-radius:100px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font);letter-spacing:.2px}
+.cust-banner-orders:hover{background:rgba(255,255,255,.25)}
+@media(max-width:640px){
+  .cust-banner{font-size:12px;padding:8px 16px;gap:8px}
+  .cust-banner-sub{display:none}
+}
+
 /* ══════ NAVBAR ══════ */
 .navbar{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.82);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid var(--border);padding:0 20px}
 .nav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;height:56px;gap:16px}
@@ -135,6 +148,22 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .pcard-add:active{transform:scale(.95)}
 .pcard-add.added{background:var(--teal);border-color:var(--teal);color:var(--white)}
 .pcard-add:disabled{background:var(--red-light);border-color:rgba(220,38,38,.12);color:var(--red);cursor:not-allowed;transform:none}
+
+/* ══════ ORDER HISTORY LIST ══════ */
+.oh-empty{text-align:center;padding:32px 20px;color:var(--muted);font-size:13px}
+.oh-item{padding:14px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:opacity .15s}
+.oh-item:hover{opacity:.7}
+.oh-item:last-child{border-bottom:none}
+.oh-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.oh-no{font-size:12px;font-weight:700;color:var(--text);letter-spacing:.2px}
+.oh-date{font-size:11px;color:var(--subtle);font-weight:500}
+.oh-produk{font-size:12px;color:var(--muted);line-height:1.4;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.oh-bottom{display:flex;justify-content:space-between;align-items:center}
+.oh-total{font-size:14px;font-weight:800;color:var(--text);letter-spacing:-.3px}
+.oh-status{font-size:10px;font-weight:700;padding:3px 9px;border-radius:100px;text-transform:uppercase;letter-spacing:.4px}
+.oh-status.pending,.oh-status.proses{background:var(--amber-light);color:var(--amber);border:1px solid rgba(217,119,6,.15)}
+.oh-status.selesai,.oh-status.done{background:var(--green-light);color:var(--green);border:1px solid rgba(5,150,105,.15)}
+.oh-status.batal,.oh-status.dibatalkan{background:var(--red-light);color:var(--red);border:1px solid rgba(220,38,38,.12)}
 
 /* ══════ CART FAB (Mobile) ══════ */
 .cart-fab{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);z-index:150;display:flex;align-items:center;justify-content:space-between;gap:14px;background:var(--text);color:var(--white);padding:14px 22px;border-radius:var(--radius-lg);font-weight:600;font-size:14px;cursor:pointer;transition:transform .35s cubic-bezier(.34,1.56,.64,1),opacity .35s;white-space:nowrap;min-width:260px;border:none;font-family:var(--font);opacity:0;box-shadow:var(--shadow-xl)}
@@ -256,6 +285,14 @@ textarea.form-input{resize:none}
 </head>
 <body>
 
+<!-- ══════ CUSTOMER BANNER (QR authed) ══════ -->
+<div class="cust-banner" id="custBanner">
+  <svg viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+  <span>Halo, <span class="cust-banner-name" id="custBannerName">—</span></span>
+  <span class="cust-banner-sub" id="custBannerSub"></span>
+  <button class="cust-banner-orders" onclick="openHistory()">Riwayat</button>
+</div>
+
 <!-- ══════ NAVBAR ══════ -->
 <nav class="navbar">
   <div class="nav-inner">
@@ -355,6 +392,9 @@ textarea.form-input{resize:none}
 <div class="overlay" id="cartModal" onclick="bgClose(event,'cartModal')">
   <div class="sheet"><div class="sheet-handle"></div><div class="sheet-body" id="cartContent"></div></div>
 </div>
+<div class="overlay" id="historyModal" onclick="bgClose(event,'historyModal')">
+  <div class="sheet"><div class="sheet-handle"></div><div class="sheet-body" id="historyContent"></div></div>
+</div>
 <div class="video-ov" id="videoOv">
   <button class="video-close" onclick="closeVideo()">&#10005;</button>
   <iframe id="videoFrame" allow="autoplay"></iframe>
@@ -365,8 +405,29 @@ textarea.form-input{resize:none}
 const SB=supabase.createClient('https://wuejoxgbtvmlrriwlofk.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZWpveGdidHZtbHJyaXdsb2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNjY1NTQsImV4cCI6MjA5Mjg0MjU1NH0.nq0xlsuXeJNXtb8SisPQ3Ml5fXNy2vguVRJ8pNFGai0');
 let products=[],cart={},activeCat='all',searchQ='',modalQty=1,selPayment='';
 let salesWA='',salesName='Findest Sport',bankNama='',bankRekening='',bankAtasNama='',qrisUrl='';
+let currentCustomer=null; // set jika ?c=<id> di URL
 const fmt=n=>'Rp '+Math.round(n||0).toLocaleString('id-ID');
 const EM={ON:'🏆',BSN:'💪',ISOPURE:'❄️'};
+
+// ══════ URL param: customer_id from QR scan ══════
+function getCustomerIdFromUrl(){
+  const p=new URLSearchParams(window.location.search);
+  const c=p.get('c');
+  return c&&/^\d+$/.test(c)?parseInt(c):null;
+}
+async function loadCustomer(){
+  const cid=getCustomerIdFromUrl();
+  if(!cid)return;
+  try{
+    const{data,error}=await SB.from('customers').select('id,nama,tipe,wa,alamat').eq('id',cid).eq('status','Aktif').maybeSingle();
+    if(error||!data){console.warn('[Findest] customer lookup:',error?.message||'not found');return;}
+    currentCustomer=data;
+    const banner=document.getElementById('custBanner');
+    document.getElementById('custBannerName').textContent=data.nama;
+    document.getElementById('custBannerSub').textContent=data.tipe?'· '+data.tipe:'';
+    banner.classList.add('show');
+  }catch(e){console.warn('[Findest] customer fetch:',e.message);}
+}
 
 function qrFail(img){img.outerHTML='<div style="font-size:12px;color:var(--muted)">QR gagal dimuat — dikirim via WhatsApp setelah order</div>';}
 function convertFotoUrl(url){
@@ -379,6 +440,7 @@ function convertFotoUrl(url){
 }
 
 async function init(){
+  loadCustomer(); // fire-and-forget, doesn't block products load
   try{
     const[cfg,prods]=await Promise.all([
       SB.from('config').select('key,value'),
@@ -514,10 +576,10 @@ function openCart(){
     ${items.map(c=>{const em=EM[c.product.brand]||'📦';return`<div class="ci"><div class="ci-thumb">${c.product.foto_url?`<img src="${convertFotoUrl(c.product.foto_url)}" onerror="this.outerHTML='${em}'">`:`${em}`}</div><div class="ci-info"><div class="ci-name">${c.product.nama}</div><div class="ci-brand">${c.product.brand}</div><div class="ci-price">${fmt((c.product.harga||0)*c.qty)}</div></div><div class="ci-qty"><button class="ciq-btn" onclick="changeCartQty(${c.product.id},-1)">−</button><div class="ciq-num">${c.qty}</div><button class="ciq-btn" onclick="changeCartQty(${c.product.id},1)">+</button></div></div>`;}).join('')}
     <div class="cart-total"><span class="cart-total-label">Total</span><div class="cart-total-val">${fmt(total)}</div></div>
     <div class="form-label">Data Pemesan</div>
-    <input class="form-input" id="buyerName" placeholder="Nama lengkap *" type="text">
-    <input class="form-input" id="buyerPhone" placeholder="No. WhatsApp *" type="tel">
-    <input class="form-input" id="buyerGym" placeholder="Nama gym / outlet (opsional)" type="text">
-    <input class="form-input" id="buyerAddress" placeholder="Alamat pengiriman (opsional)" type="text">
+    <input class="form-input" id="buyerName" placeholder="Nama lengkap *" type="text" value="${currentCustomer?currentCustomer.nama.replace(/"/g,'&quot;'):''}">
+    <input class="form-input" id="buyerPhone" placeholder="No. WhatsApp *" type="tel" value="${currentCustomer&&currentCustomer.wa?currentCustomer.wa:''}">
+    <input class="form-input" id="buyerGym" placeholder="Nama gym / outlet (opsional)" type="text" value="${currentCustomer&&currentCustomer.tipe?currentCustomer.tipe.replace(/"/g,'&quot;'):''}">
+    <input class="form-input" id="buyerAddress" placeholder="Alamat pengiriman (opsional)" type="text" value="${currentCustomer&&currentCustomer.alamat?currentCustomer.alamat.replace(/"/g,'&quot;'):''}">
     <textarea class="form-input" id="buyerNote" placeholder="Catatan: flavor, ukuran, dll..." rows="2"></textarea>
     <div class="form-label">Metode Pembayaran</div>
     <div class="pay-grid">
@@ -573,10 +635,45 @@ async function sendOrder(){
   }
   try{
     const produkText=items.map(c=>`${c.product.brand} ${c.product.nama} x${c.qty}`).join(', ');
-    await SB.from('orders').insert([{customer_nama:name,produk:produkText,total,status:'Pending',catatan:`WA: ${phone}${gym?' | Gym: '+gym:''}${address?' | Alamat: '+address:''}${selPayment?' | Bayar: '+selPayment:''}${note?' | Note: '+note:''}`}]);
+    const orderRow={
+      customer_nama:name,
+      produk:produkText,
+      total_nilai:total,
+      status:'Pending',
+      pembayaran:selPayment,
+      channel_sistem:'Findest Sport Catalog',
+      channel_tipe:currentCustomer?(currentCustomer.tipe||'Customer'):'Public',
+      catatan:`WA: ${phone}${gym?' | Gym: '+gym:''}${address?' | Alamat: '+address:''}${selPayment?' | Bayar: '+selPayment:''}${note?' | Note: '+note:''}${currentCustomer?' | customer_id:'+currentCustomer.id:''}`
+    };
+    if(currentCustomer)orderRow.customer_id=currentCustomer.id;
+    await SB.from('orders').insert([orderRow]);
   }catch(e){console.log('Order save:',e);}
   cart={};updateFab();closeOverlay('cartModal');render();
   showToast('Order berhasil dikirim!');
+}
+
+async function openHistory(){
+  if(!currentCustomer){showToast('Login via QR code dulu');return;}
+  const c=document.getElementById('historyContent');
+  c.innerHTML=`<div class="cart-header">Riwayat Pesanan</div><div class="cart-sub">${currentCustomer.nama}</div><div class="oh-empty"><div class="spinner" style="margin:0 auto 12px;width:24px;height:24px;border:2px solid var(--surface2);border-top-color:var(--text);border-radius:50%;animation:spin .8s linear infinite"></div>Memuat...</div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
+  openOverlay('historyModal');
+  try{
+    const{data,error}=await SB.from('orders').select('id,no_order,customer_nama,produk,total_nilai,status,pembayaran,tanggal,created_at,catatan').eq('customer_id',currentCustomer.id).order('created_at',{ascending:false}).limit(20);
+    if(error)throw error;
+    renderHistory(data||[]);
+  }catch(e){
+    console.warn('[Findest] history:',e.message);
+    c.innerHTML=`<div class="cart-header">Riwayat Pesanan</div><div class="cart-sub">${currentCustomer.nama}</div><div class="oh-empty">Gagal memuat riwayat. Cek koneksi.</div>`;
+  }
+}
+function renderHistory(rows){
+  const c=document.getElementById('historyContent');
+  if(!rows.length){c.innerHTML=`<div class="cart-header">Riwayat Pesanan</div><div class="cart-sub">${currentCustomer.nama}</div><div class="oh-empty">Belum ada order — mulai belanja sekarang!</div>`;return;}
+  const fmtDate=d=>{if(!d)return'—';const dt=new Date(d);return dt.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});};
+  c.innerHTML=`<div class="cart-header">Riwayat Pesanan</div><div class="cart-sub">${rows.length} order &middot; ${currentCustomer.nama}</div>${rows.map(r=>{
+    const st=(r.status||'Pending').toLowerCase();
+    return`<div class="oh-item"><div class="oh-top"><div class="oh-no">${r.no_order||'#'+r.id}</div><div class="oh-date">${fmtDate(r.tanggal||r.created_at)}</div></div><div class="oh-produk">${(r.produk||'—').replace(/</g,'&lt;')}</div><div class="oh-bottom"><div class="oh-total">${fmt(r.total_nilai)}</div><div class="oh-status ${st}">${r.status||'Pending'}</div></div></div>`;
+  }).join('')}`;
 }
 
 function openVideo(url){let e=url;const yt=url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);if(yt)e='https://www.youtube.com/embed/'+yt[1]+'?autoplay=1';document.getElementById('videoFrame').src=e;document.getElementById('videoOv').classList.add('open');}

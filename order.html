@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#111111">
+<meta name="description" content="Findest Sport — order supplement premium di Bali. Delivery same-day.">
+<title>FINDEST — Order</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   FINDEST — Order App (MVP v0.1)
+   Design system: FINDEST-DESIGN.md (Nike DNA)
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --ink: #111111;
+  --canvas: #ffffff;
+  --soft-cloud: #f5f5f5;
+  --hairline: #cacacb;
+  --hairline-soft: #e5e5e5;
+  --charcoal: #39393b;
+  --mute: #707072;
+  --stone: #9e9ea0;
+  --sale: #d30005;
+  --success: #007d48;
+  --r-md: 24px;
+  --r-lg: 30px;
+  --r-full: 9999px;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+#app {
+  max-width: 480px;
+  min-height: 100vh;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Chrome — utility bar + primary nav
+   ═══════════════════════════════════════════════════════════════ */
+.util-bar {
+  background: var(--soft-cloud);
+  height: 28px;
+  display: flex; justify-content: flex-end; align-items: center;
+  padding: 0 16px; gap: 16px;
+  font-size: 10px; font-weight: 500;
+  color: var(--ink);
+}
+.util-bar .sep { color: var(--mute); }
+
+.nav {
+  height: 56px;
+  padding: 0 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--canvas);
+  border-bottom: 1px solid var(--hairline-soft);
+  position: sticky; top: 0; z-index: 10;
+}
+.logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 26px;
+  color: var(--ink);
+  line-height: 1;
+}
+.logo .dot { color: var(--ink); }
+.nav-right { display: flex; gap: 8px; align-items: center; }
+.icon-btn {
+  width: 40px; height: 40px;
+  background: var(--soft-cloud);
+  border: none;
+  border-radius: var(--r-full);
+  display: grid; place-items: center;
+  color: var(--ink);
+  position: relative;
+  cursor: pointer;
+}
+.badge-num {
+  position: absolute; top: -2px; right: -2px;
+  background: var(--ink); color: var(--canvas);
+  min-width: 18px; height: 18px;
+  border-radius: var(--r-full);
+  font-size: 10px; font-weight: 600;
+  display: grid; place-items: center;
+  padding: 0 5px;
+}
+
+/* Screen container */
+.screens { flex: 1; overflow: hidden; }
+.screen { display: none; padding-bottom: 88px; }
+.screen.on { display: block; }
+
+/* ═══════════════════════════════════════════════════════════════
+   HOME
+   ═══════════════════════════════════════════════════════════════ */
+.greet {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--hairline-soft);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.greet .txt { font-size: 13px; color: var(--charcoal); }
+.greet .txt b { color: var(--ink); font-weight: 500; }
+.greet .out-pill {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--soft-cloud);
+  padding: 4px 12px 4px 4px;
+  border-radius: var(--r-full);
+  font-size: 11px; font-weight: 500;
+}
+.greet .out-pill .av {
+  width: 22px; height: 22px;
+  background: var(--ink); color: var(--canvas);
+  border-radius: var(--r-full);
+  display: grid; place-items: center;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 11px;
+}
+
+.hero {
+  background: var(--ink);
+  aspect-ratio: 4/5;
+  position: relative;
+  overflow: hidden;
+  color: var(--canvas);
+}
+.hero::before {
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,0.08) 0%, transparent 40%),
+    linear-gradient(180deg, #2a2a2a 0%, #111 60%, #000 100%);
+}
+.hero::after {
+  content: "";
+  position: absolute; inset: auto 0 0 0; height: 40%;
+  background: linear-gradient(180deg, transparent, rgba(0,0,0,0.6));
+}
+.hero-content {
+  position: absolute; inset: 0;
+  padding: 24px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  z-index: 2;
+}
+.hero-eye { font-size: 11px; font-weight: 500; opacity: 0.9; }
+.hero-h {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 64px; line-height: 0.9;
+  letter-spacing: -0.005em;
+  text-transform: uppercase;
+  margin: 8px 0 12px;
+}
+.hero-sub {
+  font-size: 13px;
+  color: rgba(255,255,255,0.8);
+  max-width: 220px;
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+.hero-cta {
+  align-self: flex-start;
+  background: var(--canvas); color: var(--ink);
+  padding: 12px 24px;
+  border-radius: var(--r-lg);
+  font-size: 14px; font-weight: 500;
+  border: none;
+  cursor: pointer;
+}
+
+.sec-h {
+  padding: 40px 16px 12px;
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.sec-h h2 {
+  font-family: 'Inter', sans-serif;
+  font-size: 22px; font-weight: 500;
+  margin: 0;
+}
+.sec-h a {
+  font-size: 13px; font-weight: 500;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.h-scroll {
+  display: flex; gap: 8px;
+  overflow-x: auto;
+  padding: 0 16px;
+  scrollbar-width: none;
+}
+.h-scroll::-webkit-scrollbar { display: none; }
+
+.p-mini {
+  flex: 0 0 160px;
+  background: var(--canvas);
+  cursor: pointer;
+}
+.p-mini .img {
+  background: var(--soft-cloud);
+  aspect-ratio: 1;
+  display: grid; place-items: center;
+  overflow: hidden;
+}
+.p-mini .img img {
+  max-width: 80%; max-height: 80%;
+  object-fit: contain;
+}
+.p-mini .info { padding-top: 12px; }
+.p-mini .brand {
+  font-size: 11px; font-weight: 500;
+  color: var(--mute); text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.p-mini .nm {
+  font-size: 14px; font-weight: 500;
+  color: var(--ink);
+  line-height: 1.3;
+  margin-bottom: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.p-mini .prc {
+  font-size: 14px; font-weight: 500;
+  color: var(--ink);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   KATALOG (Shop)
+   ═══════════════════════════════════════════════════════════════ */
+.shop-head {
+  padding: 20px 16px 12px;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.shop-head h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 38px;
+  line-height: 0.95;
+  text-transform: uppercase;
+  margin: 0 0 6px;
+}
+.shop-head .count {
+  font-size: 13px; color: var(--mute);
+  font-weight: 500;
+}
+.shop-head .count span { color: var(--ink); }
+
+.search-pill {
+  margin: 14px 16px 12px;
+  background: var(--soft-cloud);
+  border-radius: var(--r-md);
+  padding: 12px 16px;
+  display: flex; align-items: center; gap: 10px;
+  height: 44px;
+}
+.search-pill input {
+  flex: 1;
+  background: transparent;
+  border: none; outline: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+}
+.search-pill input::placeholder { color: var(--mute); }
+
+.chips {
+  display: flex; gap: 8px;
+  overflow-x: auto;
+  padding: 0 16px 14px;
+  scrollbar-width: none;
+}
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex: 0 0 auto;
+  padding: 8px 16px;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  font-size: 13px; font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.chip.on {
+  background: var(--ink);
+  color: var(--canvas);
+  border-color: var(--ink);
+}
+
+.pg {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 0 16px;
+}
+.p-card { cursor: pointer; }
+.p-card .img {
+  background: var(--soft-cloud);
+  aspect-ratio: 1;
+  margin-bottom: 12px;
+  position: relative;
+  display: grid; place-items: center;
+  overflow: hidden;
+}
+.p-card .img img {
+  max-width: 80%; max-height: 80%;
+  object-fit: contain;
+}
+.p-card .p-badge {
+  position: absolute; top: 8px; left: 8px;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  padding: 4px 10px;
+  border-radius: var(--r-lg);
+  font-size: 11px; font-weight: 500;
+  z-index: 2;
+}
+.p-card .wish {
+  position: absolute; top: 8px; right: 8px;
+  width: 32px; height: 32px;
+  background: transparent; border: none;
+  border-radius: var(--r-full);
+  display: grid; place-items: center;
+  color: var(--ink);
+  z-index: 2;
+  cursor: pointer;
+}
+.p-card .info { padding: 0 4px; }
+.p-card .brand {
+  font-size: 12px; font-weight: 500;
+  color: var(--mute); text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.p-card .nm {
+  font-size: 14px; font-weight: 500;
+  line-height: 1.3;
+  margin-bottom: 6px;
+  color: var(--ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 36px;
+}
+.p-card .prc-row {
+  display: flex; align-items: baseline; gap: 6px;
+}
+.p-card .prc {
+  font-size: 14px; font-weight: 500;
+  color: var(--ink);
+}
+.p-card .stok {
+  font-size: 11px; font-weight: 500;
+  margin-top: 6px;
+  color: var(--success);
+}
+.p-card .stok.low { color: var(--sale); }
+.p-card .stok.out { color: var(--mute); }
+
+.empty-state {
+  padding: 60px 24px;
+  text-align: center;
+  color: var(--mute);
+  font-size: 14px;
+}
+.empty-state .big {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  color: var(--ink);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PRODUCT DETAIL
+   ═══════════════════════════════════════════════════════════════ */
+.pdp-topbar {
+  position: sticky; top: 0; z-index: 5;
+  background: var(--canvas);
+  padding: 12px 16px;
+  display: flex; justify-content: space-between;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.pdp-topbar .circ {
+  width: 40px; height: 40px;
+  background: var(--soft-cloud);
+  border: none;
+  border-radius: var(--r-full);
+  display: grid; place-items: center;
+  color: var(--ink);
+  cursor: pointer;
+}
+.pdp-hero {
+  background: var(--soft-cloud);
+  aspect-ratio: 1;
+  display: grid; place-items: center;
+  overflow: hidden;
+}
+.pdp-hero img {
+  max-width: 80%; max-height: 80%;
+  object-fit: contain;
+}
+.pdp-info { padding: 20px 16px; }
+.pdp-tag {
+  font-size: 12px; font-weight: 500;
+  color: var(--sale); text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.pdp-brand {
+  font-size: 13px; font-weight: 500;
+  color: var(--mute); text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.pdp-nm {
+  font-family: 'Inter', sans-serif;
+  font-size: 24px; font-weight: 500;
+  line-height: 1.2;
+  margin: 0 0 12px;
+}
+.pdp-prc-row {
+  display: flex; align-items: baseline; gap: 10px;
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--hairline);
+}
+.pdp-prc {
+  font-size: 22px; font-weight: 500;
+  color: var(--ink);
+}
+.pdp-stok {
+  margin-left: auto;
+  font-size: 12px; font-weight: 500;
+  color: var(--success);
+  padding: 4px 10px;
+  background: rgba(0,125,72,0.1);
+  border-radius: var(--r-lg);
+}
+.pdp-stok.out {
+  color: var(--sale);
+  background: rgba(211,0,5,0.08);
+}
+.pdp-desc {
+  font-size: 14px;
+  color: var(--charcoal);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.pdp-qty {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: var(--soft-cloud);
+  border-radius: var(--r-md);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.pdp-qty .lbl { font-size: 14px; font-weight: 500; }
+.qtyc {
+  display: flex; align-items: center;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-full);
+  background: var(--canvas);
+  padding: 2px;
+}
+.qtyc button {
+  width: 32px; height: 32px;
+  background: transparent; border: none;
+  color: var(--ink);
+  font-size: 18px; font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--r-full);
+}
+.qtyc button:hover { background: var(--soft-cloud); }
+.qtyc span {
+  padding: 0 10px;
+  font-size: 15px; font-weight: 500;
+  min-width: 32px; text-align: center;
+}
+
+.btn-primary {
+  background: var(--ink); color: var(--canvas);
+  padding: 16px 32px;
+  border-radius: var(--r-lg);
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px; font-weight: 500;
+  height: 56px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  width: 100%;
+}
+.btn-primary:disabled { background: var(--stone); cursor: not-allowed; }
+.btn-secondary {
+  background: var(--soft-cloud); color: var(--ink);
+  padding: 16px 32px;
+  border-radius: var(--r-lg);
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px; font-weight: 500;
+  height: 56px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  width: 100%;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BAG / CART
+   ═══════════════════════════════════════════════════════════════ */
+.bag-head {
+  padding: 20px 16px 12px;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.bag-head h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 38px;
+  line-height: 0.95;
+  text-transform: uppercase;
+  margin: 0 0 4px;
+}
+.bag-head .sub { font-size: 13px; color: var(--mute); }
+
+.bag-items { padding: 8px 16px; }
+.cart-line {
+  display: flex; gap: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.cart-line .img {
+  width: 80px; height: 80px;
+  background: var(--soft-cloud);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.cart-line .img img { max-width: 80%; max-height: 80%; object-fit: contain; }
+.cart-line .body { flex: 1; min-width: 0; }
+.cart-line .brand {
+  font-size: 12px; font-weight: 500;
+  color: var(--mute); text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.cart-line .nm {
+  font-size: 14px; font-weight: 500;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+.cart-line .row {
+  display: flex; justify-content: space-between; align-items: center;
+}
+.cart-line .prc {
+  font-size: 15px; font-weight: 500;
+}
+.cart-line .rm {
+  background: none; border: none;
+  color: var(--mute); font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  margin-top: 4px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.sum-block {
+  margin: 24px 16px 16px;
+  padding-top: 20px;
+  border-top: 1px solid var(--hairline);
+}
+.sum-row {
+  display: flex; justify-content: space-between;
+  padding: 4px 0;
+  font-size: 14px;
+}
+.sum-row .k { color: var(--mute); font-weight: 400; }
+.sum-row .v { color: var(--ink); font-weight: 500; }
+.sum-row.total {
+  padding-top: 16px; margin-top: 8px;
+  border-top: 1px solid var(--hairline);
+}
+.sum-row.total .k, .sum-row.total .v {
+  font-size: 17px; font-weight: 500;
+}
+
+.bag-actions { padding: 0 16px 24px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   CHECKOUT
+   ═══════════════════════════════════════════════════════════════ */
+.co-head {
+  padding: 20px 16px 12px;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.co-head h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  text-transform: uppercase;
+  line-height: 1;
+  margin: 0;
+}
+
+.co-section {
+  padding: 20px 16px;
+  border-bottom: 1px solid var(--hairline);
+}
+.cs-h {
+  display: flex; justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 15px; font-weight: 500;
+}
+.cs-h .edit {
+  color: var(--ink); font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.cs-val { font-size: 14px; font-weight: 500; line-height: 1.5; }
+.cs-val .sub {
+  display: block;
+  color: var(--mute); font-weight: 400;
+  margin-top: 2px;
+  font-size: 13px;
+}
+
+.pay-list { display: flex; flex-direction: column; gap: 8px; }
+.pay {
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  display: flex; align-items: center; gap: 12px;
+  background: var(--canvas);
+  cursor: pointer;
+}
+.pay.on {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+.pay .radio {
+  width: 20px; height: 20px;
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--r-full);
+  flex-shrink: 0;
+}
+.pay.on .radio {
+  border-color: var(--ink);
+  position: relative;
+}
+.pay.on .radio::after {
+  content: "";
+  position: absolute; inset: 3px;
+  background: var(--ink);
+  border-radius: var(--r-full);
+}
+.pay .txt {
+  flex: 1;
+  font-size: 14px; font-weight: 500;
+}
+.pay .txt .sub {
+  display: block;
+  font-size: 12px; color: var(--mute);
+  font-weight: 400;
+  margin-top: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SUCCESS / TRACKING (placeholder)
+   ═══════════════════════════════════════════════════════════════ */
+.success-screen {
+  padding: 60px 24px;
+  text-align: center;
+}
+.success-icon {
+  width: 80px; height: 80px;
+  margin: 0 auto 24px;
+  background: var(--success);
+  border-radius: var(--r-full);
+  display: grid; place-items: center;
+  color: var(--canvas);
+}
+.success-screen h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 42px;
+  text-transform: uppercase;
+  line-height: 0.95;
+  margin: 0 0 8px;
+}
+.success-screen p {
+  font-size: 15px;
+  color: var(--mute);
+  margin-bottom: 32px;
+  line-height: 1.5;
+}
+.success-order-num {
+  font-size: 12px; font-weight: 500;
+  color: var(--mute);
+  margin-bottom: 6px;
+}
+
+/* Orders + Me placeholder */
+.placeholder {
+  padding: 80px 32px;
+  text-align: center;
+}
+.placeholder h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  text-transform: uppercase;
+  margin: 0 0 12px;
+}
+.placeholder p {
+  font-size: 14px;
+  color: var(--mute);
+  margin-bottom: 24px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Bottom tab bar
+   ═══════════════════════════════════════════════════════════════ */
+.tabs {
+  position: fixed; bottom: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 100%; max-width: 480px;
+  background: var(--canvas);
+  border-top: 1px solid var(--hairline-soft);
+  padding: 8px 4px calc(14px + env(safe-area-inset-bottom, 0));
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  gap: 2px;
+  z-index: 10;
+}
+.tab {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 6px 4px;
+  font-size: 10px; font-weight: 500;
+  color: var(--mute);
+  background: none; border: none;
+  cursor: pointer;
+}
+.tab.on { color: var(--ink); }
+.tab-ico {
+  width: 24px; height: 24px;
+  display: grid; place-items: center;
+  color: currentColor;
+  position: relative;
+}
+.tab .b-t {
+  position: absolute; top: -3px; right: -6px;
+  background: var(--ink); color: var(--canvas);
+  min-width: 16px; height: 16px;
+  border-radius: var(--r-full);
+  font-size: 9px; font-weight: 600;
+  display: grid; place-items: center;
+  padding: 0 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Toast
+   ═══════════════════════════════════════════════════════════════ */
+.toast {
+  position: fixed;
+  bottom: 92px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--ink); color: var(--canvas);
+  padding: 12px 24px;
+  border-radius: var(--r-lg);
+  font-size: 14px; font-weight: 500;
+  opacity: 0;
+  transition: all 0.3s ease;
+  pointer-events: none;
+  z-index: 100;
+  max-width: calc(100% - 32px);
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Loading spinner */
+.loading {
+  padding: 60px;
+  text-align: center;
+  color: var(--mute);
+  font-size: 14px;
+}
+.spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--soft-cloud);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  margin: 0 auto 12px;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- SVG icon defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12l9-8 9 8v8h-6v-6h-6v6H3v-8z"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 7l8-4 8 4v10l-8 4-8-4V7z M4 7l8 4 8-4 M12 11v10"/></symbol>
+    <symbol id="i-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5h3l2.5 11h11L21 8H6"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s-7-8-7-14a7 7 0 1114 0c0 6-7 14-7 14z"/><circle cx="12" cy="9" r="2.5"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="6"/><path d="M15 15l6 6"/></symbol>
+    <symbol id="i-arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14 M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20s-8-5-8-11a5 5 0 0110-1 5 5 0 0110 1c0 6-8 11-8 11z"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 6l-6 6 6 6"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6l12 12 M18 6l-12 12"/></symbol>
+    <symbol id="i-chk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12l6 6L20 6"/></symbol>
+    <!-- Product placeholder tub -->
+    <symbol id="s-tub" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5">
+      <path d="M32 22 h36 v4 h-36 z" fill="currentColor"/>
+      <path d="M28 26 h44 v66 h-44 z"/>
+      <path d="M40 40 h20 v6 h-20 z" fill="currentColor" stroke="none"/>
+      <path d="M36 55 h28 v3 h-28 z" fill="currentColor" stroke="none"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div id="app">
+
+  <!-- Utility bar -->
+  <div class="util-bar">
+    <span>Delivery Bali</span>
+    <span class="sep">·</span>
+    <span>WA Support</span>
+  </div>
+
+  <!-- Primary nav -->
+  <nav class="nav">
+    <div class="logo">Findest<span class="dot">.</span></div>
+    <div class="nav-right">
+      <button class="icon-btn" onclick="goto('#shop')"><svg width="18" height="18"><use href="#i-search"/></svg></button>
+      <button class="icon-btn" onclick="goto('#bag')">
+        <svg width="18" height="18"><use href="#i-cart"/></svg>
+        <span class="badge-num" id="cart-badge" style="display:none">0</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Screens container -->
+  <div class="screens">
+
+    <!-- HOME -->
+    <div class="screen" data-screen="home">
+      <div class="greet">
+        <div class="txt">Halo, <b id="cust-name">Guest</b></div>
+        <div class="out-pill" id="cust-pill" style="display:none">
+          <div class="av" id="cust-av">?</div>
+          <span id="cust-tipe">Outlet</span>
+        </div>
+      </div>
+
+      <div class="hero">
+        <div class="hero-content">
+          <div class="hero-eye">// Drop Baru</div>
+          <div>
+            <div class="hero-h">Fuel<br>The Session.</div>
+            <div class="hero-sub">Brand baru + ON premium supplement. Delivery same-day area Bali.</div>
+            <button class="hero-cta" onclick="goto('#shop')">Shop Katalog →</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec-h">
+        <h2>Featured</h2>
+        <a onclick="goto('#shop')">View All</a>
+      </div>
+      <div class="h-scroll" id="home-featured">
+        <div class="loading"><div class="spinner"></div>Loading...</div>
+      </div>
+
+      <div class="sec-h">
+        <h2>Brand Kami</h2>
+        <a onclick="goto('#shop')">See All</a>
+      </div>
+      <div class="h-scroll" id="home-brands"></div>
+    </div>
+
+    <!-- SHOP / KATALOG -->
+    <div class="screen" data-screen="shop">
+      <div class="shop-head">
+        <h1>Katalog</h1>
+        <div class="count"><span id="shop-count">—</span> Produk</div>
+      </div>
+      <div class="search-pill">
+        <svg width="16" height="16"><use href="#i-search"/></svg>
+        <input id="search" type="text" placeholder="Cari produk / brand / flavor" oninput="filterProducts()">
+      </div>
+      <div class="chips" id="cat-chips"></div>
+      <div class="pg" id="shop-grid">
+        <div class="loading" style="grid-column:1/-1"><div class="spinner"></div>Loading products...</div>
+      </div>
+    </div>
+
+    <!-- PRODUCT DETAIL -->
+    <div class="screen" data-screen="detail">
+      <div class="pdp-topbar">
+        <button class="circ" onclick="history.back()"><svg width="18" height="18"><use href="#i-back"/></svg></button>
+        <button class="circ"><svg width="18" height="18"><use href="#i-heart"/></svg></button>
+      </div>
+      <div id="pdp-content"></div>
+    </div>
+
+    <!-- BAG / CART -->
+    <div class="screen" data-screen="bag">
+      <div class="bag-head">
+        <h1>Bag</h1>
+        <div class="sub" id="bag-sub">0 items</div>
+      </div>
+      <div id="bag-content"></div>
+    </div>
+
+    <!-- CHECKOUT -->
+    <div class="screen" data-screen="checkout">
+      <div class="co-head"><h1>Checkout</h1></div>
+      <div id="checkout-content"></div>
+    </div>
+
+    <!-- SUCCESS -->
+    <div class="screen" data-screen="success">
+      <div class="success-screen">
+        <div class="success-icon"><svg width="40" height="40"><use href="#i-chk"/></svg></div>
+        <div class="success-order-num" id="success-num">Order #ORD-XXXX</div>
+        <h1>Order Placed.</h1>
+        <p>Pesanan lu udah diterima. Sales tim akan kontak via WA dalam 15 menit buat konfirmasi.</p>
+        <button class="btn-primary" onclick="goto('#home')">Kembali ke Home</button>
+      </div>
+    </div>
+
+    <!-- ORDERS -->
+    <div class="screen" data-screen="orders">
+      <div class="placeholder">
+        <h1>Riwayat Order</h1>
+        <p>Fitur order history akan tersedia setelah full launch.</p>
+        <button class="btn-secondary" onclick="goto('#shop')">Browse Katalog</button>
+      </div>
+    </div>
+
+    <!-- ME -->
+    <div class="screen" data-screen="me">
+      <div class="placeholder">
+        <h1 id="me-name">Guest</h1>
+        <p id="me-tipe">Belum login sebagai outlet</p>
+        <button class="btn-secondary" onclick="alert('Scan QR dari kartu Findest buat login sebagai outlet lu.')">Cara Login</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom tab bar -->
+  <div class="tabs">
+    <button class="tab on" data-tab="home" onclick="goto('#home')">
+      <div class="tab-ico"><svg width="20" height="20"><use href="#i-home"/></svg></div>Home
+    </button>
+    <button class="tab" data-tab="shop" onclick="goto('#shop')">
+      <div class="tab-ico"><svg width="20" height="20"><use href="#i-box"/></svg></div>Shop
+    </button>
+    <button class="tab" data-tab="bag" onclick="goto('#bag')">
+      <div class="tab-ico">
+        <svg width="20" height="20"><use href="#i-cart"/></svg>
+        <span class="b-t" id="tab-badge" style="display:none">0</span>
+      </div>Bag
+    </button>
+    <button class="tab" data-tab="orders" onclick="goto('#orders')">
+      <div class="tab-ico"><svg width="20" height="20"><use href="#i-pin"/></svg></div>Orders
+    </button>
+    <button class="tab" data-tab="me" onclick="goto('#me')">
+      <div class="tab-ico"><svg width="20" height="20"><use href="#i-user"/></svg></div>Me
+    </button>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// FINDEST Order MVP v0.1
+// ═══════════════════════════════════════════════════════════════
+
+const SB_URL = 'https://wuejoxgbtvmlrriwlofk.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZWpveGdidHZtbHJyaXdsb2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNjY1NTQsImV4cCI6MjA5Mjg0MjU1NH0.nq0xlsuXeJNXtb8SisPQ3Ml5fXNy2vguVRJ8pNFGai0';
+const sb = supabase.createClient(SB_URL, SB_KEY);
+
+// ─────────────────────────────────
+// MOCK DATA — fallback kalo Supabase ke-block CSP (mis. di artifact preview)
+// Real Findest catalog sample. Nanti auto-replace pas hosted di GH Pages.
+// ─────────────────────────────────
+const MOCK_PRODUCTS = [
+  { id: 101, nama: 'Whey Isolate Choco 2LB', brand: 'Muscle First', kategori: 'Protein', harga: 745000, hpp: 601000, foto_url: '', deskripsi: 'Premium whey protein isolate 25g protein per serving. Low carb, halal certified. Best seller kategori protein di gym populer Bali.', stok: 18, status: 'Aktif' },
+  { id: 102, nama: 'Whey GS Chocolate 5 LBS', brand: 'ON', kategori: 'Protein', harga: 1524000, hpp: 1385000, foto_url: '', deskripsi: 'Gold Standard 100% Whey — the world\'s best-selling whey protein powder. 24g protein per serving, 5.5g BCAA.', stok: 3, status: 'Aktif' },
+  { id: 103, nama: 'Whey Isolate Choco 2LB', brand: 'ON', kategori: 'Protein', harga: 853000, hpp: 775000, foto_url: '', deskripsi: 'Fastest-digesting whey isolate. Perfect for cutting phase & recovery post workout.', stok: 25, status: 'Aktif' },
+  { id: 104, nama: 'BCAA Boost Mango Peach 390g', brand: 'ON', kategori: 'Amino', harga: 513000, hpp: 466000, foto_url: '', deskripsi: '5g BCAA + electrolytes. Support muscle recovery & endurance training.', stok: 12, status: 'Aktif' },
+  { id: 105, nama: 'Whey Protein Vanilla 2LB', brand: 'Evolene', kategori: 'Protein', harga: 620000, hpp: 500000, foto_url: '', deskripsi: 'Local Indonesian premium whey. Made in Bandung. 22g protein per serving.', stok: 30, status: 'Aktif' },
+  { id: 106, nama: 'Syntha 6 Isolate Vanilla 4.02 LBS', brand: 'BSN', kategori: 'Protein', harga: 1463000, hpp: 1330000, foto_url: '', deskripsi: 'Multi-source ultra-premium protein isolate blend. 22g protein, 15g EAAs per serving.', stok: 8, status: 'Aktif' },
+  { id: 107, nama: 'Collagen Drink 30 sachet', brand: 'Hotto', kategori: 'Supplement', harga: 285000, hpp: 230000, foto_url: '', deskripsi: 'Marine collagen 10.000mg per sachet. Support skin elasticity & joint health.', stok: 45, status: 'Aktif' },
+  { id: 108, nama: 'Whey Isolate Unflavored 1 LB', brand: 'ISOPURE', kategori: 'Protein', harga: 562000, hpp: 511000, foto_url: '', deskripsi: '25g protein zero carbs. Ideal untuk lactose-sensitive & clean bulking.', stok: 15, status: 'Aktif' },
+  { id: 109, nama: 'Platinum Hydro Whey Choco 3.5LB', brand: 'ON', kategori: 'Protein', harga: 1711000, hpp: 1555000, foto_url: '', deskripsi: 'Hydrolyzed whey — pre-digested for ultra-fast absorption. 30g protein per serving.', stok: 6, status: 'Aktif' },
+  { id: 110, nama: 'Whey GS Vanilla Ice Cream 2 LB', brand: 'ON', kategori: 'Protein', harga: 705000, hpp: 641000, foto_url: '', deskripsi: 'Best-selling flavor. Rich creamy vanilla taste.', stok: 22, status: 'Aktif' },
+  { id: 111, nama: 'Amino Energy Watermelon 285g', brand: 'ON', kategori: 'Amino', harga: 432000, hpp: 392000, foto_url: '', deskripsi: 'Pre-workout amino + caffeine. Boost energy & muscle recovery.', stok: 18, status: 'Aktif' },
+  { id: 112, nama: 'Casein Chocolate 2LB', brand: 'Pranaon', kategori: 'Protein', harga: 780000, hpp: 630000, foto_url: '', deskripsi: 'Slow-release casein protein. Ideal untuk night muscle recovery.', stok: 0, status: 'Aktif' },
+];
+
+const MOCK_CUSTOMER = {
+  id: 999, nama: 'Fitness Plus Sanur', tipe: 'Fitness Plus',
+  wa: '081234567890', alamat: 'Jl. Danau Poso No.29, Sanur, Denpasar Selatan, Bali',
+  status: 'Aktif', pic: 'Bapak Budi'
+};
+
+// State
+let products = [];
+let filteredProducts = [];
+let categories = ['All'];
+let activeCat = 'All';
+let searchQ = '';
+let customer = null;
+let cart = [];
+let currentProduct = null;
+let selectedPayment = 'transfer';
+
+// ─────────────────────────────────
+// Persistence
+// ─────────────────────────────────
+function loadCart() {
+  try {
+    cart = JSON.parse(localStorage.getItem('findest_cart') || '[]');
+  } catch { cart = []; }
+}
+function saveCart() {
+  localStorage.setItem('findest_cart', JSON.stringify(cart));
+  renderCartBadge();
+}
+
+// ─────────────────────────────────
+// Utilities
+// ─────────────────────────────────
+const fmt = n => 'Rp ' + Math.round(n || 0).toLocaleString('id-ID');
+const $ = sel => document.querySelector(sel);
+const $$ = sel => document.querySelectorAll(sel);
+
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ─────────────────────────────────
+// Router — hash-based
+// ─────────────────────────────────
+function goto(hash) {
+  window.location.hash = hash;
+}
+
+function route() {
+  const hash = window.location.hash || '#home';
+  const parts = hash.slice(1).split('/');
+  const screen = parts[0] || 'home';
+  const param = parts[1];
+
+  // Hide all screens
+  $$('.screen').forEach(s => s.classList.remove('on'));
+  // Show target
+  const target = document.querySelector(`.screen[data-screen="${screen}"]`);
+  if (target) target.classList.add('on');
+  else document.querySelector('.screen[data-screen="home"]').classList.add('on');
+
+  // Update tab bar
+  $$('.tab').forEach(t => t.classList.remove('on'));
+  const activeTab = document.querySelector(`.tab[data-tab="${screen}"]`);
+  if (activeTab) activeTab.classList.add('on');
+
+  // Screen-specific renders
+  if (screen === 'detail' && param) renderPDP(param);
+  if (screen === 'bag') renderBag();
+  if (screen === 'checkout') renderCheckout();
+
+  // Scroll to top
+  window.scrollTo(0, 0);
+}
+
+// ─────────────────────────────────
+// Customer identify (via ?c=xx)
+// ─────────────────────────────────
+async function loadCustomer() {
+  const params = new URLSearchParams(window.location.search);
+  const custId = params.get('c');
+
+  if (custId) {
+    // Try Supabase
+    try {
+      const { data } = await Promise.race([
+        sb.from('customers').select('*').eq('id', custId).maybeSingle(),
+        new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 3000))
+      ]);
+      if (data) { customer = data; }
+    } catch { /* fallback */ }
+  }
+
+  // Fallback: mock customer (demo mode)
+  if (!customer) customer = MOCK_CUSTOMER;
+
+  // Update UI
+  $('#cust-name').textContent = customer.nama;
+  $('#cust-pill').style.display = 'flex';
+  $('#cust-av').textContent = customer.nama.substring(0, 2).toUpperCase();
+  $('#cust-tipe').textContent = customer.tipe || 'Outlet';
+  $('#me-name').textContent = customer.nama;
+  $('#me-tipe').textContent = `${customer.tipe} · ${customer.alamat || 'Bali'}`;
+}
+
+// ─────────────────────────────────
+// Products
+// ─────────────────────────────────
+async function loadProducts() {
+  // Try Supabase live data first (works on GitHub Pages, blocked in artifact CSP)
+  try {
+    const result = await Promise.race([
+      sb.from('products')
+        .select('id,nama,brand,kategori,harga,hpp,foto_url,deskripsi,stok,status,sort_order')
+        .eq('status', 'Aktif')
+        .order('brand').order('nama'),
+      new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 4000))
+    ]);
+    if (result.data && result.data.length > 0) {
+      products = result.data;
+      console.log('[Findest] Loaded', products.length, 'products from Supabase');
+    }
+  } catch (e) {
+    console.warn('[Findest] Supabase unreachable, using demo data:', e.message);
+  }
+
+  // Fallback: mock products (demo mode in artifact preview)
+  if (!products.length) {
+    products = MOCK_PRODUCTS;
+    console.log('[Findest] Demo mode:', products.length, 'sample products');
+  }
+  filteredProducts = products;
+
+  const cats = new Set(products.map(p => p.kategori).filter(Boolean));
+  categories = ['All', ...Array.from(cats).sort()];
+
+  renderHome();
+  renderShop();
+  renderCatChips();
+  $('#shop-count').textContent = products.length;
+}
+
+function filterProducts() {
+  const q = $('#search').value.toLowerCase().trim();
+  searchQ = q;
+  filteredProducts = products.filter(p => {
+    const catMatch = activeCat === 'All' || p.kategori === activeCat;
+    const qMatch = !q ||
+      (p.nama || '').toLowerCase().includes(q) ||
+      (p.brand || '').toLowerCase().includes(q);
+    return catMatch && qMatch;
+  });
+  renderShop();
+}
+
+// ─────────────────────────────────
+// Renders
+// ─────────────────────────────────
+function renderCatChips() {
+  const wrap = $('#cat-chips');
+  wrap.innerHTML = categories.map(c => `
+    <button class="chip ${c === activeCat ? 'on' : ''}" onclick="setCat('${c.replace(/'/g,"\\'")}')">${c}</button>
+  `).join('');
+}
+function setCat(c) {
+  activeCat = c;
+  renderCatChips();
+  filterProducts();
+}
+
+function productImg(p) {
+  if (p.foto_url) return `<img src="${p.foto_url}" alt="${p.nama}" loading="lazy" onerror="this.style.display='none'">`;
+  return `<svg width="60%" height="60%"><use href="#s-tub"/></svg>`;
+}
+
+function stokBadge(p) {
+  const s = p.stok || 0;
+  if (s === 0) return `<div class="stok out">Stok habis</div>`;
+  if (s < 5) return `<div class="stok low">Sisa ${s}</div>`;
+  return `<div class="stok">Tersedia</div>`;
+}
+
+function renderHome() {
+  // Featured — random 8 in-stock products
+  const featured = products.filter(p => (p.stok || 0) > 0).slice(0, 8);
+  $('#home-featured').innerHTML = featured.map(p => `
+    <div class="p-mini" onclick="goto('#detail/${p.id}')">
+      <div class="img">${productImg(p)}</div>
+      <div class="info">
+        <div class="brand">${p.brand || '—'}</div>
+        <div class="nm">${p.nama}</div>
+        <div class="prc">${fmt(p.harga)}</div>
+      </div>
+    </div>
+  `).join('') || '<div class="empty-state">No products yet.</div>';
+
+  // Brands
+  const brands = [...new Set(products.map(p => p.brand).filter(Boolean))];
+  $('#home-brands').innerHTML = brands.map(b => {
+    const bp = products.find(p => p.brand === b);
+    return `
+      <div class="p-mini" onclick="setCat('All');goto('#shop');document.getElementById('search').value='${b}';filterProducts();">
+        <div class="img" style="background:var(--ink);color:var(--canvas);">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;">${b}</div>
+        </div>
+        <div class="info">
+          <div class="brand">Brand</div>
+          <div class="nm">${b}</div>
+          <div class="prc">Explore →</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderShop() {
+  const grid = $('#shop-grid');
+  if (!filteredProducts.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="big">No Match</div>Coba search lain.</div>`;
+    return;
+  }
+  grid.innerHTML = filteredProducts.map(p => `
+    <div class="p-card" onclick="goto('#detail/${p.id}')">
+      <div class="img">
+        ${productImg(p)}
+        <button class="wish" onclick="event.stopPropagation();toast('Coming soon: wishlist');"><svg width="16" height="16"><use href="#i-heart"/></svg></button>
+      </div>
+      <div class="info">
+        <div class="brand">${p.brand || '—'}</div>
+        <div class="nm">${p.nama}</div>
+        <div class="prc-row"><span class="prc">${fmt(p.harga)}</span></div>
+        ${stokBadge(p)}
+      </div>
+    </div>
+  `).join('');
+}
+
+// PDP
+let pdpQty = 1;
+function renderPDP(id) {
+  const p = products.find(x => x.id == id);
+  if (!p) { $('#pdp-content').innerHTML = '<div class="empty-state">Produk tidak ditemukan.</div>'; return; }
+  currentProduct = p;
+  pdpQty = 1;
+  const stokOut = (p.stok || 0) === 0;
+
+  $('#pdp-content').innerHTML = `
+    <div class="pdp-hero">${productImg(p)}</div>
+    <div class="pdp-info">
+      <div class="pdp-brand">${p.brand || '—'} · ${p.kategori || ''}</div>
+      <h1 class="pdp-nm">${p.nama}</h1>
+      <div class="pdp-prc-row">
+        <div class="pdp-prc">${fmt(p.harga)}</div>
+        <div class="pdp-stok ${stokOut ? 'out' : ''}">${stokOut ? 'Habis' : `Stok ${p.stok || '—'}`}</div>
+      </div>
+      ${p.deskripsi ? `<div class="pdp-desc">${p.deskripsi}</div>` : ''}
+      ${!stokOut ? `
+        <div class="pdp-qty">
+          <div class="lbl">Qty</div>
+          <div class="qtyc">
+            <button onclick="pdpDec()">−</button>
+            <span id="pdp-qty-val">1</span>
+            <button onclick="pdpInc()">+</button>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="addToCart(${p.id},pdpQty)">Add to Bag <svg width="16" height="16"><use href="#i-arr"/></svg></button>
+      ` : `<button class="btn-primary" disabled>Stok Habis</button>`}
+    </div>
+  `;
+}
+function pdpDec() { if (pdpQty > 1) pdpQty--; $('#pdp-qty-val').textContent = pdpQty; }
+function pdpInc() {
+  const max = currentProduct ? (currentProduct.stok || 999) : 999;
+  if (pdpQty < max) pdpQty++;
+  $('#pdp-qty-val').textContent = pdpQty;
+}
+
+// ─────────────────────────────────
+// Cart
+// ─────────────────────────────────
+function addToCart(pid, qty) {
+  const existing = cart.find(c => c.id === pid);
+  if (existing) {
+    existing.qty += qty;
+  } else {
+    const p = products.find(x => x.id === pid);
+    if (!p) return;
+    cart.push({ id: pid, nama: p.nama, brand: p.brand, harga: p.harga, foto_url: p.foto_url, qty });
+  }
+  saveCart();
+  toast(`Ditambahkan · ${qty} pcs`);
+}
+
+function updateCartQty(pid, delta) {
+  const item = cart.find(c => c.id === pid);
+  if (!item) return;
+  item.qty += delta;
+  if (item.qty <= 0) {
+    cart = cart.filter(c => c.id !== pid);
+  }
+  saveCart();
+  renderBag();
+}
+
+function removeFromCart(pid) {
+  cart = cart.filter(c => c.id !== pid);
+  saveCart();
+  renderBag();
+  toast('Dihapus dari bag');
+}
+
+function renderCartBadge() {
+  const total = cart.reduce((s, c) => s + c.qty, 0);
+  const badge = $('#cart-badge');
+  const tabBadge = $('#tab-badge');
+  if (total > 0) {
+    badge.textContent = total;
+    badge.style.display = 'grid';
+    tabBadge.textContent = total;
+    tabBadge.style.display = 'grid';
+  } else {
+    badge.style.display = 'none';
+    tabBadge.style.display = 'none';
+  }
+}
+
+function cartSubtotal() {
+  return cart.reduce((s, c) => s + (c.harga * c.qty), 0);
+}
+
+function renderBag() {
+  $('#bag-sub').textContent = `${cart.reduce((s,c)=>s+c.qty,0)} items`;
+  if (!cart.length) {
+    $('#bag-content').innerHTML = `
+      <div class="empty-state" style="padding:80px 24px;">
+        <div class="big" style="font-family:'Bebas Neue',sans-serif;font-size:32px;text-transform:uppercase;color:var(--ink);margin-bottom:8px;">Bag Kosong</div>
+        Belum ada produk. Browse dulu yuk.
+        <div style="margin-top:24px;">
+          <button class="btn-primary" onclick="goto('#shop')">Browse Katalog</button>
+        </div>
+      </div>`;
+    return;
+  }
+  const items = cart.map(c => `
+    <div class="cart-line">
+      <div class="img">${c.foto_url ? `<img src="${c.foto_url}" onerror="this.style.display='none'">` : `<svg width="60%" height="60%"><use href="#s-tub"/></svg>`}</div>
+      <div class="body">
+        <div class="brand">${c.brand || '—'}</div>
+        <div class="nm">${c.nama}</div>
+        <div class="row">
+          <div class="prc">${fmt(c.harga)}</div>
+          <div class="qtyc">
+            <button onclick="updateCartQty(${c.id},-1)">−</button>
+            <span>${c.qty}</span>
+            <button onclick="updateCartQty(${c.id},1)">+</button>
+          </div>
+        </div>
+        <button class="rm" onclick="removeFromCart(${c.id})">Remove</button>
+      </div>
+    </div>
+  `).join('');
+
+  const subtotal = cartSubtotal();
+  $('#bag-content').innerHTML = `
+    <div class="bag-items">${items}</div>
+    <div class="sum-block">
+      <div class="sum-row"><span class="k">Subtotal</span><span class="v">${fmt(subtotal)}</span></div>
+      <div class="sum-row"><span class="k">Estimated Shipping</span><span class="v">Free</span></div>
+      <div class="sum-row total"><span class="k">Total</span><span class="v">${fmt(subtotal)}</span></div>
+    </div>
+    <div class="bag-actions">
+      <button class="btn-primary" onclick="goto('#checkout')">Checkout <svg width="16" height="16"><use href="#i-arr"/></svg></button>
+    </div>`;
+}
+
+// ─────────────────────────────────
+// Checkout
+// ─────────────────────────────────
+function renderCheckout() {
+  if (!cart.length) {
+    $('#checkout-content').innerHTML = `<div class="empty-state" style="padding:60px 24px;">Bag kosong. <br><br><button class="btn-primary" onclick="goto('#shop')">Browse</button></div>`;
+    return;
+  }
+  const subtotal = cartSubtotal();
+  const custName = customer ? customer.nama : 'Guest';
+  const custAddr = customer ? (customer.alamat || 'Alamat belum diisi') : 'Login sebagai outlet dulu';
+  const custWA = customer ? (customer.wa || 'WA belum diisi') : '';
+
+  $('#checkout-content').innerHTML = `
+    <div class="co-section">
+      <div class="cs-h">Kirim Ke <a class="edit" onclick="alert('Edit alamat: coming soon')">Edit</a></div>
+      <div class="cs-val">${custName}<span class="sub">${custAddr}</span></div>
+    </div>
+    <div class="co-section">
+      <div class="cs-h">Estimasi Pengiriman</div>
+      <div class="cs-val">Hari Ini · Sore 16:00–18:00 WITA<span class="sub">Order sebelum 12:00 WITA</span></div>
+    </div>
+    <div class="co-section">
+      <div class="cs-h">Bayar Dengan</div>
+      <div class="pay-list">
+        <div class="pay ${selectedPayment==='cod'?'on':''}" onclick="selectPay('cod')">
+          <div class="radio"></div>
+          <div class="txt">Cash on Delivery<span class="sub">Bayar saat barang sampai</span></div>
+        </div>
+        <div class="pay ${selectedPayment==='transfer'?'on':''}" onclick="selectPay('transfer')">
+          <div class="radio"></div>
+          <div class="txt">Transfer Bank<span class="sub">BCA · upload bukti transfer</span></div>
+        </div>
+        <div class="pay ${selectedPayment==='kredit'?'on':''}" onclick="selectPay('kredit')">
+          <div class="radio"></div>
+          <div class="txt">Kredit 30 Hari<span class="sub">Invoice payable · terverifikasi finance</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="co-section">
+      <div class="cs-h">Order Summary</div>
+      <div class="sum-row"><span class="k">${cart.length} produk (${cart.reduce((s,c)=>s+c.qty,0)} pcs)</span><span class="v">${fmt(subtotal)}</span></div>
+      <div class="sum-row total"><span class="k">Total Bayar</span><span class="v">${fmt(subtotal)}</span></div>
+    </div>
+    <div class="bag-actions">
+      <button class="btn-primary" onclick="placeOrder()">Place Order <svg width="16" height="16"><use href="#i-arr"/></svg></button>
+    </div>
+  `;
+}
+function selectPay(p) { selectedPayment = p; renderCheckout(); }
+
+// Real order submission — INSERT ke Supabase orders table
+async function placeOrder() {
+  const btn = document.querySelector('.btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = 'Placing order...'; }
+
+  const noOrder = 'ORD-' + Date.now().toString().slice(-8);
+  const subtotal = cartSubtotal();
+  const productSummary = cart.map(c => `${c.qty}x ${c.nama} @ ${fmt(c.harga)}`).join(' | ');
+  const paymentLabel = {
+    cod: 'Cash on Delivery',
+    transfer: 'Transfer',
+    kredit: 'Kredit 30 Hari'
+  }[selectedPayment] || 'Transfer';
+
+  const orderPayload = {
+    no_order: noOrder,
+    customer_nama: customer ? customer.nama : 'Guest',
+    produk: productSummary,
+    total_nilai: subtotal,
+    pembayaran: paymentLabel,
+    status: 'Proses',
+    catatan: `Order via customer app · ${customer ? 'customer_id:' + customer.id : 'guest'} · ${cart.length} SKU, ${cart.reduce((s,c)=>s+c.qty,0)} pcs`,
+    channel_tipe: customer ? (customer.tipe || 'App') : 'App',
+    channel_sistem: 'Findest Order App'
+  };
+
+  let finalOrderNum = noOrder;
+  let submitted = false;
+
+  try {
+    const result = await Promise.race([
+      sb.from('orders').insert(orderPayload).select().single(),
+      new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 5000))
+    ]);
+    if (result.error) throw result.error;
+    finalOrderNum = result.data.no_order || noOrder;
+    submitted = true;
+    console.log('[Findest] Order submitted:', result.data);
+  } catch (err) {
+    console.warn('[Findest] Real submit failed, demo mode:', err.message);
+  }
+
+  $('#success-num').textContent = submitted
+    ? `Order #${finalOrderNum}`
+    : `Order #${finalOrderNum} (Demo Mode)`;
+  cart = [];
+  saveCart();
+  goto('#success');
+  if (btn) { btn.disabled = false; btn.textContent = 'Place Order'; }
+}
+
+// ─────────────────────────────────
+// Init
+// ─────────────────────────────────
+async function init() {
+  loadCart();
+  renderCartBadge();
+  await loadCustomer();
+  await loadProducts();
+  route();
+}
+
+window.addEventListener('hashchange', route);
+init();
+</script>
+</body>
+</html>
