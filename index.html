@@ -1434,12 +1434,10 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
 <!-- GUDANG -->
 <div class="page" id="page-gudang">
   <div class="pg-header">
-    <div><div class="pg-title">Gudang & Logistik</div><div class="pg-sub" id="gudang-sub">FP + Konsinyasi · Delivery · ED Alert</div></div>
-    <button class="btn btn-primary" id="btn-add-del" onclick="resetDelModal();openMo('mo-del')">+ Delivery Order</button>
+    <div><div class="pg-title">Gudang & Logistik</div><div class="pg-sub" id="gudang-sub">FP + Konsinyasi · ED Alert</div></div>
   </div>
   <div class="ptabs">
     <button class="ptab active" onclick="gtab('g-out',this)">🏪 Outlets</button>
-    <button class="ptab" onclick="gtab('g-del',this)">🚚 Delivery</button>
     <button class="ptab" onclick="gtab('g-catalog',this);loadCatalog()">📦 Catalog</button>
     <button class="ptab" onclick="gtab('g-batch',this);loadBatches()">🧪 Batch</button>
     <button class="ptab" onclick="gtab('g-kpi',this);loadKPIDivisi('Gudang','g-kpi-bulan','g-kpi-tahun','g-kpi-container')">🎯 KPI</button>
@@ -3701,14 +3699,11 @@ function renderOut() {
     const edClass = (o.ed_alert||0)>10?'c-red':(o.ed_alert||0)>0?'c-gold':'c-green';
     const edIcon = (o.ed_alert||0)>0?'⚠️':'✅';
     const stClass = o.status==='Aman'?'s-ok':o.status==='Urgent'?'s-bad':'s-warn';
-    const stokBtn = isKonsi
-      ? `<button class="btn btn-sm btn-ghost" onclick="openKonsiDrawer('${(o.nama||'').replace(/'/g,"\\'")}')" title="Lihat Titipan Konsinyasi">📦</button>`
-      : `<button class="btn btn-sm btn-ghost" onclick="openOutletStok(${o.id})" title="Kelola Stok FP">📦</button>`;
     const editBtns = canEdit
       ? (isKonsi
-          ? `<div style="display:flex;gap:3px">${stokBtn}<button class="btn btn-sm btn-ghost" onclick="editCust(${o.id})" title="Edit Customer">✏️</button></div>`
-          : `<div style="display:flex;gap:3px">${stokBtn}<button class="btn btn-sm btn-ghost" onclick="editOutlet(${o.id})" title="Edit">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteOutlet(${o.id},'${(o.nama||'').replace(/'/g,"\\'")}')" title="Hapus">🗑️</button></div>`)
-      : stokBtn;
+          ? `<div style="display:flex;gap:3px"><button class="btn btn-sm btn-ghost" onclick="editCust(${o.id})" title="Edit Customer">✏️</button></div>`
+          : `<div style="display:flex;gap:3px"><button class="btn btn-sm btn-ghost" onclick="editOutlet(${o.id})" title="Edit">✏️</button><button class="btn btn-sm btn-danger" onclick="deleteOutlet(${o.id},'${(o.nama||'').replace(/'/g,"\\'")}')" title="Hapus">🗑️</button></div>`)
+      : '';
     const picDisplay = o.pic || '<span style="color:var(--text-dim);font-size:11px">–</span>';
     const hpDisplay = o.no_hp ? `<a href="https://wa.me/${o.no_hp.replace(/\D/g,'')}" target="_blank" style="color:var(--teal);font-size:11px">${o.no_hp}</a>` : '<span style="color:var(--text-dim);font-size:11px">–</span>';
     const typeBadge = isKonsi
