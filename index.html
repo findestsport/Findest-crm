@@ -868,11 +868,12 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
           <option value="">Pilih bulan...</option>
         </select>
         <button class="btn btn-ghost btn-sm" onclick="takeSnapshotNow()" title="Save snapshot bulan ini">💾 Snap Now</button>
+        <button class="btn btn-primary btn-sm" onclick="openHistoricalDetail()" title="Search per-transaksi detail semua zaman">🔍 Cari Detail</button>
       </div>
     </div>
     <div class="card-b">
       <div id="snap-content">
-        <div class="empty" style="padding:24px"><div class="empty-icon">📸</div><div class="empty-txt" style="font-size:12px">Pilih bulan di dropdown buat liat history</div></div>
+        <div class="empty" style="padding:24px"><div class="empty-icon">📸</div><div class="empty-txt" style="font-size:12px">Pilih bulan di dropdown buat rekap agregat, atau klik 🔍 Cari Detail buat search per row historis</div></div>
       </div>
     </div>
   </div>
@@ -1837,12 +1838,16 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
     <div class="mo-h"><div class="mo-title">🧨 Reset Data Trial</div><button class="mo-x" onclick="closeMo('mo-reset-trial')">×</button></div>
     <div class="mo-b">
       <div style="background:rgba(217,119,6,.08);border:1px solid rgba(217,119,6,.25);border-radius:10px;padding:14px;margin-bottom:12px">
-        <div style="font-weight:700;color:#d97706;margin-bottom:8px">📸 History bakal auto-archive</div>
-        <div style="font-size:13px;line-height:1.5;color:var(--text-2)">Sebelum wipe, snapshot semua bulan (omzet, top produk, top customer, kas) di-save ke <code>monthly_snapshots</code>. Bisa lo browse kapan aja di History Bulanan.</div>
+        <div style="font-weight:700;color:#d97706;margin-bottom:8px">📸 History rekap tetap aman</div>
+        <div style="font-size:13px;line-height:1.5;color:var(--text-2)">Sebelum wipe, snapshot semua bulan (omzet, top produk, top customer, kas) di-save ke <code>monthly_snapshots</code>. Bisa lo browse di History Bulanan.</div>
+      </div>
+      <div style="background:rgba(13,148,136,.08);border:1px solid rgba(13,148,136,.25);border-radius:10px;padding:14px;margin-bottom:12px">
+        <div style="font-weight:700;color:#0D9488;margin-bottom:8px">📦 Detail per-transaksi juga aman</div>
+        <div style="font-size:13px;line-height:1.5;color:var(--text-2)">Orders, invoices, payments, deliveries, expenses di-COPY ke tabel arsip (<code>*_archive</code>) sebelum wipe. Search kapan aja via <b>🔍 Cari Detail</b> di History Bulanan card. Bisa filter per tanggal, customer, produk, atau reset batch.</div>
       </div>
       <div style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.25);border-radius:10px;padding:14px;margin-bottom:14px">
-        <div style="font-weight:700;color:#dc2626;margin-bottom:8px">⚠️ Data mentah bakal hilang</div>
-        <div style="font-size:13px;line-height:1.5;color:var(--text-2)">Setelah snapshot, akan menghapus row mentah dari: orders, invoices, deliveries, expenses, payments, batches, visit logs, konsinyasi. Aggregate history tetap ada.</div>
+        <div style="font-weight:700;color:#dc2626;margin-bottom:8px">⚠️ Yang benar-benar hilang</div>
+        <div style="font-size:13px;line-height:1.5;color:var(--text-2)">Row mentah di tabel aktif dihapus (biar dashboard bersih). Data existing bisa diakses via arsip. <code>batches</code>, <code>visit_logs</code>, <code>konsinyasi</code> ga di-archive per-row (aggregate-only).</div>
       </div>
       <div style="background:rgba(5,150,105,.08);border:1px solid rgba(5,150,105,.2);border-radius:10px;padding:14px;margin-bottom:14px">
         <div style="font-weight:700;color:#059669;margin-bottom:8px">✅ Data yg AMAN (tetep ada)</div>
@@ -7374,6 +7379,223 @@ function renderReturHistory() {
   document.getElementById('rh-summary').textContent = `📊 ${rows.length} retur · ${totalQty} unit total · ${uniqOutlets} outlet`;
 }
 
+// ═══════ RIWAYAT HISTORIS DETAIL (phase 11) ═══════
+let hdActiveTab = 'orders';
+let hdRows = [];
+const HD_CONFIG = {
+  orders: {
+    table:'orders_archive',
+    order:'created_at',
+    searchFields:['no_order','customer_nama','produk','catatan'],
+    dateField:'created_at',
+    cols:['Tgl','No Order','Customer','Produk','Total','Status','Payment','Batch'],
+    row: r => `<tr onclick="showHdRowDetail('orders',${r.archive_id})" style="cursor:pointer">
+      <td style="font-size:11px">${fmtDate(r.created_at)}</td>
+      <td class="fw6">${r.no_order||'-'}</td>
+      <td>${r.customer_nama||'-'}</td>
+      <td style="font-size:11px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(r.produk||'').replace(/"/g,'&quot;')}">${r.produk||'-'}</td>
+      <td class="num fw6 c-teal">${fmt(r.total_nilai||0)}</td>
+      <td><span class="s s-warn">${r.status||'-'}</span></td>
+      <td style="font-size:11px">${r.pembayaran||'-'}</td>
+      <td style="font-size:10px;color:var(--text-muted)">${r.archive_batch||'-'}</td>
+    </tr>`,
+    detail: r => `<div class="fg"><b>${r.no_order||'-'}</b> — ${r.customer_nama||'-'}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">${fmtDate(r.created_at)} · Status: ${r.status||'-'} · ${r.pembayaran||'-'}</div>
+      <div class="fg"><label class="fl">Produk</label><div>${r.produk||'-'}</div></div>
+      ${r.produk_json ? `<div class="fg"><label class="fl">Detail Item</label><pre style="background:var(--surface2);padding:10px;border-radius:6px;font-size:11px;max-height:200px;overflow:auto">${JSON.stringify(r.produk_json,null,2)}</pre></div>` : ''}
+      <div class="fg"><label class="fl">Total</label><b>${fmt(r.total_nilai||0)}</b></div>
+      ${r.catatan?`<div class="fg"><label class="fl">Catatan</label><div style="font-size:12px">${r.catatan}</div></div>`:''}
+      ${r.due_date?`<div class="fg"><label class="fl">Jatuh Tempo</label>${r.due_date}</div>`:''}`
+  },
+  invoices: {
+    table:'invoices_archive',
+    order:'tgl_invoice',
+    searchFields:['no_invoice','customer_nama','no_do'],
+    dateField:'tgl_invoice',
+    cols:['Tgl','No Invoice','Customer','No DO','Total','Status','JT','Lunas','Batch'],
+    row: r => `<tr onclick="showHdRowDetail('invoices',${r.archive_id})" style="cursor:pointer">
+      <td style="font-size:11px">${r.tgl_invoice||'-'}</td>
+      <td class="fw6">${r.no_invoice||'-'}</td>
+      <td>${r.customer_nama||'-'}</td>
+      <td style="font-size:11px">${r.no_do||'-'}</td>
+      <td class="num fw6 c-teal">${fmt(r.total||0)}</td>
+      <td><span class="s s-${r.status==='Lunas'?'ok':'warn'}">${r.status||'-'}</span></td>
+      <td style="font-size:11px">${r.jatuh_tempo||'-'}</td>
+      <td style="font-size:11px">${r.tgl_lunas||'-'}</td>
+      <td style="font-size:10px;color:var(--text-muted)">${r.archive_batch||'-'}</td>
+    </tr>`,
+    detail: r => `<div class="fg"><b>${r.no_invoice||'-'}</b> — ${r.customer_nama||'-'}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Tgl ${r.tgl_invoice||'-'} · Status: ${r.status||'-'}</div>
+      ${r.no_do?`<div class="fg"><label class="fl">No DO</label>${r.no_do}</div>`:''}
+      <div class="fg"><label class="fl">Total</label><b>${fmt(r.total||0)}</b></div>
+      ${r.jatuh_tempo?`<div class="fg"><label class="fl">Jatuh Tempo</label>${r.jatuh_tempo}</div>`:''}
+      ${r.tgl_lunas?`<div class="fg"><label class="fl">Tanggal Lunas</label>${r.tgl_lunas}</div>`:''}`
+  },
+  payments: {
+    table:'payments_archive',
+    order:'tgl_bayar',
+    searchFields:['no_invoice','customer_nama','metode','catatan'],
+    dateField:'tgl_bayar',
+    cols:['Tgl','Invoice','Customer','Jumlah','Metode','Catatan','Batch'],
+    row: r => `<tr onclick="showHdRowDetail('payments',${r.archive_id})" style="cursor:pointer">
+      <td style="font-size:11px">${r.tgl_bayar||'-'}</td>
+      <td class="fw6">${r.no_invoice||'-'}</td>
+      <td>${r.customer_nama||'-'}</td>
+      <td class="num fw6 c-green">${fmt(r.jumlah||0)}</td>
+      <td style="font-size:11px">${r.metode||'-'}</td>
+      <td style="font-size:11px;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.catatan||'-'}</td>
+      <td style="font-size:10px;color:var(--text-muted)">${r.archive_batch||'-'}</td>
+    </tr>`,
+    detail: r => `<div class="fg"><b>${r.no_invoice||'-'}</b> — ${r.customer_nama||'-'}</div>
+      <div class="fg"><label class="fl">Tanggal Bayar</label>${r.tgl_bayar||'-'}</div>
+      <div class="fg"><label class="fl">Jumlah</label><b class="c-green">${fmt(r.jumlah||0)}</b></div>
+      <div class="fg"><label class="fl">Metode</label>${r.metode||'-'}</div>
+      ${r.catatan?`<div class="fg"><label class="fl">Catatan</label>${r.catatan}</div>`:''}`
+  },
+  deliveries: {
+    table:'deliveries_archive',
+    order:'tgl_kirim',
+    searchFields:['no_do','customer_nama','ekspedisi'],
+    dateField:'tgl_kirim',
+    cols:['Tgl','No DO','Customer','Ekspedisi','Status','Batch'],
+    row: r => `<tr onclick="showHdRowDetail('deliveries',${r.archive_id})" style="cursor:pointer">
+      <td style="font-size:11px">${r.tgl_kirim||'-'}</td>
+      <td class="fw6">${r.no_do||'-'}</td>
+      <td>${r.customer_nama||'-'}</td>
+      <td style="font-size:11px">${r.ekspedisi||'-'}</td>
+      <td><span class="s s-warn">${r.status||'-'}</span></td>
+      <td style="font-size:10px;color:var(--text-muted)">${r.archive_batch||'-'}</td>
+    </tr>`,
+    detail: r => `<div class="fg"><b>${r.no_do||'-'}</b> — ${r.customer_nama||'-'}</div>
+      <div class="fg"><label class="fl">Tgl Kirim</label>${r.tgl_kirim||'-'}</div>
+      <div class="fg"><label class="fl">Ekspedisi</label>${r.ekspedisi||'-'}</div>
+      <div class="fg"><label class="fl">Status</label>${r.status||'-'}</div>
+      ${r.catatan?`<div class="fg"><label class="fl">Catatan</label>${r.catatan}</div>`:''}`
+  },
+  expenses: {
+    table:'expenses_archive',
+    order:'tanggal',
+    searchFields:['kategori','deskripsi','metode_bayar'],
+    dateField:'tanggal',
+    cols:['Tgl','Kategori','Deskripsi','Jumlah','Metode','Batch'],
+    row: r => `<tr onclick="showHdRowDetail('expenses',${r.archive_id})" style="cursor:pointer">
+      <td style="font-size:11px">${r.tanggal||'-'}</td>
+      <td class="fw6">${r.kategori||'-'}</td>
+      <td style="font-size:11px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.deskripsi||'-'}</td>
+      <td class="num fw6 c-red">${fmt(r.jumlah||0)}</td>
+      <td style="font-size:11px">${r.metode_bayar||'-'}</td>
+      <td style="font-size:10px;color:var(--text-muted)">${r.archive_batch||'-'}</td>
+    </tr>`,
+    detail: r => `<div class="fg"><b>${r.kategori||'-'}</b></div>
+      <div class="fg"><label class="fl">Tanggal</label>${r.tanggal||'-'}</div>
+      <div class="fg"><label class="fl">Deskripsi</label>${r.deskripsi||'-'}</div>
+      <div class="fg"><label class="fl">Jumlah</label><b class="c-red">${fmt(r.jumlah||0)}</b></div>
+      <div class="fg"><label class="fl">Metode</label>${r.metode_bayar||'-'}</div>`
+  }
+};
+
+function fmtDate(d){ return d ? new Date(d).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) : '-'; }
+
+async function openHistoricalDetail() {
+  hdActiveTab = 'orders';
+  document.querySelectorAll('.hd-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab==='orders'));
+  document.getElementById('hd-search').value = '';
+  document.getElementById('hd-from').value = '';
+  document.getElementById('hd-to').value = '';
+  document.getElementById('hd-batch').value = '';
+  document.getElementById('hd-summary').textContent = '';
+  await loadHdBatches();
+  openMo('mo-historical-detail');
+  loadHistoricalDetail();
+}
+
+async function loadHdBatches() {
+  const sel = document.getElementById('hd-batch');
+  if(!sel) return;
+  try{
+    const { data } = await sb.from('orders_archive').select('archive_batch').not('archive_batch','is',null).limit(1000);
+    const uniq = [...new Set((data||[]).map(r=>r.archive_batch))].filter(Boolean).sort().reverse();
+    sel.innerHTML = '<option value="">Semua Reset Batch</option>' + uniq.map(b=>`<option value="${b}">${b}</option>`).join('');
+  } catch(e){ console.warn('load batches:', e.message); }
+}
+
+function switchHdTab(tab) {
+  hdActiveTab = tab;
+  document.querySelectorAll('.hd-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  loadHistoricalDetail();
+}
+
+async function loadHistoricalDetail() {
+  const cfg = HD_CONFIG[hdActiveTab];
+  const el = document.getElementById('hd-content');
+  el.innerHTML = '<div class="empty"><div class="spinner"></div></div>';
+
+  const q = (document.getElementById('hd-search').value||'').trim();
+  const from = document.getElementById('hd-from').value;
+  const to = document.getElementById('hd-to').value;
+  const batch = document.getElementById('hd-batch').value;
+
+  let query = sb.from(cfg.table).select('*').order(cfg.order, {ascending:false}).limit(500);
+  if(from) query = query.gte(cfg.dateField, from);
+  if(to) query = query.lte(cfg.dateField, to);
+  if(batch) query = query.eq('archive_batch', batch);
+  // Multi-field OR search
+  if(q) {
+    const orExpr = cfg.searchFields.map(f=>`${f}.ilike.%${q.replace(/[%,)]/g,'')}%`).join(',');
+    query = query.or(orExpr);
+  }
+  const { data, error } = await query;
+  if(error) {
+    el.innerHTML = `<div class="empty"><div class="empty-txt">Gagal load: ${error.message}</div><div style="font-size:11px;color:var(--text-muted);margin-top:8px">Tabel arsip belum di-setup? Jalanin <code>sql/phase11-archive-detail.sql</code> di Supabase.</div></div>`;
+    return;
+  }
+  hdRows = data || [];
+  if(!hdRows.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div class="empty-txt">Ga ada data match filter</div></div>';
+    document.getElementById('hd-summary').textContent = '';
+    return;
+  }
+  const totalAmt = hdRows.reduce((s,r)=>s+(r.total_nilai||r.total||r.jumlah||0),0);
+  el.innerHTML = `<table class="tbl" style="width:100%">
+    <thead><tr>${cfg.cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+    <tbody>${hdRows.map(cfg.row).join('')}</tbody>
+  </table>`;
+  document.getElementById('hd-summary').textContent = `📊 ${hdRows.length} row · Total nilai: ${fmt(totalAmt)}${hdRows.length===500?' (limit 500 — pake filter buat sempitkan)':''}`;
+}
+
+function showHdRowDetail(tab, archiveId) {
+  const r = hdRows.find(x => x.archive_id === archiveId);
+  if(!r) return;
+  const cfg = HD_CONFIG[tab];
+  const html = cfg.detail(r);
+  // Reuse showToast area? Better: alert-style modal. Use confirm-like popup via generic
+  const w = window.open('', '_blank', 'width=600,height=700,scrollbars=yes');
+  if(!w) { showToast('Pop-up blocked','error'); return; }
+  w.document.write(`<!DOCTYPE html><html><head><title>Detail Historis</title>
+    <style>body{font-family:system-ui,sans-serif;padding:24px;color:#111;line-height:1.5}
+    .fg{margin-bottom:12px}.fl{font-size:11px;color:#666;text-transform:uppercase;letter-spacing:.5px;font-weight:700;display:block;margin-bottom:2px}
+    pre{white-space:pre-wrap}h1{font-size:18px;margin:0 0 12px}
+    </style></head><body>
+    <h1>Detail Historis (${tab})</h1>
+    <div style="background:#f9f9f9;padding:16px;border-radius:8px">${html}</div>
+    <div style="margin-top:16px;font-size:11px;color:#888">Archived: ${r.archived_at||'-'} · Batch: ${r.archive_batch||'-'}</div>
+    <button onclick="window.close()" style="margin-top:16px;padding:10px 20px;border-radius:6px;background:#0D9488;color:#fff;border:none;cursor:pointer">Tutup</button>
+    </body></html>`);
+  w.document.close();
+}
+
+function exportHistoricalDetail() {
+  if(!hdRows.length) { showToast('Ga ada data buat di-export','warn'); return; }
+  if(typeof XLSX === 'undefined') { showToast('Library XLSX belum loaded','error'); return; }
+  const cfg = HD_CONFIG[hdActiveTab];
+  const ws = XLSX.utils.json_to_sheet(hdRows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, hdActiveTab);
+  const ts = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `findest-historis-${hdActiveTab}-${ts}.xlsx`);
+  showToast(`✅ Exported ${hdRows.length} row ke Excel`);
+}
+
 async function doReturKonsi() {
   const konsiId = parseInt(document.getElementById('retur-konsi-id').value);
   const qty = parseInt(document.getElementById('retur-qty').value) || 0;
@@ -8650,7 +8872,7 @@ async function doResetTrial() {
   const btn = document.getElementById('btn-do-reset');
   if(btn) { btn.disabled = true; btn.textContent = '⏳ Snapshot history dulu…'; }
 
-  // PRE-RESET: auto-archive semua bulan yg ada data ke monthly_snapshots
+  // PRE-RESET: auto-archive semua bulan yg ada data ke monthly_snapshots (aggregate)
   try {
     const { data: snapshots, error: snapErr } = await sb.rpc('snapshot_all_months', { p_type: 'pre_reset' });
     if(snapErr) {
@@ -8660,6 +8882,24 @@ async function doResetTrial() {
     }
   } catch(e) {
     console.warn('Snapshot skipped:', e.message);
+  }
+
+  // PRE-RESET: archive DETAIL per-transaksi ke *_archive tables (phase 11)
+  if(btn) { btn.textContent = '⏳ Archive detail transaksi…'; }
+  try {
+    const batchLabel = 'reset-' + new Date().toISOString().slice(0,16).replace('T',' ');
+    const { data: archRes, error: archErr } = await sb.rpc('archive_transactions_before_reset', {
+      p_batch_label: batchLabel
+    });
+    if(archErr) {
+      console.warn('Archive detail warning:', archErr.message);
+    } else if(archRes?.length) {
+      const r = archRes[0];
+      const total = (r.orders_count||0)+(r.invoices_count||0)+(r.payments_count||0)+(r.deliveries_count||0)+(r.expenses_count||0);
+      showToast(`📦 Detail ${total} row historis di-archive (bisa dicari di Riwayat Historis)`);
+    }
+  } catch(e) {
+    console.warn('Archive detail skipped:', e.message);
   }
 
   if(btn) { btn.textContent = '⏳ Menghapus data…'; }
@@ -11377,6 +11617,50 @@ function dcEditCust() {
     </div>
   </div>
 </div>
+
+<!-- ═══════ RIWAYAT HISTORIS DETAIL (phase 11 archive) ═══════ -->
+<div class="mo" id="mo-historical-detail">
+  <div class="mo-box" style="max-width:1100px">
+    <div class="mo-h">
+      <div class="mo-title">🔍 Riwayat Historis Detail</div>
+      <button class="mo-x" onclick="closeMo('mo-historical-detail')">×</button>
+    </div>
+    <div class="mo-b">
+      <!-- Tabs -->
+      <div style="display:flex;gap:4px;background:var(--surface2);padding:4px;border-radius:8px;margin-bottom:14px;flex-wrap:wrap">
+        <button class="hd-tab active" data-tab="orders"    onclick="switchHdTab('orders')">📋 Orders</button>
+        <button class="hd-tab" data-tab="invoices"          onclick="switchHdTab('invoices')">🧾 Invoices</button>
+        <button class="hd-tab" data-tab="payments"          onclick="switchHdTab('payments')">💰 Payments</button>
+        <button class="hd-tab" data-tab="deliveries"        onclick="switchHdTab('deliveries')">🚚 Deliveries</button>
+        <button class="hd-tab" data-tab="expenses"          onclick="switchHdTab('expenses')">📤 Expenses</button>
+      </div>
+
+      <!-- Filters -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:12px">
+        <input class="fi" id="hd-search" placeholder="🔍 Ketik apapun (nama, no invoice, produk...)" oninput="loadHistoricalDetail()"/>
+        <input class="fi" type="date" id="hd-from" title="Dari tanggal" oninput="loadHistoricalDetail()"/>
+        <input class="fi" type="date" id="hd-to"   title="Sampai tanggal" oninput="loadHistoricalDetail()"/>
+        <select class="fi" id="hd-batch" onchange="loadHistoricalDetail()">
+          <option value="">Semua Reset Batch</option>
+        </select>
+      </div>
+
+      <!-- Result -->
+      <div style="max-height:60vh;overflow-y:auto">
+        <div id="hd-content"><div class="empty"><div class="spinner"></div></div></div>
+      </div>
+      <div id="hd-summary" style="margin-top:12px;padding:10px 14px;background:var(--surface2);border-radius:8px;font-size:12px;color:var(--text-muted)"></div>
+    </div>
+    <div class="mo-f">
+      <button class="btn btn-ghost" onclick="exportHistoricalDetail()" title="Export tab ini ke Excel">📥 Export Excel</button>
+      <button class="btn btn-primary" onclick="closeMo('mo-historical-detail')">Tutup</button>
+    </div>
+  </div>
+</div>
+<style>
+.hd-tab{padding:6px 12px;border:none;background:transparent;color:var(--text-muted);font-size:12px;font-weight:600;border-radius:6px;cursor:pointer;font-family:var(--font-body)}
+.hd-tab.active{background:var(--white);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+</style>
 
 <!-- ═══════ RETUR HISTORY MODAL ═══════ -->
 <div class="mo" id="mo-retur-history">

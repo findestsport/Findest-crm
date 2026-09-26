@@ -3,8 +3,8 @@
 //           cache-first for fonts/JS libs (biar cepet + jalan offline).
 // Skip Supabase API + wa.me + drive URLs — always network fresh.
 
-const CACHE_VERSION = 'findest-v11';
-const RUNTIME_CACHE = 'findest-runtime-v11';
+const CACHE_VERSION = 'findest-v12';
+const RUNTIME_CACHE = 'findest-runtime-v12';
 
 const CORE_ASSETS = [
   './catalog.html',
