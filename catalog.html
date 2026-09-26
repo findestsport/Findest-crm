@@ -902,7 +902,7 @@ async function sendOrder(){
       total_nilai:total,
       status:'Pending',
       pembayaran:selPayment,
-      channel_sistem:'Findest Sport Catalog',
+      channel_sistem:currentCustomer?.sistem==='Konsinyasi'?'Konsinyasi (Titipan)':'Findest Sport Catalog',
       channel_tipe:currentCustomer?(currentCustomer.tipe||'Customer'):'Public',
       catatan:`WA: ${phone}${gym?' | Gym: '+gym:''}${address?' | Alamat: '+address:''}${selPayment?' | Bayar: '+selPayment:''}${note?' | Note: '+note:''}${currentCustomer?' | customer_id:'+currentCustomer.id:''}`
     };
