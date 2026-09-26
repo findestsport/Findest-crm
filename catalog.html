@@ -436,6 +436,9 @@ textarea.form-input{resize:none}
 <div class="overlay" id="trackModal" onclick="bgClose(event,'trackModal')">
   <div class="sheet"><div class="sheet-handle"></div><div class="sheet-body" id="trackContent"></div></div>
 </div>
+<div class="overlay" id="overdueModal">
+  <div class="sheet"><div class="sheet-handle"></div><div class="sheet-body" id="overdueContent"></div></div>
+</div>
 <div class="video-ov" id="videoOv">
   <button class="video-close" onclick="closeVideo()">&#10005;</button>
   <iframe id="videoFrame" allow="autoplay"></iframe>
@@ -494,7 +497,79 @@ async function loadCustomer(){
     document.getElementById('custBannerName').textContent=data.nama;
     document.getElementById('custBannerSub').textContent=data.tipe?'· '+data.tipe:'';
     banner.classList.add('show');
+    // Check invoice overdue → tampil popup notice reminder bayar
+    checkOverdueInvoices(cid);
   }catch(e){console.warn('[Findest] customer fetch:',e.message);}
+}
+
+async function checkOverdueInvoices(customerId){
+  try{
+    const today=new Date().toISOString().slice(0,10);
+    // Get orders belong to this customer → cross to invoices via order_id
+    const{data:orders}=await SB.from('orders').select('id').eq('customer_id',customerId);
+    if(!orders||!orders.length)return;
+    const orderIds=orders.map(o=>o.id);
+    const{data:invs,error}=await SB.from('invoices')
+      .select('id,no_invoice,total,jatuh_tempo,tgl_invoice,status,order_id')
+      .in('order_id',orderIds)
+      .neq('status','Lunas')
+      .lt('jatuh_tempo',today)
+      .order('jatuh_tempo',{ascending:true});
+    if(error||!invs||!invs.length)return;
+    // Session dismiss — biar ga muncul terus dalam 1 kunjungan
+    const dismissKey='findest_overdue_dismissed_'+customerId;
+    try{ if(sessionStorage.getItem(dismissKey))return; }catch(e){}
+    showOverduePopup(invs);
+  }catch(e){console.warn('[Findest] overdue check:',e.message);}
+}
+
+function showOverduePopup(invs){
+  const today=new Date();
+  const totalTagihan=invs.reduce((s,i)=>s+(i.total||0),0);
+  const rows=invs.map(inv=>{
+    const jt=new Date(inv.jatuh_tempo);
+    const daysLate=Math.floor((today-jt)/86400000);
+    const jtStr=jt.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+    return `<div style="display:flex;justify-content:space-between;padding:12px 14px;background:var(--white);border:1px solid rgba(220,38,38,.18);border-radius:12px;margin-bottom:10px">
+      <div>
+        <div style="font-weight:700;font-size:14px;color:var(--text)">${inv.no_invoice}</div>
+        <div style="font-size:11px;color:var(--red);margin-top:2px">⚠ Telat ${daysLate} hari · JT ${jtStr}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:800;color:var(--red);font-size:14px">${fmt(inv.total||0)}</div>
+      </div>
+    </div>`;
+  }).join('');
+  const waNum=salesWA||'';
+  const custName=currentCustomer?.nama||'Customer';
+  const invList=invs.map(i=>`${i.no_invoice} (${fmt(i.total||0)})`).join(', ');
+  const waMsg=encodeURIComponent(`Halo Findest Sport, saya ${custName} mau konfirmasi pembayaran invoice tertunggak: ${invList}. Total: ${fmt(totalTagihan)}. Terima kasih 🙏`);
+  const waLink=waNum?`https://wa.me/${waNum}?text=${waMsg}`:'';
+  document.getElementById('overdueContent').innerHTML=`
+    <div style="text-align:center;padding:6px 0 14px">
+      <div style="font-size:44px;margin-bottom:6px">⏰</div>
+      <div style="font-size:20px;font-weight:800;color:var(--text);margin-bottom:4px">Pengingat Tagihan</div>
+      <div style="font-size:13px;color:var(--muted)">Halo <b>${custName}</b>, ada invoice yang sudah jatuh tempo:</div>
+    </div>
+    <div style="margin:14px 0">${rows}</div>
+    <div style="display:flex;justify-content:space-between;padding:14px;background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.2);border-radius:12px;margin-bottom:16px">
+      <div style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px">Total Tunggakan</div>
+      <div style="font-size:18px;font-weight:900;color:var(--red)">${fmt(totalTagihan)}</div>
+    </div>
+    <div style="display:flex;gap:10px;flex-direction:column">
+      ${waLink?`<a href="${waLink}" target="_blank" style="text-decoration:none"><button style="width:100%;padding:14px;border-radius:14px;background:#25D366;color:#fff;border:none;font-size:14px;font-weight:700;font-family:var(--font);cursor:pointer">💬 Konfirmasi via WhatsApp</button></a>`:''}
+      <button onclick="dismissOverdue()" style="width:100%;padding:14px;border-radius:14px;background:var(--surface2);color:var(--text);border:1px solid var(--border2);font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer">Nanti aja, lanjut belanja</button>
+    </div>
+    <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:14px;line-height:1.5">
+      Mohon segera dilunasi supaya order berikutnya bisa langsung diproses ya 🙏
+    </div>`;
+  openOverlay('overdueModal');
+}
+
+function dismissOverdue(){
+  const cid=currentCustomer?.id;
+  if(cid){ try{ sessionStorage.setItem('findest_overdue_dismissed_'+cid,'1'); }catch(e){} }
+  closeOverlay('overdueModal');
 }
 
 function qrFail(img){img.outerHTML='<div style="font-size:12px;color:var(--muted)">QR gagal dimuat — dikirim via WhatsApp setelah order</div>';}
