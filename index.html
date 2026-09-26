@@ -3807,6 +3807,7 @@ function renderInv() {
       <td class="mono fw6 ${isOverdue?'c-red':'c-gold'}">${fmt(inv.total)}</td>
       <td><span class="s s-${isOverdue?'bad':inv.status==='Lunas'?'ok':'warn'}">${isOverdue?'Overdue':inv.status}</span></td>
       <td style="display:flex;gap:4px;flex-wrap:wrap">
+        <button class="btn btn-sm btn-ghost" onclick="printFaktur(${inv.id})" title="Cetak Faktur">🖨️</button>
         ${inv.status!=='Lunas'?'<button class="btn btn-sm btn-ghost" style="color:var(--green);font-size:10px" onclick="markInvLunas('+inv.id+')">✅Lunas</button>':''}
         <button class="btn btn-sm btn-ghost" onclick="editInv(${inv.id})">✏️</button>
         <button class="btn btn-sm btn-danger" onclick="deleteInv(${inv.id})">🗑️</button>
@@ -6223,6 +6224,227 @@ async function editInv(id) {
   modal.dataset.editId = id;
   openMo('mo-inv');
 }
+// ════════════════════════════════════════════
+// FAKTUR PRINT — cetak invoice ke format faktur PDF-ready
+// ════════════════════════════════════════════
+function terbilang(n) {
+  n = Math.abs(Math.round(n||0));
+  if(n === 0) return 'nol';
+  const angka = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
+  if(n < 12) return angka[n];
+  if(n < 20) return angka[n-10] + ' belas';
+  if(n < 100) return angka[Math.floor(n/10)] + ' puluh' + (n%10 ? ' ' + angka[n%10] : '');
+  if(n < 200) return 'seratus' + (n-100 ? ' ' + terbilang(n-100) : '');
+  if(n < 1000) return angka[Math.floor(n/100)] + ' ratus' + (n%100 ? ' ' + terbilang(n%100) : '');
+  if(n < 2000) return 'seribu' + (n-1000 ? ' ' + terbilang(n-1000) : '');
+  if(n < 1000000) return terbilang(Math.floor(n/1000)) + ' ribu' + (n%1000 ? ' ' + terbilang(n%1000) : '');
+  if(n < 1000000000) return terbilang(Math.floor(n/1000000)) + ' juta' + (n%1000000 ? ' ' + terbilang(n%1000000) : '');
+  return terbilang(Math.floor(n/1000000000)) + ' milyar' + (n%1000000000 ? ' ' + terbilang(n%1000000000) : '');
+}
+
+async function printFaktur(invoiceId) {
+  const inv = cache.invoices?.find(x => x.id === invoiceId);
+  if(!inv) { showToast('Invoice ga ketemu','error'); return; }
+
+  // Load company info from config
+  const cfgKeys = ['company_name','company_alamat','company_telp','bank_nama','bank_rekening','bank_atas_nama','faktur_ppn'];
+  const { data: cfgs } = await sb.from('config').select('key,value').in('key', cfgKeys);
+  const cfg = {};
+  (cfgs||[]).forEach(r => cfg[r.key] = r.value);
+  const companyName = cfg.company_name || 'FINDEST SPORT CEPAT SEMBUH';
+  const companyAlamat = cfg.company_alamat || 'Jl. Sunset Road, Basangkasa 1a., Kab. Badung, Bali';
+  const companyTelp = cfg.company_telp || '';
+  const bankNama = cfg.bank_nama || '';
+  const bankRek = cfg.bank_rekening || '';
+  const bankAtas = cfg.bank_atas_nama || '';
+  const ppnActive = cfg.faktur_ppn !== 'off';
+
+  // Find related order for produk_json (kalo dari catalog)
+  let items = [];
+  if(inv.order_id) {
+    const order = cache.orders?.find(o => o.id === inv.order_id);
+    if(order?.produk_json) {
+      items = order.produk_json.map(p => ({
+        nama: `${p.brand||''} ${p.nama||''}`.trim(),
+        batch: p.batch_no || '-',
+        ed: p.ed_date || '-',
+        qty: p.qty,
+        satuan: 'pcs',
+        harga: p.harga || 0,
+        diskon: 0,
+        subtotal: (p.harga||0) * (p.qty||0)
+      }));
+    }
+  }
+  // Fallback: 1 line dari inv.total
+  if(!items.length) {
+    items = [{ nama: (inv.no_do || 'Barang'), batch: '-', ed: '-', qty: 1, satuan: 'pcs', harga: inv.total||0, diskon: 0, subtotal: inv.total||0 }];
+  }
+
+  // Get customer alamat
+  const cust = cache.customers?.find(c => c.nama === inv.customer_nama);
+  const custAlamat = cust?.alamat || '-';
+  const custTelp = cust?.wa || '';
+
+  // Calculate PPN 11%
+  const subtotal = items.reduce((s,i)=>s + (i.subtotal-i.diskon), 0);
+  const dpp = ppnActive ? Math.round(subtotal / 1.11) : subtotal;
+  const ppn = ppnActive ? subtotal - dpp : 0;
+  const grandTotal = subtotal;
+
+  // Format tanggal
+  const fmtTgl = (d) => d ? new Date(d).toLocaleDateString('id-ID', {year:'numeric', month:'short', day:'2-digit'}) : '-';
+  const invTgl = fmtTgl(inv.tgl_invoice || inv.created_at);
+  const invJT = fmtTgl(inv.jatuh_tempo);
+  const totalTerbilang = terbilang(grandTotal).toUpperCase() + ' RUPIAH';
+
+  // Detect logo — pake findest-logo.png kalo ada
+  const logoPath = './findest-logo.png';
+
+  const html = `<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<title>Faktur ${inv.no_invoice}</title>
+<style>
+  @page { size: A4; margin: 15mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Arial', sans-serif; font-size: 11pt; color: #000; background: #fff; padding: 20px; }
+  .wrap { max-width: 800px; margin: 0 auto; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 12px; border-bottom: 2px solid #000; }
+  .header-left { display: flex; gap: 16px; align-items: center; }
+  .logo { width: 80px; height: 80px; object-fit: contain; }
+  .title { font-size: 32pt; font-weight: 900; letter-spacing: -1px; line-height: 0.9; }
+  .subtitle { font-size: 10pt; color: #444; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+  .header-right { text-align: right; font-size: 10pt; line-height: 1.5; }
+  .header-right b { font-size: 11pt; }
+  .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+  .party-box { border: 1px solid #000; padding: 10px 14px; }
+  .party-label { font-size: 9pt; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; font-weight: 700; }
+  .party-name { font-size: 12pt; font-weight: 700; margin-bottom: 4px; }
+  .party-detail { font-size: 10pt; line-height: 1.4; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  th, td { border: 1px solid #000; padding: 6px 8px; text-align: left; font-size: 10pt; }
+  th { background: #f0f0f0; font-weight: 700; }
+  td.num { text-align: right; font-family: 'Courier New', monospace; }
+  td.center { text-align: center; }
+  .totals { width: 40%; margin-left: auto; margin-top: 8px; }
+  .totals tr td { padding: 4px 8px; border: none; }
+  .totals tr:last-child td { border-top: 2px solid #000; font-weight: 900; font-size: 11pt; }
+  .terbilang-box { border: 1px solid #000; padding: 8px 12px; margin-top: 16px; font-size: 10pt; }
+  .terbilang-box b { text-transform: uppercase; }
+  .footer { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 30px; }
+  .signature { text-align: center; }
+  .signature-label { font-size: 10pt; margin-bottom: 60px; }
+  .signature-name { border-top: 1px solid #000; padding-top: 4px; font-size: 10pt; font-weight: 700; }
+  .footer-note { text-align: center; font-size: 8pt; color: #888; margin-top: 20px; }
+  @media print {
+    body { padding: 0; }
+    .no-print { display: none !important; }
+  }
+  .actions { text-align: center; margin: 20px 0; }
+  .actions button { padding: 10px 24px; font-size: 12pt; margin: 0 4px; cursor: pointer; border-radius: 6px; border: 1px solid #000; background: #fff; }
+  .actions button.primary { background: #0D9488; color: #fff; border-color: #0D9488; }
+</style>
+</head><body>
+<div class="wrap">
+  <div class="actions no-print">
+    <button class="primary" onclick="window.print()">🖨️ Print / Save PDF</button>
+    <button onclick="window.close()">✖ Tutup</button>
+  </div>
+
+  <div class="header">
+    <div class="header-left">
+      <img src="${logoPath}" class="logo" onerror="this.style.display='none'"/>
+      <div>
+        <div class="title">FAKTUR</div>
+        <div class="subtitle">Penjualan</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div><b>No. ${inv.no_invoice}</b></div>
+      <div>Tgl: ${invTgl}</div>
+      ${invJT !== '-' ? '<div>Jatuh Tempo: '+invJT+'</div>' : ''}
+      <div style="margin-top:6px;font-size:9pt;color:#666">Status: <b>${inv.status}</b></div>
+    </div>
+  </div>
+
+  <div class="parties">
+    <div class="party-box">
+      <div class="party-label">Pengirim</div>
+      <div class="party-name">${companyName}</div>
+      <div class="party-detail">${companyAlamat}${companyTelp ? '<br>Telp: '+companyTelp : ''}</div>
+      ${(bankNama||bankRek) ? '<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #999;font-size:9pt"><b>Transfer:</b><br>'+bankNama+' '+bankRek+(bankAtas?'<br>a/n '+bankAtas:'')+'</div>' : ''}
+    </div>
+    <div class="party-box">
+      <div class="party-label">Penerima</div>
+      <div class="party-name">${inv.customer_nama}</div>
+      <div class="party-detail">${custAlamat}${custTelp ? '<br>Telp: '+custTelp : ''}</div>
+      ${inv.customer_tipe ? '<div style="margin-top:6px;font-size:9pt;color:#666">Tipe: '+inv.customer_tipe+'</div>' : ''}
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:30px" class="center">No</th>
+        <th>Barang</th>
+        <th style="width:90px" class="center">Batch</th>
+        <th style="width:70px" class="center">ED</th>
+        <th style="width:60px" class="center">Qty</th>
+        <th style="width:100px" class="center">Harga @</th>
+        <th style="width:100px" class="center">Subtotal</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${items.map((it,i) => `<tr>
+        <td class="center">${i+1}</td>
+        <td>${it.nama}</td>
+        <td class="center">${it.batch}</td>
+        <td class="center">${it.ed && it.ed !== '-' ? new Date(it.ed).toLocaleDateString('id-ID',{year:'2-digit',month:'2-digit'}) : '-'}</td>
+        <td class="center">${it.qty} ${it.satuan}</td>
+        <td class="num">${it.harga.toLocaleString('id-ID')}</td>
+        <td class="num">${it.subtotal.toLocaleString('id-ID')}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>
+
+  <table class="totals">
+    <tr><td>Subtotal</td><td class="num">Rp ${subtotal.toLocaleString('id-ID')}</td></tr>
+    ${ppnActive ? '<tr><td>DPP</td><td class="num">Rp '+dpp.toLocaleString('id-ID')+'</td></tr><tr><td>PPN 11%</td><td class="num">Rp '+ppn.toLocaleString('id-ID')+'</td></tr>' : ''}
+    <tr><td>TOTAL</td><td class="num">Rp ${grandTotal.toLocaleString('id-ID')}</td></tr>
+  </table>
+
+  <div class="terbilang-box">
+    <b>Terbilang:</b> ${totalTerbilang}
+  </div>
+
+  <div class="footer">
+    <div class="signature">
+      <div class="signature-label">Penerima,</div>
+      <div class="signature-name">(_______________________)</div>
+    </div>
+    <div class="signature">
+      <div class="signature-label">Hormat kami,</div>
+      <div class="signature-name">${companyName}</div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    Dokumen ini dibuat otomatis oleh Findest CRM · Dicetak ${new Date().toLocaleString('id-ID',{dateStyle:'long',timeStyle:'short'})}
+  </div>
+</div>
+<script>
+  // Auto-focus print dialog
+  setTimeout(()=>{ /* window.print(); */ }, 500);
+</script>
+</body></html>`;
+
+  const w = window.open('', '_blank', 'width=900,height=1000');
+  if(!w) { showToast('Pop-up blocked — allow di browser settings','error'); return; }
+  w.document.write(html);
+  w.document.close();
+}
+
 async function markInvLunas(id) {
   if(!confirm('Tandai invoice ini sebagai LUNAS?')) return;
   const { error } = await sb.from('invoices').update({status:'Lunas', tgl_lunas: new Date().toISOString().split('T')[0]}).eq('id', id);
