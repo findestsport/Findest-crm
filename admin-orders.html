@@ -213,23 +213,26 @@ function checkPin(){
   const v=document.getElementById('pinInput').value.trim();
   if(!v){showToast('PIN wajib diisi');return;}
   // Try to fetch admin PIN from config table first
-  SB.from('config').select('value').eq('key','admin_pin').maybeSingle().then(({data})=>{
-    const configPin=data?.value;
-    const validPin=configPin||adminPin;
-    if(v===validPin){
+  SB.from('config').select('value').eq('key','admin_pin').maybeSingle().then(({data,error})=>{
+    const configPin=(data?.value||'').trim();
+    // Accept BOTH default hardcoded PIN + config PIN (OR)
+    const validPins=[adminPin];
+    if(configPin) validPins.push(configPin);
+    if(validPins.includes(v)){
       sessionStorage.setItem('findest_admin_ok','1');
       document.getElementById('gate').classList.add('hidden');
       init();
     }else{
-      showToast('PIN salah');
+      const dbg = 'input='+v.length+'ch · config='+(configPin?configPin.length+'ch':'—')+' · default='+adminPin.length+'ch';
+      showToast('PIN salah ('+dbg+')');
     }
-  }).catch(()=>{
+  }).catch((e)=>{
     if(v===adminPin){
       sessionStorage.setItem('findest_admin_ok','1');
       document.getElementById('gate').classList.add('hidden');
       init();
     }else{
-      showToast('PIN salah — cek config.admin_pin di Supabase');
+      showToast('PIN salah — '+(e?.message||'db unreachable'));
     }
   });
 }
