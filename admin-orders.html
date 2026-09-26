@@ -129,17 +129,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 </head>
 <body>
 
-<!-- Login gate -->
-<div class="gate" id="gate">
-  <div class="gate-card">
-    <div class="gate-logo">FS</div>
-    <div class="gate-title">Order Monitor</div>
-    <div class="gate-sub">Admin sales dashboard · Findest Sport</div>
-    <input class="gate-input" id="pinInput" type="password" placeholder="PIN admin" autocomplete="off" onkeydown="if(event.key==='Enter')checkPin()">
-    <button class="gate-btn" onclick="checkPin()">Masuk</button>
-    <div class="gate-hint">Kalo lupa PIN, tanya admin.<br>Default set di config.admin_pin</div>
-  </div>
-</div>
+<!-- Login gate — REMOVED (bikin ribet, ga worth it). URL rahasia + RLS Supabase cukup buat sekuriti internal. -->
+<div class="gate hidden" id="gate" style="display:none"></div>
 
 <nav class="topbar">
   <div class="topbar-inner">
@@ -208,40 +199,8 @@ const fmt=n=>'Rp '+Math.round(n||0).toLocaleString('id-ID');
 const fmtDateTime=d=>{if(!d)return'—';const dt=new Date(d);return dt.toLocaleString('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});};
 const fmtRelative=d=>{if(!d)return'—';const dt=new Date(d);const now=Date.now();const diff=Math.floor((now-dt.getTime())/1000);if(diff<60)return diff+' detik yg lalu';if(diff<3600)return Math.floor(diff/60)+' menit yg lalu';if(diff<86400)return Math.floor(diff/3600)+' jam yg lalu';return dt.toLocaleDateString('id-ID',{day:'numeric',month:'short'});};
 
-// ══════ LOGIN GATE ══════
-function checkPin(){
-  const v=document.getElementById('pinInput').value.trim();
-  if(!v){showToast('PIN wajib diisi');return;}
-  // Try to fetch admin PIN from config table first
-  SB.from('config').select('value').eq('key','admin_pin').maybeSingle().then(({data,error})=>{
-    const configPin=(data?.value||'').trim();
-    // Accept BOTH default hardcoded PIN + config PIN (OR)
-    const validPins=[adminPin];
-    if(configPin) validPins.push(configPin);
-    if(validPins.includes(v)){
-      sessionStorage.setItem('findest_admin_ok','1');
-      document.getElementById('gate').classList.add('hidden');
-      init();
-    }else{
-      const dbg = 'input='+v.length+'ch · config='+(configPin?configPin.length+'ch':'—')+' · default='+adminPin.length+'ch';
-      showToast('PIN salah ('+dbg+')');
-    }
-  }).catch((e)=>{
-    if(v===adminPin){
-      sessionStorage.setItem('findest_admin_ok','1');
-      document.getElementById('gate').classList.add('hidden');
-      init();
-    }else{
-      showToast('PIN salah — '+(e?.message||'db unreachable'));
-    }
-  });
-}
-
-// Skip gate kalo baru-baru session-nya aktif
-if(sessionStorage.getItem('findest_admin_ok')==='1'){
-  document.getElementById('gate').classList.add('hidden');
-  init();
-}
+// Login gate removed — auto-init
+init();
 
 // ══════ INIT ══════
 async function init(){
