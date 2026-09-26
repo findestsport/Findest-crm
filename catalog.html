@@ -492,11 +492,24 @@ function getOrderIdFromUrl(){
   const o=p.get('o');
   return o&&/^\d+$/.test(o)?parseInt(o):null;
 }
+function applyCustomerMarkup() {
+  if(!currentCustomer || !products || !products.length) return;
+  const mkp = parseFloat(currentCustomer.markup_pct);
+  if(!mkp || mkp <= 0) return;
+  const mult = 1 + mkp/100;
+  products.forEach(p => {
+    if(p._baseHarga == null) p._baseHarga = p.harga;
+    p.harga = Math.round((p._baseHarga||0) * mult);
+  });
+  const subEl = document.getElementById('custBannerSub');
+  if(subEl && !subEl.textContent.includes('Markup')) subEl.textContent += ` · Markup ${mkp}%`;
+}
+
 async function loadCustomer(){
   const cid=getCustomerIdFromUrl();
   if(!cid)return;
   try{
-    const{data,error}=await SB.from('customers').select('id,nama,tipe,wa,alamat,sistem').eq('id',cid).eq('status','Aktif').maybeSingle();
+    const{data,error}=await SB.from('customers').select('id,nama,tipe,wa,alamat,sistem,markup_pct').eq('id',cid).eq('status','Aktif').maybeSingle();
     if(error||!data){console.warn('[Findest] customer lookup:',error?.message||'not found');return;}
     currentCustomer=data;
     const isKonsi = data.sistem === 'Konsinyasi';
@@ -511,6 +524,8 @@ async function loadCustomer(){
     // Update checkout button label
     const btn = document.querySelector('.checkout-btn');
     if(btn) btn.dataset.konsiMode = isKonsi ? '1' : '0';
+    // Apply markup ke semua produk kalo customer punya markup_pct
+    applyCustomerMarkup();
     // Check invoice overdue → tampil popup notice reminder bayar
     if(!isKonsi) checkOverdueInvoices(cid);
   }catch(e){console.warn('[Findest] customer fetch:',e.message);}
@@ -616,6 +631,8 @@ async function init(){
     });
     products=prods.data||[];
     document.getElementById('sn1').textContent=products.length;
+    // Kalo currentCustomer punya markup + belum applied, apply sekarang
+    applyCustomerMarkup();
     render();
   }catch(e){
     console.error(e);
