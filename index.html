@@ -1120,7 +1120,10 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
         <button id="konsi-btn-table" onclick="setKonsiView('table')" style="padding:5px 10px;border-radius:5px;border:none;background:transparent;color:var(--text-muted);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font-body);">&#9776; Tabel</button>
       </div>
     </div>
-    <button class="btn btn-primary" onclick="openAddKonsi()">+ Catat Konsinyasi</button>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-ghost" onclick="openReturHistory()" title="Log semua retur konsi">📜 History Retur</button>
+      <button class="btn btn-primary" onclick="openAddKonsi()">+ Catat Konsinyasi</button>
+    </div>
   </div>
 
   <!-- CARD VIEW -->
@@ -6991,8 +6994,9 @@ function renderKonsi() {
       <td class="mono fw6 ${sisa<=0?'c-red':'c-teal'}">${sisa} unit</td>
       <td class="mono fw6 c-green">${fmt(nilaiTerjual)}</td>
       <td><span class="s s-${statusColor[k.status]||'warn'}">${k.status||'Aktif'}</span></td>
-      <td style="display:flex;gap:4px">
+      <td style="display:flex;gap:4px;flex-wrap:wrap">
         <button class="btn btn-sm btn-ghost" onclick="editKonsi(${k.id})" title="Edit / Rekonsiliasi">Edit</button>
+        ${sisa>0?`<button class="btn btn-sm btn-warn" onclick="openReturKonsi(${k.id})" title="Retur ke gudang / customer">🔁 Retur</button>`:''}
         <button class="btn btn-sm btn-danger" onclick="deleteKonsi(${k.id})">Del</button>
       </td>
     </tr>`;
@@ -7299,6 +7303,102 @@ async function deleteKonsi(id) {
     showToast('Data dihapus & stok dikembalikan!');
     await Promise.all([loadKonsi(), loadProducts(), loadCatalog()]);
   } else showToast(error.message, 'error');
+}
+
+// ═══════ RETUR KONSI (Phase 12) ═══════
+function openReturKonsi(id) {
+  const k = allKonsi.find(x => x.id === id);
+  if(!k) { showToast('Data konsi ga ketemu','error'); return; }
+  const sisa = (k.qty_titip||0) - (k.qty_terjual||0) - (k.qty_retur||0);
+  if(sisa <= 0) { showToast('Ga ada sisa titipan buat diretur','warn'); return; }
+  document.getElementById('retur-konsi-id').value = id;
+  document.getElementById('retur-info-outlet').textContent = k.outlet || '-';
+  document.getElementById('retur-info-produk').textContent = k.produk + (k.batch_no?' · Batch '+k.batch_no:'') + (k.ed_date?' · ED '+k.ed_date:'');
+  document.getElementById('retur-info-sisa').textContent = `Sisa titipan: ${sisa} unit`;
+  document.getElementById('retur-qty').value = '';
+  document.getElementById('retur-qty').max = sisa;
+  document.getElementById('retur-tgl').value = new Date().toISOString().slice(0,10);
+  document.getElementById('retur-tujuan').value = 'gudang_fp';
+  document.getElementById('retur-transfer-ke').value = '';
+  document.getElementById('retur-alasan').value = '';
+  toggleReturTransferField();
+  openMo('mo-retur-konsi');
+}
+
+function toggleReturTransferField() {
+  const tujuan = document.getElementById('retur-tujuan')?.value;
+  const wrap = document.getElementById('retur-transfer-wrap');
+  if(wrap) wrap.style.display = tujuan === 'customer' ? '' : 'none';
+}
+
+let allReturHistory = [];
+async function openReturHistory() {
+  openMo('mo-retur-history');
+  document.getElementById('tb-retur-history').innerHTML = '<tr><td colspan="6"><div class="empty"><div class="spinner"></div></div></td></tr>';
+  const { data, error } = await sb.from('konsi_returns')
+    .select('*').order('tgl_retur', {ascending:false}).order('id',{ascending:false}).limit(500);
+  if(error) {
+    document.getElementById('tb-retur-history').innerHTML = `<tr><td colspan="6"><div class="empty">Gagal load: ${error.message}</div></td></tr>`;
+    return;
+  }
+  allReturHistory = data || [];
+  renderReturHistory();
+}
+
+function renderReturHistory() {
+  const tb = document.getElementById('tb-retur-history');
+  if(!tb) return;
+  const fOut = (document.getElementById('rh-filter-outlet')?.value||'').toLowerCase().trim();
+  const fBln = document.getElementById('rh-filter-bulan')?.value;
+  const fTuj = document.getElementById('rh-filter-tujuan')?.value;
+  let rows = allReturHistory;
+  if(fOut) rows = rows.filter(r => (r.outlet||'').toLowerCase().includes(fOut));
+  if(fBln) rows = rows.filter(r => (r.tgl_retur||'').startsWith(fBln));
+  if(fTuj) rows = rows.filter(r => r.tujuan === fTuj);
+  if(!rows.length) {
+    tb.innerHTML = '<tr><td colspan="6"><div class="empty">Ga ada retur match filter</div></td></tr>';
+    document.getElementById('rh-summary').textContent = '';
+    return;
+  }
+  const tujuanIcon = { gudang_fp:'🏭 Gudang FP', customer:'📦 Customer', buang:'🗑️ Buang' };
+  tb.innerHTML = rows.map(r => `<tr>
+    <td style="font-size:11px">${r.tgl_retur||'-'}</td>
+    <td class="fw6">${r.outlet||'-'}</td>
+    <td style="font-size:11px">${r.produk||'-'}${r.batch_no?`<div style="font-size:10px;color:var(--text-muted)">Batch: ${r.batch_no}${r.ed_date?' · ED '+r.ed_date:''}</div>`:''}</td>
+    <td class="num fw6">${r.qty||0}</td>
+    <td style="font-size:11px">${tujuanIcon[r.tujuan]||r.tujuan||'-'}${r.transfer_ke_customer?`<div style="font-size:10px;color:var(--teal)">→ ${r.transfer_ke_customer}</div>`:''}</td>
+    <td style="font-size:11px;color:var(--text-muted);max-width:280px">${r.alasan||'-'}</td>
+  </tr>`).join('');
+  const totalQty = rows.reduce((s,r)=>s+(r.qty||0),0);
+  const uniqOutlets = new Set(rows.map(r=>r.outlet)).size;
+  document.getElementById('rh-summary').textContent = `📊 ${rows.length} retur · ${totalQty} unit total · ${uniqOutlets} outlet`;
+}
+
+async function doReturKonsi() {
+  const konsiId = parseInt(document.getElementById('retur-konsi-id').value);
+  const qty = parseInt(document.getElementById('retur-qty').value) || 0;
+  const tujuan = document.getElementById('retur-tujuan').value || 'gudang_fp';
+  const transferKe = document.getElementById('retur-transfer-ke').value.trim() || null;
+  const alasan = document.getElementById('retur-alasan').value.trim() || null;
+  const tgl = document.getElementById('retur-tgl').value || null;
+  if(!konsiId || qty <= 0) { showToast('Qty retur harus > 0','error'); return; }
+
+  const { data, error } = await sb.rpc('retur_from_konsi', {
+    p_konsi_id: konsiId,
+    p_qty: qty,
+    p_alasan: alasan,
+    p_tujuan: tujuan,
+    p_transfer_ke_customer: transferKe,
+    p_order_id: null,
+    p_created_by: (typeof currentUser !== 'undefined' && currentUser?.email) || null,
+    p_tgl_retur: tgl
+  });
+  if(error) { showToast('Retur gagal: '+error.message,'error'); return; }
+  const row = Array.isArray(data) ? data[0] : data;
+  showToast(row?.message || '✅ Retur tersimpan');
+  closeMo('mo-retur-konsi');
+  await Promise.all([loadKonsi(), loadProducts(), loadCatalog(), loadBatches?.()].filter(Boolean));
+  updateDashboard?.();
 }
 
 async function deleteKonsiFromModal() {
@@ -11274,6 +11374,97 @@ function dcEditCust() {
       <button class="btn btn-ghost" onclick="closeMo('mo-add-konsi')">Batal</button>
       <button class="btn btn-danger" id="konsi-del-btn" style="display:none" onclick="deleteKonsiFromModal()">🗑️ Hapus</button>
       <button class="btn btn-primary" onclick="saveKonsi()">💾 Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ RETUR HISTORY MODAL ═══════ -->
+<div class="mo" id="mo-retur-history">
+  <div class="mo-box" style="max-width:820px">
+    <div class="mo-h">
+      <div class="mo-title">📜 History Retur Konsi</div>
+      <button class="mo-x" onclick="closeMo('mo-retur-history')">×</button>
+    </div>
+    <div class="mo-b">
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <input class="fi" id="rh-filter-outlet" placeholder="🔍 Filter outlet..." style="max-width:220px" oninput="renderReturHistory()"/>
+        <input class="fi" type="month" id="rh-filter-bulan" style="max-width:180px" onchange="renderReturHistory()"/>
+        <select class="fi" id="rh-filter-tujuan" style="max-width:200px" onchange="renderReturHistory()">
+          <option value="">Semua Tujuan</option>
+          <option value="gudang_fp">🏭 Ke Gudang FP</option>
+          <option value="customer">📦 Ke Customer</option>
+          <option value="buang">🗑️ Buang</option>
+        </select>
+      </div>
+      <div style="max-height:60vh;overflow-y:auto">
+        <table class="tbl" style="width:100%">
+          <thead>
+            <tr>
+              <th>Tgl</th><th>Outlet Konsi</th><th>Produk</th>
+              <th class="num">Qty</th><th>Tujuan</th><th>Alasan</th>
+            </tr>
+          </thead>
+          <tbody id="tb-retur-history"><tr><td colspan="6"><div class="empty"><div class="spinner"></div></div></td></tr></tbody>
+        </table>
+      </div>
+      <div id="rh-summary" style="margin-top:12px;padding:10px 14px;background:var(--surface2);border-radius:8px;font-size:12px;color:var(--text-muted)"></div>
+    </div>
+    <div class="mo-f">
+      <button class="btn btn-ghost" onclick="closeMo('mo-retur-history')">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ RETUR KONSI MODAL ═══════ -->
+<div class="mo" id="mo-retur-konsi">
+  <div class="mo-box" style="max-width:520px">
+    <div class="mo-h">
+      <div class="mo-title">🔁 Retur Konsi</div>
+      <button class="mo-x" onclick="closeMo('mo-retur-konsi')">×</button>
+    </div>
+    <div class="mo-b">
+      <input type="hidden" id="retur-konsi-id"/>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:14px">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:4px">Dari Konsi</div>
+        <div style="font-weight:700;font-size:14px" id="retur-info-outlet">-</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px" id="retur-info-produk">-</div>
+        <div style="font-size:12px;color:var(--teal);margin-top:6px;font-weight:600" id="retur-info-sisa">Sisa titipan: 0 unit</div>
+      </div>
+
+      <div class="frow">
+        <div class="fg">
+          <label class="fl">Qty Retur</label>
+          <input class="fi" type="number" id="retur-qty" placeholder="0" min="1"/>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Max = sisa titipan di konsi</div>
+        </div>
+        <div class="fg">
+          <label class="fl">Tanggal Retur</label>
+          <input class="fi" type="date" id="retur-tgl"/>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label class="fl">Tujuan Barang</label>
+        <select class="fi" id="retur-tujuan" onchange="toggleReturTransferField()">
+          <option value="gudang_fp">🏭 Masuk Gudang FP — nambah stok Findest</option>
+          <option value="customer">📦 Langsung ke Customer FnB — transfer</option>
+          <option value="buang">🗑️ Rusak/Expired — buang</option>
+        </select>
+      </div>
+
+      <div class="fg" id="retur-transfer-wrap" style="display:none">
+        <label class="fl">Transfer ke Customer <span style="color:var(--text-muted);font-weight:400;font-size:11px">— nama customer FnB tujuan</span></label>
+        <input class="fi" type="text" id="retur-transfer-ke" placeholder="Contoh: 71gym / Bumbak Fitness / dll"/>
+      </div>
+
+      <div class="fg">
+        <label class="fl">Alasan / Catatan</label>
+        <textarea class="fi" id="retur-alasan" rows="2" placeholder="Contoh: Barang di FP habis, tarik dari sini buat penuhin order Customer X"></textarea>
+      </div>
+    </div>
+    <div class="mo-f">
+      <button class="btn btn-ghost" onclick="closeMo('mo-retur-konsi')">Batal</button>
+      <button class="btn btn-primary" onclick="doReturKonsi()">🔁 Simpan Retur</button>
     </div>
   </div>
 </div>
