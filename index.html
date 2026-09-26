@@ -2549,6 +2549,11 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
         <div class="fg"><label class="fl">Estimasi Omzet</label><input class="fi" type="number" id="cust-omzet" placeholder="10000000"></div>
       </div>
       <div class="fg">
+        <label class="fl">💰 Markup Extra % <span style="font-size:10px;color:var(--text-muted);text-transform:none;letter-spacing:0">(di atas harga catalog — biasanya konsi 8-15%, FnB kosongin)</span></label>
+        <input class="fi" type="number" step="0.1" id="cust-markup-pct" placeholder="Kosongin = pake harga catalog as-is" oninput="previewMarkup()"/>
+        <div id="cust-markup-preview" style="font-size:11px;color:var(--text-muted);margin-top:4px"></div>
+      </div>
+      <div class="fg">
         <label class="fl">Sales PIC <span style="font-size:10px;color:var(--text-muted);text-transform:none;letter-spacing:0">(Siapa yang dapetin customer ini?)</span></label>
         <select class="fi" id="cust-sales-pic">
           <option value="">-- Pilih Sales --</option>
@@ -6057,10 +6062,24 @@ async function editCust(id) {
   document.getElementById('cust-sistem').value = c.sistem||'';
   document.getElementById('cust-omzet').value = c.omzet_estimasi||0;
   document.getElementById('cust-sales-pic').value = c.sales_pic||'';
+  const mkEl = document.getElementById('cust-markup-pct'); if(mkEl) mkEl.value = c.markup_pct ?? '';
+  previewMarkup();
   const modal = document.getElementById('mo-cust');
   modal.querySelector('.mo-title').textContent = '✏️ Edit Customer';
   modal.dataset.editId = id;
   openMo('mo-cust');
+}
+
+function previewMarkup() {
+  const val = parseFloat(document.getElementById('cust-markup-pct')?.value);
+  const el = document.getElementById('cust-markup-preview');
+  if(!el) return;
+  if(!val || val === 0) {
+    el.innerHTML = '<span style="color:var(--text-muted)">💡 Pakai harga catalog as-is (default markup 12-15% dari produk sudah include)</span>';
+  } else {
+    const mult = 1 + val/100;
+    el.innerHTML = `📈 Extra <b>${val}%</b> → contoh harga catalog Rp 100.000 → tampil <b style="color:var(--teal)">Rp ${(100000*mult).toLocaleString('id-ID')}</b>`;
+  }
 }
 async function saveCust() {
   const modal = document.getElementById('mo-cust');
@@ -6075,6 +6094,7 @@ async function saveCust() {
     sistem: document.getElementById('cust-sistem').value,
     omzet_estimasi: parseRp(document.getElementById('cust-omzet').value)||0,
     sales_pic: salesPicVal || null,
+    markup_pct: (function(){ const v = parseFloat(document.getElementById('cust-markup-pct')?.value); return isNaN(v) ? null : v; })(),
   };
   if(!data.nama) { showToast('Nama wajib!','error'); return; }
   const { error } = editId
