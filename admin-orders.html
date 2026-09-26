@@ -337,7 +337,7 @@ function render(){
         </div>
         <div class="order-status ${stKey}">${st}</div>
       </div>
-      <div class="order-cust">${o.customer_nama||'—'}</div>
+      <div class="order-cust">${o.customer_nama||'—'} ${o.channel_sistem&&o.channel_sistem.includes('Konsinyasi')?'<span style="background:rgba(139,92,246,.15);color:#7c3aed;padding:2px 8px;border-radius:100px;font-size:10px;font-weight:700;border:1px solid rgba(139,92,246,.3);margin-left:6px">🔄 TITIPAN KONSI</span>':''}</div>
       <div class="order-tipe">${o.channel_tipe||'Public'} ${o.channel_sistem?' · '+o.channel_sistem:''}</div>
       <div class="order-produk">${(o.produk||'').replace(/</g,'&lt;')}</div>
       <div class="order-meta">
