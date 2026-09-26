@@ -9,7 +9,8 @@ INSERT INTO public.config(key, value) VALUES
   ('company_name', 'FINDEST SPORT CEPAT SEMBUH'),
   ('company_alamat', 'Jl. Sunset Road, Basangkasa 1a., Kab. Badung, Bali'),
   ('company_telp', ''),
-  ('faktur_ppn', 'on')                     -- 'on' = tampil breakdown DPP + PPN 11%, 'off' = tanpa PPN
+  ('faktur_ppn', 'on'),                    -- 'on' = tampil breakdown DPP + PPN 11%, 'off' = tanpa PPN
+  ('faktur_diskon_per_item', '15000')      -- Diskon default per unit (Rp). Ubah nominal atau set '0' buat disable
 ON CONFLICT(key) DO NOTHING;
 
 -- Note: bank_nama, bank_rekening, bank_atas_nama sudah ada dari config catalog.

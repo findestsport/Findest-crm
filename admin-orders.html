@@ -496,8 +496,8 @@ async function printFakturOrder(orderId) {
   const o = orders.find(x => x.id === orderId);
   if(!o) { showToast('Order ga ketemu'); return; }
 
-  // Load company info + bank + PPN toggle dari config
-  const cfgKeys = ['company_name','company_alamat','company_telp','bank_nama','bank_rekening','bank_atas_nama','faktur_ppn'];
+  // Load company info + bank + PPN toggle + diskon default dari config
+  const cfgKeys = ['company_name','company_alamat','company_telp','bank_nama','bank_rekening','bank_atas_nama','faktur_ppn','faktur_diskon_per_item'];
   const { data: cfgs } = await SB.from('config').select('key,value').in('key', cfgKeys);
   const cfg = {};
   (cfgs||[]).forEach(r => cfg[r.key] = r.value);
@@ -508,6 +508,7 @@ async function printFakturOrder(orderId) {
   const bankRek = cfg.bank_rekening || '';
   const bankAtas = cfg.bank_atas_nama || '';
   const ppnActive = cfg.faktur_ppn !== 'off';
+  const diskonPerItem = parseInt(cfg.faktur_diskon_per_item) || 15000;
 
   // Look up related invoice (kalo order udah Selesai + auto-invoice)
   let noFaktur = 'FKT-' + o.id;
@@ -520,23 +521,31 @@ async function printFakturOrder(orderId) {
   // Parse produk_json (dari catalog) atau produk text fallback
   let items = [];
   if(o.produk_json && Array.isArray(o.produk_json)) {
-    items = o.produk_json.map(p => ({
-      nama: `${p.brand||''} ${p.nama||''}`.trim() || 'Item',
-      batch: p.batch_no || '-',
-      ed: p.ed_date || '-',
-      qty: p.qty || 1,
-      satuan: 'pcs',
-      harga: p.harga || 0,
-      subtotal: (p.harga||0) * (p.qty||0) || p.subtotal || 0
-    }));
+    items = o.produk_json.map(p => {
+      const qty = p.qty || 1;
+      const harga = p.harga || 0;
+      const diskonItem = diskonPerItem * qty;  // Rp 15rb per unit × qty
+      return {
+        nama: `${p.brand||''} ${p.nama||''}`.trim() || 'Item',
+        batch: p.batch_no || '-',
+        ed: p.ed_date || '-',
+        qty, satuan: 'pcs',
+        harga,
+        diskon: diskonItem,
+        subtotal: (harga * qty) - diskonItem
+      };
+    });
   } else if(o.produk) {
     items = o.produk.split(',').map(txt => ({
       nama: txt.trim(),
       batch: '-', ed: '-', qty: 1, satuan: 'pcs',
-      harga: 0, subtotal: 0
+      harga: 0, diskon: 0, subtotal: 0
     }));
-    // Distribute total across single line if no breakdown
-    if(items.length === 1) items[0].harga = items[0].subtotal = o.total_nilai || 0;
+    if(items.length === 1) {
+      items[0].harga = o.total_nilai || 0;
+      items[0].diskon = diskonPerItem;
+      items[0].subtotal = (o.total_nilai||0) - diskonPerItem;
+    }
   }
 
   // Get customer info (join sekali)
@@ -554,7 +563,9 @@ async function printFakturOrder(orderId) {
   }
 
   // Total calc
-  const subtotal = items.reduce((s,i)=>s + (i.subtotal||0), 0) || o.total_nilai || 0;
+  const grossSum = items.reduce((s,i)=>s + ((i.harga||0)*(i.qty||0)), 0) || o.total_nilai || 0;
+  const totalDiskon = items.reduce((s,i)=>s + (i.diskon||0), 0);
+  const subtotal = grossSum - totalDiskon;
   const dpp = ppnActive ? Math.round(subtotal / 1.11) : subtotal;
   const ppn = ppnActive ? subtotal - dpp : 0;
   const grandTotal = subtotal;
@@ -650,14 +661,14 @@ async function printFakturOrder(orderId) {
         <td class="center">${it.ed && it.ed !== '-' ? new Date(it.ed).toLocaleDateString('id-ID',{year:'2-digit',month:'2-digit'}) : '-'}</td>
         <td class="center">${it.qty} ${it.satuan}</td>
         <td class="num" data-harga="${it.harga||0}">${(it.harga||0).toLocaleString('id-ID')}</td>
-        <td class="num diskon-cell" contenteditable="true" data-row="${i}" data-diskon="0" oninput="recalcFaktur()" onfocus="this.style.background='#fffbea'" onblur="this.style.background=''">0</td>
+        <td class="num diskon-cell" contenteditable="true" data-row="${i}" oninput="recalcFaktur()" onfocus="this.style.background='#fffbea'" onblur="this.style.background=''">${(it.diskon||0).toLocaleString('id-ID')}</td>
         <td class="num subtotal-cell" data-row="${i}">${(it.subtotal||0).toLocaleString('id-ID')}</td>
       </tr>`).join('')}
     </tbody>
   </table>
   <table class="totals" id="faktur-totals">
-    <tr><td>Subtotal Kotor</td><td class="num" id="tot-gross">Rp ${subtotal.toLocaleString('id-ID')}</td></tr>
-    <tr id="row-diskon" style="display:none"><td>Total Diskon</td><td class="num" id="tot-diskon">- Rp 0</td></tr>
+    <tr><td>Subtotal Kotor</td><td class="num" id="tot-gross">Rp ${grossSum.toLocaleString('id-ID')}</td></tr>
+    <tr id="row-diskon" ${totalDiskon > 0 ? '' : 'style="display:none"'}><td>Total Diskon</td><td class="num" id="tot-diskon">- Rp ${totalDiskon.toLocaleString('id-ID')}</td></tr>
     <tr><td>Subtotal</td><td class="num" id="tot-subtotal">Rp ${subtotal.toLocaleString('id-ID')}</td></tr>
     ${ppnActive ? '<tr><td>DPP</td><td class="num" id="tot-dpp">Rp '+dpp.toLocaleString('id-ID')+'</td></tr><tr><td>PPN 11%</td><td class="num" id="tot-ppn">Rp '+ppn.toLocaleString('id-ID')+'</td></tr>' : ''}
     <tr><td>TOTAL</td><td class="num" id="tot-grand">Rp ${grandTotal.toLocaleString('id-ID')}</td></tr>
