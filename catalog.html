@@ -455,6 +455,7 @@ textarea.form-input{resize:none}
 const SB=supabase.createClient('https://wuejoxgbtvmlrriwlofk.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZWpveGdidHZtbHJyaXdsb2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNjY1NTQsImV4cCI6MjA5Mjg0MjU1NH0.nq0xlsuXeJNXtb8SisPQ3Ml5fXNy2vguVRJ8pNFGai0');
 let products=[],cart={},activeCat='all',searchQ='',modalQty=1,selPayment='';
 let salesWA='',salesName='Findest Sport',bankNama='',bankRekening='',bankAtasNama='',qrisUrl='';
+let defaultMarkupPct=20; // fallback kalo config belum di-set
 let currentCustomer=null; // set jika ?c=<id> di URL
 let trackChannel=null; // Supabase Realtime subscription
 const fmt=n=>'Rp '+Math.round(n||0).toLocaleString('id-ID');
@@ -493,16 +494,27 @@ function getOrderIdFromUrl(){
   return o&&/^\d+$/.test(o)?parseInt(o):null;
 }
 function applyCustomerMarkup() {
-  if(!currentCustomer || !products || !products.length) return;
-  const mkp = parseFloat(currentCustomer.markup_pct);
-  if(!mkp || mkp <= 0) return;
+  if(!products || !products.length) return;
+  // Priority: customer markup_pct (kalo authed) > catalog_default_markup (public view)
+  let mkp = null;
+  let source = 'default';
+  if(currentCustomer) {
+    const custMkp = parseFloat(currentCustomer.markup_pct);
+    if(!isNaN(custMkp) && custMkp > 0) { mkp = custMkp; source = 'customer'; }
+  }
+  if(mkp === null) {
+    if(defaultMarkupPct > 0) { mkp = defaultMarkupPct; source = 'default'; }
+    else return; // no markup at all
+  }
   const mult = 1 + mkp/100;
   products.forEach(p => {
     if(p._baseHarga == null) p._baseHarga = p.harga;
     p.harga = Math.round((p._baseHarga||0) * mult);
   });
-  const subEl = document.getElementById('custBannerSub');
-  if(subEl && !subEl.textContent.includes('Markup')) subEl.textContent += ` · Markup ${mkp}%`;
+  if(source === 'customer') {
+    const subEl = document.getElementById('custBannerSub');
+    if(subEl && !subEl.textContent.includes('Markup')) subEl.textContent += ` · Markup ${mkp}%`;
+  }
 }
 
 async function loadCustomer(){
@@ -628,6 +640,7 @@ async function init(){
       if(r.key==='bank_rekening')bankRekening=r.value||'';
       if(r.key==='bank_atas_nama')bankAtasNama=r.value||'';
       if(r.key==='qris_url')qrisUrl=r.value||'';
+      if(r.key==='catalog_default_markup') { const v=parseFloat(r.value); if(!isNaN(v)) defaultMarkupPct=v; }
     });
     products=prods.data||[];
     document.getElementById('sn1').textContent=products.length;
