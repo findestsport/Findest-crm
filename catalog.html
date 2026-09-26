@@ -235,6 +235,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .qty-btn{width:42px;height:42px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--white);color:var(--text);font-size:20px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
 .qty-btn:hover{background:var(--bg);border-color:var(--border3)}
 .qty-num{font-size:20px;font-weight:700;color:var(--text);min-width:32px;text-align:center}
+.qty-input{font-size:20px;font-weight:700;color:var(--text);width:64px;text-align:center;border:1px solid var(--border2);border-radius:var(--radius);padding:8px 4px;background:var(--white);font-family:var(--font);-moz-appearance:textfield;appearance:textfield}
+.qty-input::-webkit-outer-spin-button,.qty-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.qty-input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,.12)}
+.ciq-input{font-size:15px;font-weight:700;color:var(--text);width:48px;text-align:center;border:1px solid var(--border2);border-radius:8px;padding:6px 2px;background:var(--white);font-family:var(--font);-moz-appearance:textfield;appearance:textfield}
+.ciq-input::-webkit-outer-spin-button,.ciq-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.ciq-input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 2px rgba(13,148,136,.12)}
 .pm-add-btn{width:100%;padding:16px;background:var(--text);color:var(--white);border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--font);border-radius:var(--radius);transition:all .15s}
 .pm-add-btn:hover{opacity:.9}
 .pm-add-btn:active{transform:scale(.98)}
@@ -654,14 +660,42 @@ function clearSearch(){searchQ='';document.getElementById('searchInput').value='
 function quickAdd(id){
   const p=products.find(x=>x.id===id);
   if(!p||p.stok===0)return;
-  cart[id]=cart[id]?{product:p,qty:cart[id].qty+1}:{product:p,qty:1};
+  const stok=p.stok!=null?parseInt(p.stok):null;
+  const currentQty=cart[id]?cart[id].qty:0;
+  if(stok!=null && currentQty>=stok){
+    showToast(`Stok cuma sisa ${stok} unit`);
+    return;
+  }
+  cart[id]=cart[id]?{product:p,qty:currentQty+1}:{product:p,qty:1};
   updateFab();render();
   showToast('+ '+p.nama.substring(0,25));
 }
 
 function changeCartQty(id,d){
   if(!cart[id])return;
-  cart[id].qty+=d;
+  const p=cart[id].product;
+  const stok=p.stok!=null?parseInt(p.stok):null;
+  const newQty=cart[id].qty+d;
+  if(d>0 && stok!=null && newQty>stok){
+    showToast(`Stok cuma sisa ${stok} unit`);
+    return;
+  }
+  cart[id].qty=newQty;
+  if(cart[id].qty<=0)delete cart[id];
+  updateFab();openCart();
+}
+
+function setCartQty(id,val){
+  if(!cart[id])return;
+  const p=cart[id].product;
+  const stok=p.stok!=null?parseInt(p.stok):null;
+  let q=parseInt(val)||0;
+  if(q<0)q=0;
+  if(stok!=null && q>stok){
+    showToast(`Stok cuma sisa ${stok} unit`);
+    q=stok;
+  }
+  cart[id].qty=q;
   if(cart[id].qty<=0)delete cart[id];
   updateFab();openCart();
 }
@@ -701,15 +735,36 @@ function openProd(id){
     <div class="pm-name">${p.nama}</div>
     ${p.deskripsi?`<div class="pm-desc">${p.deskripsi}</div>`:''}
     <div class="pm-price">${p.harga?fmt(p.harga):'Hubungi Sales'}</div>
-    ${!habis?`<div class="qty-row"><button class="qty-btn" onclick="chgQty(-1)">−</button><div class="qty-num" id="mqty">1</div><button class="qty-btn" onclick="chgQty(1)">+</button></div><button class="pm-add-btn" onclick="addFromModal(${p.id})">${inCart?'Update Pesanan':'Tambah ke Pesanan'}</button>`:''}
+    ${!habis?`<div class="qty-row"><button class="qty-btn" onclick="chgQty(-1,${p.id})">−</button><input type="number" inputmode="numeric" class="qty-input" id="mqty" value="1" min="1" ${stok!=null?`max="${stok}"`:''} onchange="setModalQty(this.value,${p.id})" oninput="setModalQty(this.value,${p.id})"><button class="qty-btn" onclick="chgQty(1,${p.id})">+</button></div>${stok!=null?`<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:6px">Max ${stok} unit</div>`:''}<button class="pm-add-btn" onclick="addFromModal(${p.id})">${inCart?'Update Pesanan':'Tambah ke Pesanan'}</button>`:''}
   `;
   openOverlay('prodModal');
 }
 
-function chgQty(d){modalQty=Math.max(1,modalQty+d);const el=document.getElementById('mqty');if(el)el.textContent=modalQty;}
+function chgQty(d,id){
+  const p=id!=null?products.find(x=>x.id===id):null;
+  const stok=p&&p.stok!=null?parseInt(p.stok):null;
+  const next=Math.max(1,modalQty+d);
+  if(stok!=null && next>stok){ showToast(`Sisa stok cuma ${stok}`); return; }
+  modalQty=next;
+  const el=document.getElementById('mqty');
+  if(el)el.value=modalQty;
+}
+
+function setModalQty(val,id){
+  const p=id!=null?products.find(x=>x.id===id):null;
+  const stok=p&&p.stok!=null?parseInt(p.stok):null;
+  let q=parseInt(val)||1;
+  if(q<1)q=1;
+  if(stok!=null && q>stok){ showToast(`Sisa stok cuma ${stok}`); q=stok; }
+  modalQty=q;
+  const el=document.getElementById('mqty');
+  if(el && parseInt(el.value)!==q)el.value=q;
+}
 
 function addFromModal(id){
   const p=products.find(x=>x.id===id);if(!p)return;
+  const stok=p.stok!=null?parseInt(p.stok):null;
+  if(stok!=null && modalQty>stok){ showToast(`Sisa stok cuma ${stok}`); modalQty=stok; }
   cart[id]={product:p,qty:modalQty};
   updateFab();render();closeOverlay('prodModal');
   showToast(`${p.nama.substring(0,22)} x${modalQty} added`);
@@ -722,7 +777,7 @@ function openCart(){
   document.getElementById('cartContent').innerHTML=`
     <div class="cart-header">Pesanan</div>
     <div class="cart-sub">${items.length} produk &middot; ${items.reduce((s,c)=>s+c.qty,0)} unit</div>
-    ${items.map(c=>{const em=EM[c.product.brand]||'📦';return`<div class="ci"><div class="ci-thumb">${c.product.foto_url?`<img src="${convertFotoUrl(c.product.foto_url)}" onerror="this.outerHTML='${em}'">`:`${em}`}</div><div class="ci-info"><div class="ci-name">${c.product.nama}</div><div class="ci-brand">${c.product.brand}</div><div class="ci-price">${fmt((c.product.harga||0)*c.qty)}</div></div><div class="ci-qty"><button class="ciq-btn" onclick="changeCartQty(${c.product.id},-1)">−</button><div class="ciq-num">${c.qty}</div><button class="ciq-btn" onclick="changeCartQty(${c.product.id},1)">+</button></div></div>`;}).join('')}
+    ${items.map(c=>{const em=EM[c.product.brand]||'📦';const stok=c.product.stok!=null?parseInt(c.product.stok):null;return`<div class="ci"><div class="ci-thumb">${c.product.foto_url?`<img src="${convertFotoUrl(c.product.foto_url)}" onerror="this.outerHTML='${em}'">`:`${em}`}</div><div class="ci-info"><div class="ci-name">${c.product.nama}</div><div class="ci-brand">${c.product.brand}${stok!=null?` &middot; sisa ${stok}`:''}</div><div class="ci-price">${fmt((c.product.harga||0)*c.qty)}</div></div><div class="ci-qty"><button class="ciq-btn" onclick="changeCartQty(${c.product.id},-1)">−</button><input type="number" inputmode="numeric" class="ciq-input" value="${c.qty}" min="1" ${stok!=null?`max="${stok}"`:''} onchange="setCartQty(${c.product.id},this.value)"><button class="ciq-btn" onclick="changeCartQty(${c.product.id},1)">+</button></div></div>`;}).join('')}
     <div class="cart-total"><span class="cart-total-label">Total</span><div class="cart-total-val">${fmt(total)}</div></div>
     <div class="form-label">Data Pemesan</div>
     <input class="form-input" id="buyerName" placeholder="Nama lengkap *" type="text" value="${currentCustomer?currentCustomer.nama.replace(/"/g,'&quot;'):''}">
@@ -790,6 +845,22 @@ async function sendOrder(){
   if(!selPayment){showToast('Pilih metode pembayaran');return;}
   const items=Object.values(cart).filter(c=>c.qty>0);
   if(!items.length){showToast('Cart kosong');return;}
+  // Final guard: refresh stok latest & block kalo ada line > sisa
+  try{
+    const ids=items.map(c=>c.product.id);
+    const{data:latest}=await SB.from('products').select('id,stok').in('id',ids);
+    if(latest){
+      const stokMap={}; latest.forEach(p=>{stokMap[p.id]=p.stok!=null?parseInt(p.stok):null;});
+      const bad=items.filter(c=>{const s=stokMap[c.product.id];return s!=null && c.qty>s;});
+      if(bad.length){
+        const first=bad[0]; const s=stokMap[first.product.id];
+        showToast(`${first.product.nama.substring(0,20)} sisa ${s} unit — qty di-adjust`);
+        first.qty=s; if(first.qty<=0)delete cart[first.product.id];
+        updateFab();openCart();
+        return;
+      }
+    }
+  }catch(e){console.warn('stok check:',e.message);}
   const total=items.reduce((s,c)=>s+(c.product.harga||0)*c.qty,0);
   const itemsText=items.map(c=>`  • *${c.product.brand} ${c.product.nama}*\n    ${c.qty} unit × ${fmt(c.product.harga||0)} = *${fmt((c.product.harga||0)*c.qty)}*`).join('\n');
   const msg=`🏋️ *PESANAN BARU — FINDEST SPORT*\n\n👤 *Nama:* ${name}\n📱 *WA:* ${phone}${gym?'\n🏪 *Gym:* '+gym:''}${address?'\n📍 *Alamat:* '+address:''}\n💳 *Pembayaran:* ${selPayment}\n\n━━━━━━━━━━━━━━━━\n🛒 *DETAIL PESANAN:*\n${itemsText}\n━━━━━━━━━━━━━━━━\n💰 *TOTAL: ${fmt(total)}*${note?'\n\n📝 *Catatan:* '+note:''}\n\n_via Findest Sport Digital Catalog_`;
