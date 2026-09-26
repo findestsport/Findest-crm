@@ -1121,7 +1121,8 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
         <button id="konsi-btn-table" onclick="setKonsiView('table')" style="padding:5px 10px;border-radius:5px;border:none;background:transparent;color:var(--text-muted);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font-body);">&#9776; Tabel</button>
       </div>
     </div>
-    <div style="display:flex;gap:6px">
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn btn-warn" onclick="openOrderFromKonsi()" title="Auto retur multi-partner + buat order + faktur langsung">🚀 Order dari Konsi</button>
       <button class="btn btn-ghost" onclick="openReturHistory()" title="Log semua retur konsi">📜 History Retur</button>
       <button class="btn btn-primary" onclick="openAddKonsi()">+ Catat Konsinyasi</button>
     </div>
@@ -7310,6 +7311,245 @@ async function deleteKonsi(id) {
   } else showToast(error.message, 'error');
 }
 
+// ═══════ ORDER DARI KONSI MULTI-PARTNER ═══════
+let ofkSelected = {}; // { konsi_id: { konsi, qty } }
+
+function openOrderFromKonsi() {
+  ofkSelected = {};
+  document.getElementById('ofk-search').value = '';
+  document.getElementById('ofk-catatan').value = '';
+  document.getElementById('ofk-payment').value = 'Cash';
+
+  // Populate customer dropdown (FnB + Umum + Termin-eligible)
+  const custSel = document.getElementById('ofk-customer');
+  const custs = (cache.customers||[]).filter(c => c.status === 'Aktif' && c.sistem !== 'Konsinyasi')
+    .sort((a,b)=>a.nama.localeCompare(b.nama));
+  custSel.innerHTML = '<option value="">-- Pilih Customer --</option>' +
+    custs.map(c => `<option value="${c.id}">${c.nama}${c.tipe?` (${c.tipe})`:''}</option>`).join('');
+
+  renderOfkAvailable();
+  renderOfkSelected();
+  updateOfkPreview();
+  openMo('mo-order-from-konsi');
+}
+
+function renderOfkAvailable() {
+  const el = document.getElementById('ofk-available');
+  const q = (document.getElementById('ofk-search').value||'').toLowerCase().trim();
+  const rows = (allKonsi||[]).filter(k => {
+    const sisa = (k.qty_titip||0) - (k.qty_terjual||0) - (k.qty_retur||0);
+    if(sisa <= 0) return false;
+    if(k.status && k.status !== 'Aktif' && k.status !== 'Rekonsiliasi') return false;
+    if(!q) return true;
+    return (k.produk||'').toLowerCase().includes(q) || (k.outlet||'').toLowerCase().includes(q);
+  }).sort((a,b)=>(a.outlet||'').localeCompare(b.outlet||''));
+
+  document.getElementById('ofk-avail-count').textContent = `${rows.length} item tersedia`;
+  if(!rows.length) {
+    el.innerHTML = '<div class="empty" style="padding:16px;font-size:12px">Ga ada konsi tersedia' + (q?' match "'+q+'"':'') + '</div>';
+    return;
+  }
+  el.innerHTML = rows.map(k => {
+    const sisa = (k.qty_titip||0) - (k.qty_terjual||0) - (k.qty_retur||0);
+    const already = ofkSelected[k.id];
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:6px;background:${already?'rgba(13,148,136,.08)':'transparent'};margin-bottom:2px;cursor:pointer" onclick="ofkAddItem(${k.id})">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:13px">${k.produk||'-'}</div>
+        <div style="font-size:11px;color:var(--text-muted)">📍 ${k.outlet||'-'} · sisa ${sisa} unit${k.harga?` · ${fmt(k.harga)}/unit`:''}${k.ed_date?` · ED ${k.ed_date}`:''}</div>
+      </div>
+      <button class="btn btn-sm ${already?'btn-warn':'btn-primary'}" style="pointer-events:none">${already?'✓ Added':'+ Add'}</button>
+    </div>`;
+  }).join('');
+}
+
+function ofkAddItem(konsiId) {
+  const k = allKonsi.find(x => x.id === konsiId);
+  if(!k) return;
+  const sisa = (k.qty_titip||0) - (k.qty_terjual||0) - (k.qty_retur||0);
+  if(sisa <= 0) { showToast('Sisa titipan habis','warn'); return; }
+  if(ofkSelected[konsiId]) {
+    // Already added — remove
+    delete ofkSelected[konsiId];
+  } else {
+    ofkSelected[konsiId] = { konsi: k, qty: 1 };
+  }
+  renderOfkAvailable();
+  renderOfkSelected();
+  updateOfkPreview();
+}
+
+function renderOfkSelected() {
+  const el = document.getElementById('ofk-selected');
+  const items = Object.values(ofkSelected);
+  if(!items.length) {
+    el.innerHTML = '<div class="empty" style="padding:12px;font-size:12px;color:var(--text-muted)">Belum ada item dipilih</div>';
+    return;
+  }
+  el.innerHTML = items.map(({konsi:k, qty}) => {
+    const sisa = (k.qty_titip||0) - (k.qty_terjual||0) - (k.qty_retur||0);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 6px;border-bottom:1px solid var(--border);gap:8px">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:13px">${k.produk||'-'}</div>
+        <div style="font-size:11px;color:var(--text-muted)">📍 ${k.outlet||'-'} · sisa ${sisa} · ${fmt(k.harga||0)}/unit</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <button class="btn btn-sm btn-ghost" onclick="ofkChgQty(${k.id},-1)">−</button>
+        <input type="number" style="width:52px;text-align:center;padding:4px;border:1px solid var(--border);border-radius:6px;font-weight:700" value="${qty}" min="1" max="${sisa}" onchange="ofkSetQty(${k.id},this.value)"/>
+        <button class="btn btn-sm btn-ghost" onclick="ofkChgQty(${k.id},1)">+</button>
+        <div class="fw6 c-teal" style="min-width:100px;text-align:right;font-size:13px">${fmt((k.harga||0)*qty)}</div>
+        <button class="btn btn-sm btn-danger" onclick="ofkRemove(${k.id})" title="Hapus">×</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function ofkChgQty(konsiId, delta) {
+  const item = ofkSelected[konsiId]; if(!item) return;
+  const sisa = (item.konsi.qty_titip||0) - (item.konsi.qty_terjual||0) - (item.konsi.qty_retur||0);
+  const next = Math.max(1, item.qty + delta);
+  if(next > sisa) { showToast(`Sisa titipan cuma ${sisa}`,'warn'); return; }
+  item.qty = next;
+  renderOfkSelected();
+  updateOfkPreview();
+}
+
+function ofkSetQty(konsiId, val) {
+  const item = ofkSelected[konsiId]; if(!item) return;
+  const sisa = (item.konsi.qty_titip||0) - (item.konsi.qty_terjual||0) - (item.konsi.qty_retur||0);
+  let q = parseInt(val)||1;
+  if(q<1)q=1;
+  if(q>sisa){ showToast(`Sisa titipan cuma ${sisa}`,'warn'); q=sisa; }
+  item.qty = q;
+  renderOfkSelected();
+  updateOfkPreview();
+}
+
+function ofkRemove(konsiId) {
+  delete ofkSelected[konsiId];
+  renderOfkAvailable();
+  renderOfkSelected();
+  updateOfkPreview();
+}
+
+function updateOfkPreview() {
+  const items = Object.values(ofkSelected);
+  const preview = document.getElementById('ofk-preview');
+  if(!items.length) { preview.style.display = 'none'; return; }
+  preview.style.display = '';
+  const subtotal = items.reduce((s,i)=>s+(i.konsi.harga||0)*i.qty, 0);
+  const ppn = Math.round(subtotal * 0.11);
+  const total = subtotal + ppn;
+  // Jatuh tempo based on payment
+  const bayar = document.getElementById('ofk-payment').value;
+  const days = bayar==='Termin 3 Hari'?3: bayar==='Termin 7 Hari'?7: bayar==='Termin 30 Hari'?30: 0;
+  const jt = days > 0 ? new Date(Date.now()+days*86400000).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) : 'Lunas saat kirim';
+  document.getElementById('ofk-subtotal').textContent = fmt(subtotal);
+  document.getElementById('ofk-ppn').textContent = fmt(ppn);
+  document.getElementById('ofk-total').textContent = fmt(total);
+  document.getElementById('ofk-jt').textContent = jt;
+}
+
+async function submitOrderFromKonsi() {
+  const custId = parseInt(document.getElementById('ofk-customer').value);
+  if(!custId) { showToast('Pilih customer dulu','error'); return; }
+  const items = Object.values(ofkSelected);
+  if(!items.length) { showToast('Pilih minimal 1 item','error'); return; }
+
+  const cust = (cache.customers||[]).find(c => c.id === custId);
+  if(!cust) { showToast('Customer ga ketemu','error'); return; }
+  const bayar = document.getElementById('ofk-payment').value;
+  const catatan = document.getElementById('ofk-catatan').value.trim();
+  const days = bayar==='Termin 3 Hari'?3: bayar==='Termin 7 Hari'?7: bayar==='Termin 30 Hari'?30: 0;
+  const dueDate = days > 0 ? new Date(Date.now()+days*86400000).toISOString().slice(0,10) : null;
+
+  const btn = document.getElementById('ofk-submit-btn');
+  btn.disabled = true; btn.textContent = '⏳ Processing...';
+
+  // Step 1: Loop retur_from_konsi per item (tujuan='customer', transfer_ke=cust.nama)
+  const returIds = [];
+  const errors = [];
+  for(const {konsi:k, qty} of items) {
+    try {
+      const { data, error } = await sb.rpc('retur_from_konsi', {
+        p_konsi_id: k.id,
+        p_qty: qty,
+        p_alasan: `Order langsung ke ${cust.nama}${catatan?` — ${catatan}`:''}`,
+        p_tujuan: 'customer',
+        p_transfer_ke_customer: cust.nama,
+        p_order_id: null,
+        p_created_by: (typeof currentUser !== 'undefined' && currentUser?.email) || null,
+        p_tgl_retur: new Date().toISOString().slice(0,10)
+      });
+      if(error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      returIds.push(row?.return_id);
+    } catch(e) {
+      errors.push(`${k.produk} @ ${k.outlet}: ${e.message}`);
+    }
+  }
+
+  if(errors.length) {
+    showToast(`Gagal ${errors.length} item — ${errors[0]}`,'error');
+    btn.disabled = false; btn.textContent = '🚀 Buat Order + Faktur';
+    return;
+  }
+
+  // Step 2: Compose produk_json + insert order (status=Selesai → phase 6 trigger auto-invoice)
+  const produkJson = items.map(({konsi:k, qty}) => ({
+    product_id: null,
+    nama: k.produk,
+    brand: '',
+    qty,
+    harga: k.harga || 0,
+    subtotal: (k.harga||0) * qty,
+    batch_no: k.batch_no || null,
+    ed_date: k.ed_date || null,
+    source: 'konsi',
+    source_outlet: k.outlet
+  }));
+  const produkText = items.map(({konsi:k, qty}) => `${k.produk} x${qty}`).join(', ');
+  const totalNilai = items.reduce((s,{konsi:k, qty})=>s+(k.harga||0)*qty, 0);
+
+  const orderRow = {
+    no_order: 'OFK-' + Date.now(),
+    customer_id: cust.id,
+    customer_nama: cust.nama,
+    produk: produkText,
+    produk_json: produkJson,
+    total_nilai: totalNilai,
+    status: 'Selesai',
+    pembayaran: bayar,
+    channel_sistem: cust.sistem || 'Findest Sport',
+    channel_tipe: cust.tipe || 'Customer',
+    catatan: `[Order dari Konsi] ${items.length} item dari ${new Set(items.map(i=>i.konsi.outlet)).size} partner${catatan?` — ${catatan}`:''}`
+  };
+  if(days > 0) { orderRow.credit_days = days; orderRow.due_date = dueDate; }
+
+  const { data: newOrder, error: oErr } = await sb.from('orders').insert(orderRow).select('id,no_order').single();
+  if(oErr) {
+    showToast('Order insert gagal: '+oErr.message,'error');
+    btn.disabled = false; btn.textContent = '🚀 Buat Order + Faktur';
+    return;
+  }
+
+  showToast(`✅ Order ${newOrder.no_order} dibuat + faktur auto-generate`);
+  closeMo('mo-order-from-konsi');
+  btn.disabled = false; btn.textContent = '🚀 Buat Order + Faktur';
+
+  // Reload data
+  await Promise.all([loadKonsi(), loadOrders(), loadInvoices(), loadProducts?.()].filter(Boolean));
+  updateDashboard?.();
+
+  // Try open faktur setelah 1 detik (biar phase 6 trigger sempet run)
+  setTimeout(async () => {
+    const { data: inv } = await sb.from('invoices').select('id,no_invoice').eq('order_id', newOrder.id).maybeSingle();
+    if(inv && typeof printFaktur === 'function') {
+      showToast(`🧾 Faktur ${inv.no_invoice} siap print`);
+      printFaktur(inv.id);
+    }
+  }, 1500);
+}
+
 // ═══════ RETUR KONSI (Phase 12) ═══════
 function openReturKonsi(id) {
   const k = allKonsi.find(x => x.id === id);
@@ -11661,6 +11901,81 @@ function dcEditCust() {
 .hd-tab{padding:6px 12px;border:none;background:transparent;color:var(--text-muted);font-size:12px;font-weight:600;border-radius:6px;cursor:pointer;font-family:var(--font-body)}
 .hd-tab.active{background:var(--white);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08)}
 </style>
+
+<!-- ═══════ ORDER DARI KONSI MULTI-PARTNER ═══════ -->
+<div class="mo" id="mo-order-from-konsi">
+  <div class="mo-box" style="max-width:900px">
+    <div class="mo-h">
+      <div class="mo-title">🚀 Order dari Konsi Multi-Partner</div>
+      <button class="mo-x" onclick="closeMo('mo-order-from-konsi')">×</button>
+    </div>
+    <div class="mo-b">
+      <div style="background:rgba(217,119,6,.08);border-left:3px solid #d97706;padding:10px 14px;border-radius:6px;margin-bottom:14px;font-size:12px;line-height:1.5;color:var(--text-2)">
+        <b>Praktis:</b> Tarik produk dari konsi partner mana aja → auto retur log + auto buat order + auto faktur. 1 klik, no selisih akhir bulan.
+      </div>
+
+      <!-- Step 1: Customer + Payment -->
+      <div class="frow">
+        <div class="fg">
+          <label class="fl">Customer Tujuan</label>
+          <select class="fi" id="ofk-customer">
+            <option value="">-- Pilih Customer --</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl">Pembayaran</label>
+          <select class="fi" id="ofk-payment" onchange="updateOfkPreview()">
+            <option value="Cash">💵 Cash / COD</option>
+            <option value="Transfer Bank">🏦 Transfer Bank</option>
+            <option value="QRIS">💳 QRIS</option>
+            <option value="Termin 3 Hari">📆 Termin 3 Hari</option>
+            <option value="Termin 7 Hari">📆 Termin 7 Hari</option>
+            <option value="Termin 30 Hari">📆 Termin 30 Hari</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Step 2: Item Picker -->
+      <div style="margin-top:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <label class="fl" style="margin:0">Pilih Item dari Konsi Partner</label>
+          <div style="font-size:11px;color:var(--text-muted)" id="ofk-avail-count">0 item tersedia</div>
+        </div>
+        <input class="fi" id="ofk-search" placeholder="🔍 Cari produk / outlet..." oninput="renderOfkAvailable()" style="margin-bottom:8px"/>
+        <div id="ofk-available" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:6px;background:var(--surface2)">
+          <div class="empty" style="padding:16px;font-size:12px">Load konsi list...</div>
+        </div>
+      </div>
+
+      <!-- Step 3: Selected items (cart) -->
+      <div style="margin-top:14px">
+        <label class="fl">Item Dipilih</label>
+        <div id="ofk-selected" style="border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--white);min-height:60px">
+          <div class="empty" style="padding:12px;font-size:12px;color:var(--text-muted)">Belum ada item dipilih</div>
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div id="ofk-preview" style="margin-top:14px;padding:12px 14px;background:var(--surface2);border-radius:8px;display:none">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;font-size:12px">
+          <div><div style="color:var(--text-muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:700">Subtotal</div><div class="fw6" id="ofk-subtotal">Rp 0</div></div>
+          <div><div style="color:var(--text-muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:700">PPN 11%</div><div class="fw6" id="ofk-ppn">Rp 0</div></div>
+          <div><div style="color:var(--text-muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:700">Total</div><div class="fw6 c-teal" id="ofk-total" style="font-size:16px">Rp 0</div></div>
+          <div><div style="color:var(--text-muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:700">Jatuh Tempo</div><div class="fw6" id="ofk-jt">-</div></div>
+        </div>
+      </div>
+
+      <div class="fg" style="margin-top:12px">
+        <label class="fl">Catatan (opsional)</label>
+        <textarea class="fi" id="ofk-catatan" rows="2" placeholder="Contoh: Order urgent, kirim hari ini"></textarea>
+      </div>
+    </div>
+    <div class="mo-f">
+      <button class="btn btn-ghost" onclick="closeMo('mo-order-from-konsi')">Batal</button>
+      <button class="btn btn-warn" id="ofk-submit-btn" onclick="submitOrderFromKonsi()">🚀 Buat Order + Faktur</button>
+    </div>
+  </div>
+</div>
 
 <!-- ═══════ RETUR HISTORY MODAL ═══════ -->
 <div class="mo" id="mo-retur-history">
