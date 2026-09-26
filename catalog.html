@@ -496,15 +496,23 @@ async function loadCustomer(){
   const cid=getCustomerIdFromUrl();
   if(!cid)return;
   try{
-    const{data,error}=await SB.from('customers').select('id,nama,tipe,wa,alamat').eq('id',cid).eq('status','Aktif').maybeSingle();
+    const{data,error}=await SB.from('customers').select('id,nama,tipe,wa,alamat,sistem').eq('id',cid).eq('status','Aktif').maybeSingle();
     if(error||!data){console.warn('[Findest] customer lookup:',error?.message||'not found');return;}
     currentCustomer=data;
+    const isKonsi = data.sistem === 'Konsinyasi';
     const banner=document.getElementById('custBanner');
-    document.getElementById('custBannerName').textContent=data.nama;
+    document.getElementById('custBannerName').textContent=(isKonsi?'🔄 TITIPAN KONSI · ':'')+data.nama;
     document.getElementById('custBannerSub').textContent=data.tipe?'· '+data.tipe:'';
     banner.classList.add('show');
+    if(isKonsi){
+      banner.style.background='linear-gradient(90deg,rgba(139,92,246,.15),rgba(139,92,246,.05))';
+      banner.style.borderColor='rgba(139,92,246,.3)';
+    }
+    // Update checkout button label
+    const btn = document.querySelector('.checkout-btn');
+    if(btn) btn.dataset.konsiMode = isKonsi ? '1' : '0';
     // Check invoice overdue → tampil popup notice reminder bayar
-    checkOverdueInvoices(cid);
+    if(!isKonsi) checkOverdueInvoices(cid);
   }catch(e){console.warn('[Findest] customer fetch:',e.message);}
 }
 
@@ -807,9 +815,9 @@ function openCart(){
     </div>
     <button class="checkout-btn" onclick="sendOrder()">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-      Kirim Order via WhatsApp
+      ${currentCustomer?.sistem==='Konsinyasi' ? 'Konfirmasi Titipan → auto ke Konsinyasi Tab' : 'Kirim Order via WhatsApp'}
     </button>
-    <div class="checkout-hint">Sales kami balas dalam <strong style="color:var(--teal)">5–15 menit</strong></div>
+    <div class="checkout-hint">${currentCustomer?.sistem==='Konsinyasi' ? '🔄 Barang otomatis masuk ke Konsinyasi tab CRM (auto-log qty, harga, ED)' : 'Sales kami balas dalam <strong style="color:var(--teal)">5–15 menit</strong>'}</div>
   `;
   selPayment='';
   openOverlay('cartModal');
@@ -842,6 +850,8 @@ async function sendOrder(){
   const note=document.getElementById('buyerNote')?.value.trim();
   if(!name){showToast('Masukkan nama kamu');return;}
   if(!phone){showToast('Masukkan nomor WA');return;}
+  // Konsi partner: payment auto-set 'Rekonsiliasi' (bayar setelah barang terjual)
+  if(currentCustomer?.sistem === 'Konsinyasi' && !selPayment) selPayment = 'Rekonsiliasi';
   if(!selPayment){showToast('Pilih metode pembayaran');return;}
   const items=Object.values(cart).filter(c=>c.qty>0);
   if(!items.length){showToast('Cart kosong');return;}
@@ -863,7 +873,10 @@ async function sendOrder(){
   }catch(e){console.warn('stok check:',e.message);}
   const total=items.reduce((s,c)=>s+(c.product.harga||0)*c.qty,0);
   const itemsText=items.map(c=>`  • *${c.product.brand} ${c.product.nama}*\n    ${c.qty} unit × ${fmt(c.product.harga||0)} = *${fmt((c.product.harga||0)*c.qty)}*`).join('\n');
-  const msg=`🏋️ *PESANAN BARU — FINDEST SPORT*\n\n👤 *Nama:* ${name}\n📱 *WA:* ${phone}${gym?'\n🏪 *Gym:* '+gym:''}${address?'\n📍 *Alamat:* '+address:''}\n💳 *Pembayaran:* ${selPayment}\n\n━━━━━━━━━━━━━━━━\n🛒 *DETAIL PESANAN:*\n${itemsText}\n━━━━━━━━━━━━━━━━\n💰 *TOTAL: ${fmt(total)}*${note?'\n\n📝 *Catatan:* '+note:''}\n\n_via Findest Sport Digital Catalog_`;
+  const isKonsi = currentCustomer?.sistem === 'Konsinyasi';
+  const msgTitle = isKonsi ? '🔄 *TITIPAN KONSI BARU — FINDEST SPORT*' : '🏋️ *PESANAN BARU — FINDEST SPORT*';
+  const msgFooter = isKonsi ? '\n\n_🔄 Titipan konsinyasi — auto-log ke CRM. Rekonsiliasi akhir bulan._' : '\n\n_via Findest Sport Digital Catalog_';
+  const msg=`${msgTitle}\n\n👤 *Partner/Nama:* ${name}\n📱 *WA:* ${phone}${gym?'\n🏪 *Outlet:* '+gym:''}${address?'\n📍 *Alamat:* '+address:''}\n💳 *Pembayaran:* ${selPayment||(isKonsi?'Rekonsiliasi':'—')}\n\n━━━━━━━━━━━━━━━━\n${isKonsi?'📦 *DETAIL TITIPAN:*':'🛒 *DETAIL PESANAN:*'}\n${itemsText}\n━━━━━━━━━━━━━━━━\n💰 *TOTAL NILAI: ${fmt(total)}*${note?'\n\n📝 *Catatan:* '+note:''}${msgFooter}`;
   if(salesWA){
     window.open('https://wa.me/'+salesWA+'?text='+encodeURIComponent(msg),'_blank');
   }else{
