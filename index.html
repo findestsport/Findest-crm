@@ -6500,10 +6500,6 @@ async function printFaktur(invoiceId) {
     Dokumen ini dibuat otomatis oleh Findest CRM · Dicetak ${new Date().toLocaleString('id-ID',{dateStyle:'long',timeStyle:'short'})}
   </div>
 </div>
-<script>
-  // Auto-focus print dialog
-  setTimeout(()=>{ /* window.print(); */ }, 500);
-</script>
 </body></html>`;
 
   const w = window.open('', '_blank', 'width=900,height=1000');
