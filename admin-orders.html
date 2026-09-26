@@ -637,28 +637,89 @@ async function printFakturOrder(orderId) {
       ${o.channel_tipe ? '<div style="margin-top:6px;font-size:9pt;color:#666">Tipe: '+o.channel_tipe+'</div>' : ''}
     </div>
   </div>
+  <div class="no-print" style="text-align:center;font-size:9pt;color:#666;margin-top:8px;font-style:italic">💡 Klik angka <b>Diskon</b> untuk edit sebelum print</div>
   <table>
     <thead>
-      <tr><th style="width:30px" class="center">No</th><th>Barang</th><th style="width:90px" class="center">Batch</th><th style="width:70px" class="center">ED</th><th style="width:60px" class="center">Qty</th><th style="width:100px" class="center">Harga @</th><th style="width:100px" class="center">Subtotal</th></tr>
+      <tr><th style="width:30px" class="center">No</th><th>Barang</th><th style="width:80px" class="center">Batch</th><th style="width:60px" class="center">ED</th><th style="width:55px" class="center">Qty</th><th style="width:90px" class="center">Harga @</th><th style="width:80px" class="center">Diskon</th><th style="width:100px" class="center">Subtotal</th></tr>
     </thead>
-    <tbody>
-      ${items.map((it,i) => `<tr>
+    <tbody id="faktur-body">
+      ${items.map((it,i) => `<tr data-row="${i}">
         <td class="center">${i+1}</td>
         <td>${it.nama}</td>
         <td class="center">${it.batch}</td>
         <td class="center">${it.ed && it.ed !== '-' ? new Date(it.ed).toLocaleDateString('id-ID',{year:'2-digit',month:'2-digit'}) : '-'}</td>
         <td class="center">${it.qty} ${it.satuan}</td>
-        <td class="num">${(it.harga||0).toLocaleString('id-ID')}</td>
-        <td class="num">${(it.subtotal||0).toLocaleString('id-ID')}</td>
+        <td class="num" data-harga="${it.harga||0}">${(it.harga||0).toLocaleString('id-ID')}</td>
+        <td class="num diskon-cell" contenteditable="true" data-row="${i}" data-diskon="0" oninput="recalcFaktur()" onfocus="this.style.background='#fffbea'" onblur="this.style.background=''">0</td>
+        <td class="num subtotal-cell" data-row="${i}">${(it.subtotal||0).toLocaleString('id-ID')}</td>
       </tr>`).join('')}
     </tbody>
   </table>
-  <table class="totals">
-    <tr><td>Subtotal</td><td class="num">Rp ${subtotal.toLocaleString('id-ID')}</td></tr>
-    ${ppnActive ? '<tr><td>DPP</td><td class="num">Rp '+dpp.toLocaleString('id-ID')+'</td></tr><tr><td>PPN 11%</td><td class="num">Rp '+ppn.toLocaleString('id-ID')+'</td></tr>' : ''}
-    <tr><td>TOTAL</td><td class="num">Rp ${grandTotal.toLocaleString('id-ID')}</td></tr>
+  <table class="totals" id="faktur-totals">
+    <tr><td>Subtotal Kotor</td><td class="num" id="tot-gross">Rp ${subtotal.toLocaleString('id-ID')}</td></tr>
+    <tr id="row-diskon" style="display:none"><td>Total Diskon</td><td class="num" id="tot-diskon">- Rp 0</td></tr>
+    <tr><td>Subtotal</td><td class="num" id="tot-subtotal">Rp ${subtotal.toLocaleString('id-ID')}</td></tr>
+    ${ppnActive ? '<tr><td>DPP</td><td class="num" id="tot-dpp">Rp '+dpp.toLocaleString('id-ID')+'</td></tr><tr><td>PPN 11%</td><td class="num" id="tot-ppn">Rp '+ppn.toLocaleString('id-ID')+'</td></tr>' : ''}
+    <tr><td>TOTAL</td><td class="num" id="tot-grand">Rp ${grandTotal.toLocaleString('id-ID')}</td></tr>
   </table>
-  <div class="terbilang-box"><b>Terbilang:</b> ${totalTerbilang}</div>
+  <div class="terbilang-box"><b>Terbilang:</b> <span id="terbilang-out">${totalTerbilang}</span></div>
+  <script>
+    // Inline terbilang buat recalc di preview window
+    function terbilang(n) {
+      n = Math.abs(Math.round(n||0));
+      if(n === 0) return 'nol';
+      const angka = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
+      if(n < 12) return angka[n];
+      if(n < 20) return angka[n-10] + ' belas';
+      if(n < 100) return angka[Math.floor(n/10)] + ' puluh' + (n%10 ? ' ' + angka[n%10] : '');
+      if(n < 200) return 'seratus' + (n-100 ? ' ' + terbilang(n-100) : '');
+      if(n < 1000) return angka[Math.floor(n/100)] + ' ratus' + (n%100 ? ' ' + terbilang(n%100) : '');
+      if(n < 2000) return 'seribu' + (n-1000 ? ' ' + terbilang(n-1000) : '');
+      if(n < 1000000) return terbilang(Math.floor(n/1000)) + ' ribu' + (n%1000 ? ' ' + terbilang(n%1000) : '');
+      if(n < 1000000000) return terbilang(Math.floor(n/1000000)) + ' juta' + (n%1000000 ? ' ' + terbilang(n%1000000) : '');
+      return terbilang(Math.floor(n/1000000000)) + ' milyar' + (n%1000000000 ? ' ' + terbilang(n%1000000000) : '');
+    }
+    function parseNum(s){return parseInt(String(s||'0').replace(/[^\\d-]/g,''))||0;}
+    function fmtNum(n){return n.toLocaleString('id-ID');}
+    window.recalcFaktur = function() {
+      const rows = document.querySelectorAll('#faktur-body tr');
+      let gross = 0, totalDiskon = 0;
+      rows.forEach(tr => {
+        const hargaCell = tr.querySelector('[data-harga]');
+        const qtyText = tr.children[4].textContent.trim();
+        const qty = parseNum(qtyText) || 1;
+        const harga = parseNum(hargaCell.dataset.harga);
+        const diskonCell = tr.querySelector('.diskon-cell');
+        const diskon = parseNum(diskonCell.textContent);
+        const subtotal = (harga * qty) - diskon;
+        tr.querySelector('.subtotal-cell').textContent = fmtNum(subtotal);
+        gross += harga * qty;
+        totalDiskon += diskon;
+      });
+      const net = gross - totalDiskon;
+      const ppnActive = ${ppnActive};
+      const dpp = ppnActive ? Math.round(net / 1.11) : net;
+      const ppn = ppnActive ? net - dpp : 0;
+      document.getElementById('tot-gross').textContent = 'Rp ' + fmtNum(gross);
+      document.getElementById('row-diskon').style.display = totalDiskon > 0 ? '' : 'none';
+      document.getElementById('tot-diskon').textContent = '- Rp ' + fmtNum(totalDiskon);
+      document.getElementById('tot-subtotal').textContent = 'Rp ' + fmtNum(net);
+      if(ppnActive){
+        document.getElementById('tot-dpp').textContent = 'Rp ' + fmtNum(dpp);
+        document.getElementById('tot-ppn').textContent = 'Rp ' + fmtNum(ppn);
+      }
+      document.getElementById('tot-grand').textContent = 'Rp ' + fmtNum(net);
+      document.getElementById('terbilang-out').textContent = terbilang(net).toUpperCase() + ' RUPIAH';
+    };
+    // Sanitize diskon cells on blur (biar cuma angka)
+    document.querySelectorAll('.diskon-cell').forEach(c => {
+      c.addEventListener('blur', () => {
+        const n = parseNum(c.textContent);
+        c.textContent = fmtNum(n);
+        recalcFaktur();
+      });
+    });
+  </script>
   <div class="footer">
     <div class="signature"><div class="signature-label">Penerima,</div><div class="signature-name">(_______________________)</div></div>
     <div class="signature"><div class="signature-label">Hormat kami,</div><div class="signature-name">${companyName}</div></div>
