@@ -8255,7 +8255,7 @@ async function doResetTrial() {
   // Tables to wipe (transactional). Ordered so FKs don't complain.
   const targets = [
     'payments','deliveries','orders','invoices','expenses',
-    'batches','visit_logs','konsinyasi','activity_log','cash_flow_manual'
+    'batches','visit_logs','konsinyasi','activity_log','outlet_inventory'
   ];
 
   let deletedTotal = 0;
@@ -8264,7 +8264,9 @@ async function doResetTrial() {
     try {
       // delete WHERE id > 0 supaya kena semua row (Supabase requires filter)
       const { error, count } = await sb.from(t).delete({ count:'exact' }).gt('id', 0);
-      if(error && !/relation .* does not exist/i.test(error.message)) {
+      // Ignore errors buat table yg emang belum ada (relation missing / schema cache)
+      const ignorable = /relation .* does not exist|could not find the table|schema cache/i;
+      if(error && !ignorable.test(error.message)) {
         errors.push(t+': '+error.message);
       } else if(count) {
         deletedTotal += count;
