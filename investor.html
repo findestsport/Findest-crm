@@ -239,6 +239,18 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     </div>
   </div>
 
+  <div class="card" id="channel-mix-card">
+    <div class="card-h">
+      <div>
+        <div class="card-title">🎯 Channel Mix &amp; Execution</div>
+        <div class="card-sub">Progress strategy channel — apakah tim eksekusi target?</div>
+      </div>
+    </div>
+    <div id="inv-channel-mix" style="padding:4px 0">
+      <div class="loading"><div class="spinner"></div></div>
+    </div>
+  </div>
+
   <div class="card" id="anatomi-modal-card">
     <div class="card-h">
       <div>
@@ -432,6 +444,9 @@ async function loadDashboard(){
   const {data:outs}=await SB.from('outlets').select('id').eq('status','Aktif');
   document.getElementById('kpi-outlet').textContent=(outs||[]).length;
 
+  // ═══ CHANNEL MIX EXECUTION ═══
+  await renderChannelMix(confirmedOrders);
+
   // ═══ ANATOMI MODAL & EKUITAS ═══
   await renderAnatomiModal({
     nilaiFP, nilaiKonsi, totalPiutang, monthStart
@@ -441,6 +456,67 @@ async function loadDashboard(){
   await loadCharts();
   // Setup realtime — cuma sekali (first load)
   if(realtimeChannels.length === 0) setupRealtime();
+}
+
+// ═══════ CHANNEL MIX EXECUTION (buat Boss) ═══════
+async function renderChannelMix(orders) {
+  const el = document.getElementById('inv-channel-mix');
+  if(!el) return;
+
+  const {data:cfg} = await SB.from('config').select('key,value').in('key',['target_mix_fnb','target_mix_konsi','target_mix_public']);
+  const cMap = {};
+  (cfg||[]).forEach(c => cMap[c.key] = parseFloat(c.value));
+  const tgtFnb = cMap.target_mix_fnb || 50;
+  const tgtKonsi = cMap.target_mix_konsi || 40;
+  const tgtPub = cMap.target_mix_public || 10;
+
+  const rev = { fnb:0, konsi:0, public:0 };
+  (orders||[]).forEach(o => {
+    const sistem = (o.channel_sistem||'').toLowerCase();
+    const tipe = (o.channel_tipe||'').toLowerCase();
+    if(sistem.includes('konsinyasi') || tipe.includes('konsi')) rev.konsi += o.total_nilai||0;
+    else if(tipe.includes('f&b') || tipe.includes('fnb') || tipe.includes('cafe') || tipe.includes('gym')) rev.fnb += o.total_nilai||0;
+    else rev.public += o.total_nilai||0;
+  });
+  const total = rev.fnb + rev.konsi + rev.public;
+  if(total === 0) { el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px">Belum ada revenue bulan ini</div>'; return; }
+  const pct = v => (v/total*100);
+
+  const channels = [
+    {label:'🍔 F&B (Cafe/Gym)', emoji:'🍔', rev:rev.fnb, actual:pct(rev.fnb), target:tgtFnb, color:'#F59E0B'},
+    {label:'🏪 Konsinyasi', emoji:'🏪', rev:rev.konsi, actual:pct(rev.konsi), target:tgtKonsi, color:'#0D9488'},
+    {label:'🛒 Public/Retail', emoji:'🛒', rev:rev.public, actual:pct(rev.public), target:tgtPub, color:'#A78BFA'}
+  ];
+  channels.forEach(c => c.gap = c.target - c.actual);
+  const priority = [...channels].sort((a,b)=>b.gap-a.gap)[0];
+
+  const bar = c => {
+    const stat = c.gap > 5 ? '🔴 Below' : c.gap > -5 ? '🟢 On-Track' : '🟢 Exceed';
+    const statColor = c.gap > 5 ? 'var(--red)' : 'var(--green)';
+    return `<div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;font-size:13px">
+        <span><b>${c.label}</b></span>
+        <span style="color:var(--text-muted);font-size:12px">${c.actual.toFixed(1)}% (${fmtShort(c.rev)}) · target ${c.target}% · <span style="color:${statColor};font-weight:700">${stat}</span></span>
+      </div>
+      <div style="position:relative;height:12px;background:rgba(255,255,255,0.04);border-radius:6px;overflow:hidden">
+        <div style="position:absolute;left:0;top:0;bottom:0;background:${c.color};width:${Math.min(c.actual,100)}%;transition:width .4s"></div>
+        <div style="position:absolute;left:${Math.min(c.target,100)}%;top:-2px;bottom:-2px;width:2px;background:var(--text);z-index:2"></div>
+      </div>
+    </div>`;
+  };
+
+  let verdict = '', vColor = '';
+  if(priority.gap > 10) { verdict = `🚨 Tim perlu push <b>${priority.label}</b> — gap ${priority.gap.toFixed(1)}pp di bawah target`; vColor = 'var(--red)'; }
+  else if(priority.gap > 3) { verdict = `⚠️ Prioritas push <b>${priority.label}</b> — gap ${priority.gap.toFixed(1)}pp`; vColor = 'var(--gold)'; }
+  else { verdict = `✅ Mix seimbang — semua channel on-track. Tim eksekusi bagus.`; vColor = 'var(--green)'; }
+
+  el.innerHTML = `
+    <div style="padding:12px 14px;background:rgba(255,255,255,0.03);border-radius:8px;border-left:3px solid ${vColor};margin-bottom:14px;font-size:13px">${verdict}</div>
+    ${channels.map(bar).join('')}
+    <div style="margin-top:8px;padding:10px;background:rgba(255,255,255,0.03);border-radius:6px;font-size:11px;color:var(--text-muted);line-height:1.5">
+      💡 Total revenue bulan ini: <b style="color:var(--text)">${fmtShort(total)}</b> dari ${(orders||[]).length} order. Garis hitam di bar = target. Bar warna = actual.
+    </div>
+  `;
 }
 
 // ═══════ ANATOMI MODAL & EKUITAS ═══════
