@@ -28,6 +28,13 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .hero-title{font-size:36px;font-weight:900;letter-spacing:-1px;line-height:1;margin-bottom:8px;position:relative;z-index:1}
 .hero-sub{font-size:15px;color:rgba(255,255,255,.85);position:relative;z-index:1;max-width:560px;line-height:1.5}
 .hero-updated{position:absolute;top:24px;right:32px;font-size:11px;color:rgba(255,255,255,.7);z-index:2;text-align:right}
+.live-badge{position:absolute;top:24px;right:32px;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);backdrop-filter:blur(10px);padding:6px 12px;border-radius:100px;font-size:11px;font-weight:700;color:#fff;z-index:3}
+.live-dot{width:8px;height:8px;background:#22c55e;border-radius:50%;animation:pulse 2s infinite}
+.live-dot.disconnected{background:#facc15;animation:none}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.7)}50%{box-shadow:0 0 0 8px rgba(34,197,94,0)}}
+.toast-live{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:#111;color:#fff;padding:10px 18px;border-radius:100px;font-size:12px;font-weight:600;z-index:100;opacity:0;transition:all .4s;box-shadow:0 8px 24px rgba(0,0,0,.2);white-space:nowrap;display:flex;align-items:center;gap:6px}
+.toast-live.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast-live .dot{width:6px;height:6px;background:#22c55e;border-radius:50%;animation:pulse 1.5s infinite}
 
 .grid{display:grid;gap:16px}
 .grid-4{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
@@ -104,7 +111,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 
 <div class="container" id="content" style="display:none">
   <div class="hero">
-    <div class="hero-updated" id="updated">—</div>
+    <div class="live-badge" id="liveBadge">
+      <div class="live-dot" id="liveDot"></div>
+      <span id="liveText">LIVE</span>
+    </div>
+    <div class="hero-updated" id="updated" style="top:60px">—</div>
     <div class="hero-brand">
       <div class="hero-logo">FS</div>
       <div>
@@ -233,6 +244,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     <div style="margin-top:6px">Data updated real-time from CRM · Do not share PIN or link</div>
   </div>
 </div>
+
+<div class="toast-live" id="toastLive"><span class="dot"></span><span id="toastText">Data updated</span></div>
 
 <script>
 const SB=supabase.createClient('https://wuejoxgbtvmlrriwlofk.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZWpveGdidHZtbHJyaXdsb2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNjY1NTQsImV4cCI6MjA5Mjg0MjU1NH0.nq0xlsuXeJNXtb8SisPQ3Ml5fXNy2vguVRJ8pNFGai0');
@@ -364,7 +377,82 @@ async function loadDashboard(){
 
   // Charts: 6 bulan terakhir
   await loadCharts();
+  // Setup realtime — cuma sekali (first load)
+  if(realtimeChannels.length === 0) setupRealtime();
 }
+
+// ═══════ REALTIME SUBSCRIPTION ═══════
+let realtimeChannels = [];
+let reloadTimer = null;
+let chartOmzetInst = null, chartCashInst = null;
+
+function scheduleReload(source) {
+  clearTimeout(reloadTimer);
+  reloadTimer = setTimeout(async () => {
+    showToast(`🔄 Update dari ${source}`);
+    // Destroy existing charts biar bisa re-render
+    if(chartOmzetInst) { chartOmzetInst.destroy(); chartOmzetInst = null; }
+    if(chartCashInst) { chartCashInst.destroy(); chartCashInst = null; }
+    await loadDashboard();
+  }, 800); // debounce 800ms — kalo banyak event masuk, gabungin
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toastLive');
+  const txt = document.getElementById('toastText');
+  if(!t || !txt) return;
+  txt.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>t.classList.remove('show'), 3000);
+}
+
+function setLiveStatus(connected) {
+  const dot = document.getElementById('liveDot');
+  const txt = document.getElementById('liveText');
+  if(!dot || !txt) return;
+  if(connected) {
+    dot.classList.remove('disconnected');
+    txt.textContent = 'LIVE';
+  } else {
+    dot.classList.add('disconnected');
+    txt.textContent = 'RECONNECTING';
+  }
+}
+
+function setupRealtime() {
+  // Cleanup existing
+  realtimeChannels.forEach(ch => { try { SB.removeChannel(ch); } catch(e){} });
+  realtimeChannels = [];
+
+  const tables = [
+    {name:'orders', label:'orders baru'},
+    {name:'invoices', label:'invoice'},
+    {name:'payments', label:'payment'},
+    {name:'expenses', label:'expense'},
+    {name:'customers', label:'customer'},
+    {name:'konsinyasi', label:'konsinyasi'},
+    {name:'products', label:'stok produk'}
+  ];
+
+  tables.forEach(({name, label}) => {
+    const ch = SB.channel(`investor-${name}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: name }, (payload) => {
+        console.log('[Realtime]', name, payload.eventType);
+        scheduleReload(label);
+      })
+      .subscribe((status) => {
+        if(status === 'SUBSCRIBED') setLiveStatus(true);
+        else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') setLiveStatus(false);
+      });
+    realtimeChannels.push(ch);
+  });
+}
+
+// Cleanup on page hide
+window.addEventListener('beforeunload', () => {
+  realtimeChannels.forEach(ch => { try { SB.removeChannel(ch); } catch(e){} });
+});
 
 async function loadCharts(){
   const labels=[],omzetData=[],cashInData=[],cashOutData=[];
@@ -384,8 +472,8 @@ async function loadCharts(){
     cashOutData.push((e||[]).reduce((s,x)=>s+(x.nominal||0),0));
   }
   const commonOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{font:{family:'Inter',size:11}}}},scales:{y:{ticks:{callback:v=>fmtShort(v),font:{family:'Inter'}}},x:{ticks:{font:{family:'Inter'}}}}};
-  new Chart(document.getElementById('chartOmzet'),{type:'bar',data:{labels,datasets:[{label:'Omzet',data:omzetData,backgroundColor:'rgba(13,148,136,.85)',borderRadius:8}]},options:commonOpts});
-  new Chart(document.getElementById('chartCash'),{type:'line',data:{labels,datasets:[
+  chartOmzetInst = new Chart(document.getElementById('chartOmzet'),{type:'bar',data:{labels,datasets:[{label:'Omzet',data:omzetData,backgroundColor:'rgba(13,148,136,.85)',borderRadius:8}]},options:commonOpts});
+  chartCashInst = new Chart(document.getElementById('chartCash'),{type:'line',data:{labels,datasets:[
     {label:'Kas Masuk',data:cashInData,borderColor:'#059669',backgroundColor:'rgba(5,150,105,.1)',borderWidth:3,tension:.35,fill:true},
     {label:'Kas Keluar',data:cashOutData,borderColor:'#DC2626',backgroundColor:'rgba(220,38,38,.1)',borderWidth:3,tension:.35,fill:true}
   ]},options:commonOpts});
