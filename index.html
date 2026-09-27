@@ -605,6 +605,7 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
         <label class="login-fl">Role / Divisi</label>
         <select class="login-fi" id="signup-role">
           <option value="gm">GM (Akses Semua)</option>
+          <option value="admin">Admin (Semua kecuali Payroll)</option>
           <option value="sales">Sales</option>
           <option value="finance">Finance</option>
           <option value="gudang">Gudang</option>
@@ -1649,7 +1650,7 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
   </div>
   <div class="ptabs">
     <button class="ptab active" onclick="hrTab('hr-kary',this)">👥 Karyawan</button>
-    <button class="ptab" onclick="hrTab('hr-payroll',this);loadPayroll()">💰 Payroll</button>
+    <button class="ptab" id="hr-tab-payroll" onclick="hrTab('hr-payroll',this);loadPayroll()">💰 Payroll</button>
     <button class="ptab" onclick="hrTab('hr-cuti',this);loadLeaves()">🏖️ Cuti & Izin</button>
   </div>
 
@@ -3009,6 +3010,7 @@ let cache = { customers:[], outlets:[], products:[], orders:[], invoices:[], emp
 // ════════════════════════════════════════════
 const ROLE_ACCESS = {
   gm:      { tabs:['dashboard','sales','finance','gudang','hr','absensi','notice','settings','invite'], write:['customers','orders','invoices','expenses','deliveries','employees','outlets','absensi','notices','batches','visit_logs','payments','leaves'] },
+  admin:   { tabs:['dashboard','sales','finance','gudang','hr','absensi','notice','settings'],           write:['customers','orders','invoices','expenses','payments','deliveries','batches','visit_logs'] },
   sales:   { tabs:['dashboard','sales','absensi','notice'],                          write:['customers','orders','visit_logs'] },
   finance: { tabs:['dashboard','finance','absensi','notice'],                        write:['invoices','expenses','payments'] },
   gudang:  { tabs:['dashboard','gudang','absensi','notice'],                         write:['outlets','deliveries','batches'] },
@@ -3610,6 +3612,18 @@ async function loadAllData() {
       const el = document.getElementById(id); if(el) el.style.display = '';
     });
     document.getElementById('kpi-filter-bulan').value = String(new Date().getMonth()+1).padStart(2,'0');
+  }
+  // Hide Payroll tab + Gaji column for non-GM/HR roles (admin, sales, etc)
+  if(role !== 'gm' && role !== 'hr') {
+    const payrollTab = document.getElementById('hr-tab-payroll');
+    if(payrollTab) payrollTab.style.display = 'none';
+    // Also hide "+ Karyawan" button — non-HR shouldn't create employees
+    const addEmpBtn = document.getElementById('btn-add-emp');
+    if(addEmpBtn) addEmpBtn.style.display = 'none';
+    // Add CSS rule to hide Gaji column in karyawan table
+    const style = document.createElement('style');
+    style.textContent = '#tbl-emp th:nth-child(6), #tbl-emp td:nth-child(6) { display: none !important; }';
+    document.head.appendChild(style);
   }
 }
 
@@ -5157,6 +5171,12 @@ async function deleteEmp() {
 // PAYROLL CALCULATOR
 // ════════════════════════════════════════════
 async function loadPayroll() {
+  // Guard: cuma GM & HR yg boleh liat payroll
+  const role = currentProfile?.role;
+  if(role && role !== 'gm' && role !== 'hr') {
+    showToast('Payroll cuma bisa diliat GM/HR','error');
+    return;
+  }
   const now = new Date();
   const periodeEl = document.getElementById('pay-periode');
   if(periodeEl && !periodeEl.value) {
