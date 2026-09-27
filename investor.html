@@ -95,7 +95,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     <div class="gate-logo">FS</div>
     <div class="gate-title">Investor Access</div>
     <div class="gate-sub">Findest Sport — Confidential Dashboard</div>
-    <input class="gate-input" id="pinInput" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="PIN" autocomplete="off" onkeydown="if(event.key==='Enter')checkPin()" maxlength="8"/>
+    <input class="gate-input" id="pinInput" type="password" placeholder="PIN" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" onkeydown="if(event.key==='Enter')checkPin()" maxlength="20"/>
     <button class="gate-btn" onclick="checkPin()">Masuk</button>
     <div class="gate-msg" id="gateMsg"></div>
     <div class="gate-hint">Akses khusus investor & board.<br>PIN diberikan oleh manajemen Findest.</div>
