@@ -1015,7 +1015,6 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
     <button class="ptab" onclick="stab('s-ord',this)">📋 Orders</button>
     <button class="ptab" onclick="stab('s-visit',this);loadVisits()">🗺️ Visit Log</button>
     <button class="ptab" onclick="stab('s-konsi',this);loadKonsi()">🔄 Konsinyasi</button>
-    <button class="ptab" onclick="stab('s-kpi',this);loadKPI('Sales')">🎯 KPI</button>
   </div>
   <div id="s-cust">
     <div class="toolbar">
@@ -1213,8 +1212,6 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
     <button class="ptab" onclick="ftab('f-pay',this);loadPayments()">💳 Payment</button>
     <button class="ptab" onclick="ftab('f-po',this);loadPurchaseOrders()">🛒 Purchase Order</button>
     <button class="ptab" onclick="ftab('f-rekap',this);loadRekapKas()">💰 Rekap Kas</button>
-    <button class="ptab" onclick="ftab('f-lr',this);loadLabaRugi()">📈 Laba Rugi</button>
-    <button class="ptab" onclick="ftab('f-kpi',this);loadKPIDivisi('Finance','f-kpi-bulan','f-kpi-tahun','f-kpi-container')">🎯 KPI</button>
   </div>
   <div id="f-inv">
     <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
@@ -1440,7 +1437,6 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
     <button class="ptab active" onclick="gtab('g-out',this)">🏪 Outlets</button>
     <button class="ptab" onclick="gtab('g-catalog',this);loadCatalog()">📦 Catalog</button>
     <button class="ptab" onclick="gtab('g-batch',this);loadBatches()">🧪 Batch</button>
-    <button class="ptab" onclick="gtab('g-kpi',this);loadKPIDivisi('Gudang','g-kpi-bulan','g-kpi-tahun','g-kpi-container')">🎯 KPI</button>
   </div>
   <div id="g-out">
     <div class="card"><div class="tbl-wrap"><table id="tbl-out"><thead><tr><th class="th-sort">⠿ #</th><th data-tbl="out" data-col="nama" class="th-sort">Outlet ↕</th><th data-tbl="out" data-col="tipe" class="th-sort">Tipe ↕</th><th>PIC</th><th>No. HP</th><th data-tbl="out" data-col="nilai_aset" class="th-sort">Aset ↕</th><th data-tbl="out" data-col="total_unit" class="th-sort">Unit ↕</th><th data-tbl="out" data-col="ed_alert" class="th-sort">ED Alert ↕</th><th data-tbl="out" data-col="status" class="th-sort">Status ↕</th><th>Aksi</th></tr></thead><tbody id="tb-out"><tr><td colspan="9"><div class="empty"><div class="spinner"></div></div></td></tr></tbody></table></div></div>
@@ -1654,7 +1650,6 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
     <button class="ptab active" onclick="hrTab('hr-kary',this)">👥 Karyawan</button>
     <button class="ptab" onclick="hrTab('hr-payroll',this);loadPayroll()">💰 Payroll</button>
     <button class="ptab" onclick="hrTab('hr-cuti',this);loadLeaves()">🏖️ Cuti & Izin</button>
-    <button class="ptab" onclick="hrTab('hr-kpi',this);loadKPIDivisi('HR','hr-kpi-bulan','hr-kpi-tahun','hr-kpi-container')">🎯 KPI</button>
   </div>
 
   <!-- KARYAWAN LIST -->
@@ -2179,8 +2174,8 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
       </div>
     </div>
 
-    <!-- BONUS CONFIG -->
-    <div class="card">
+    <!-- BONUS CONFIG (hidden — replaced by simpler manual bonus tracking) -->
+    <div class="card" style="display:none">
       <div class="card-h"><div class="card-title">🎯 Formula Bonus Tim</div></div>
       <div class="card-b">
         <div class="fg" style="margin-bottom:14px">
@@ -2205,21 +2200,45 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
       </div>
     </div>
 
-    <!-- P&L PREVIEW -->
-    <div class="card">
-      <div class="card-h"><div class="card-title">💰 Preview P&L Formula</div></div>
-      <div class="card-b">
-        <div style="display:flex;gap:8px;margin-bottom:14px">
-          <input class="fi" type="number" id="sim-omzet-pnl" placeholder="Simulasi omzet (Rp)" oninput="simPnL()"/>
+    <!-- SIMULATOR SUNTIKAN DANA (dulu Preview P&L) -->
+    <div class="card" style="grid-column:1/-1;border-left:3px solid var(--teal)">
+      <div class="card-h">
+        <div>
+          <div class="card-title">💉 Simulator Suntikan Dana</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Proyeksi ROI + break-even buat pitch investor / planning modal</div>
         </div>
-        <div id="sim-pnl-result">
-          <div style="color:var(--text-muted);font-size:13px">Masukkan omzet untuk preview P&L</div>
+      </div>
+      <div class="card-b">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:14px">
+          <div class="fg">
+            <label class="fl">💰 Modal Suntikan (Rp)</label>
+            <input class="fi" type="number" id="sim-modal" placeholder="500000000" oninput="simSuntikanDana()"/>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:4px">Buat purchase inventory + operasional</div>
+          </div>
+          <div class="fg">
+            <label class="fl">📈 Target Omzet Bulanan (Rp)</label>
+            <input class="fi" type="number" id="sim-omzet-bulanan" placeholder="100000000" oninput="simSuntikanDana()"/>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:4px">Proyeksi realistic monthly revenue</div>
+          </div>
+          <div class="fg">
+            <label class="fl">🎯 Gross Margin % (avg)</label>
+            <input class="fi" type="number" step="0.1" id="sim-margin" placeholder="18" value="18" oninput="simSuntikanDana()"/>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:4px">Blended margin dari catalog markup</div>
+          </div>
+          <div class="fg">
+            <label class="fl">🏢 Biaya Ops Bulanan (Rp)</label>
+            <input class="fi" type="number" id="sim-ops" placeholder="40000000" oninput="simSuntikanDana()"/>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:4px">Gaji + sewa + bensin + dll</div>
+          </div>
+        </div>
+        <div id="sim-suntikan-result">
+          <div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px">Isi 4 input di atas → proyeksi otomatis muncul</div>
         </div>
       </div>
     </div>
 
-    <!-- PROMO MANAGER -->
-    <div class="card" style="grid-column:1/-1;border-left:3px solid var(--gold)">
+    <!-- PROMO MANAGER (hidden — never used, may return as Bundle Manager later) -->
+    <div class="card" style="grid-column:1/-1;border-left:3px solid var(--gold);display:none">
       <div class="card-h">
         <div class="card-title">🎁 Promo Manager</div>
         <button class="btn btn-primary btn-sm" onclick="openAddPromo()">+ Buat Promo</button>
@@ -2256,8 +2275,8 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
       </div>
     </div>
 
-    <!-- SALARY SIMULATOR -->
-    <div class="card" style="grid-column:1/-1">
+    <!-- SALARY SIMULATOR (hidden — tim fix salary, ga perlu simulator complex) -->
+    <div class="card" style="grid-column:1/-1;display:none">
       <div class="card-h"><div class="card-title">💰 Salary Simulator — Sistem Gaji % Omzet</div></div>
       <div class="card-b">
         <!-- Sliders -->
@@ -5345,6 +5364,94 @@ function simBonus() {
       <div class="mstat"><span class="mstat-l">Kurang</span><span class="mstat-v c-red">${fmt(kurang)}</span></div>
       <div style="font-size:11px;color:var(--text-muted)">Target: ${fmt(target)}</div>`;
   }
+}
+
+// Simulator Suntikan Dana — investor projection
+function simSuntikanDana() {
+  const modal   = parseFloat(document.getElementById('sim-modal')?.value)||0;
+  const omzetB  = parseFloat(document.getElementById('sim-omzet-bulanan')?.value)||0;
+  const margin  = parseFloat(document.getElementById('sim-margin')?.value)||0;
+  const opsB    = parseFloat(document.getElementById('sim-ops')?.value)||0;
+  const el = document.getElementById('sim-suntikan-result');
+  if(!el) return;
+  if(modal <= 0 || omzetB <= 0 || margin <= 0) {
+    el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px">Isi 4 input di atas → proyeksi otomatis muncul</div>';
+    return;
+  }
+
+  // Monthly calculations
+  const grossProfitB = Math.round(omzetB * margin / 100);
+  const netProfitB   = grossProfitB - opsB;
+  const cashFlowMB   = netProfitB;
+  const monthsToBEP  = netProfitB > 0 ? Math.ceil(modal / netProfitB) : 0;
+
+  // 12-month projection
+  const rev12   = omzetB * 12;
+  const gp12    = grossProfitB * 12;
+  const ops12   = opsB * 12;
+  const net12   = netProfitB * 12;
+  const roi12   = modal > 0 ? (net12 / modal * 100) : 0;
+
+  // Inventory turnover assumption: revenue vs modal
+  const turnover = modal > 0 ? (rev12 / modal).toFixed(1) : 0;
+
+  // Break-even chart
+  const cumNet = [];
+  for(let m=1; m<=24; m++) cumNet.push(m * netProfitB - modal);
+  const bepIdx = cumNet.findIndex(v => v >= 0);
+  const bepMonth = bepIdx >= 0 ? bepIdx + 1 : null;
+
+  const stateBadge = (v, positive='✅ SEHAT', negative='⚠️ BUNTUNG') =>
+    v >= 0 ? `<span style="color:var(--green);font-weight:700">${positive}</span>` : `<span style="color:var(--red);font-weight:700">${negative}</span>`;
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:14px">
+      <div style="background:var(--surface2);padding:12px;border-radius:8px;border-left:3px solid var(--teal)">
+        <div style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Gross Profit/Bulan</div>
+        <div style="font-size:18px;font-weight:800;color:var(--teal);margin-top:4px">${fmt(grossProfitB)}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px">${margin}% dari omzet</div>
+      </div>
+      <div style="background:var(--surface2);padding:12px;border-radius:8px;border-left:3px solid ${netProfitB>=0?'var(--green)':'var(--red)'}">
+        <div style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Net Profit/Bulan</div>
+        <div style="font-size:18px;font-weight:800;color:${netProfitB>=0?'var(--green)':'var(--red)'};margin-top:4px">${netProfitB>=0?'+':''}${fmt(netProfitB)}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px">${stateBadge(netProfitB)}</div>
+      </div>
+      <div style="background:var(--surface2);padding:12px;border-radius:8px;border-left:3px solid var(--gold)">
+        <div style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Break-Even Point</div>
+        <div style="font-size:18px;font-weight:800;color:var(--gold);margin-top:4px">${bepMonth ? bepMonth+' bulan' : '⚠️ Ga capai'}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px">${bepMonth ? '~'+Math.ceil(bepMonth/12*10)/10+' tahun balik modal' : 'net profit negatif'}</div>
+      </div>
+      <div style="background:var(--surface2);padding:12px;border-radius:8px;border-left:3px solid var(--purple)">
+        <div style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">ROI 12 Bulan</div>
+        <div style="font-size:18px;font-weight:800;color:var(--purple);margin-top:4px">${roi12.toFixed(1)}%</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px">Turnover ${turnover}x</div>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:8px">
+      <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📊 Proyeksi 12 Bulan</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+        <div style="display:flex;justify-content:space-between;padding:6px 10px;background:var(--surface2);border-radius:6px">
+          <span>Total Omzet</span><b class="c-teal">${fmt(rev12)}</b>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 10px;background:var(--surface2);border-radius:6px">
+          <span>Total Gross Profit</span><b class="c-green">${fmt(gp12)}</b>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 10px;background:var(--surface2);border-radius:6px">
+          <span>Total Ops Cost</span><b class="c-red">-${fmt(ops12)}</b>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 10px;background:${net12>=0?'rgba(5,150,105,.08)':'rgba(220,38,38,.08)'};border-radius:6px;border:1px solid ${net12>=0?'rgba(5,150,105,.25)':'rgba(220,38,38,.25)'}">
+          <span><b>Net Profit 12 Bln</b></span><b style="color:${net12>=0?'var(--green)':'var(--red)'}">${net12>=0?'+':''}${fmt(net12)}</b>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px;padding:10px 14px;background:${bepMonth ? 'rgba(13,148,136,.08)':'rgba(220,38,38,.08)'};border-radius:8px;border-left:3px solid ${bepMonth?'var(--teal)':'var(--red)'};font-size:12px;line-height:1.5">
+      ${bepMonth
+        ? `💡 <b>Rekomendasi:</b> Dengan omzet ${fmt(omzetB)}/bulan, modal Rp ${(modal/1e6).toFixed(0)}jt balik dalam <b>${bepMonth} bulan</b>. Setelah itu net profit ${fmt(netProfitB)}/bulan = pure keuntungan. Cocok buat pitch investor Convertible Loan tenor ${Math.max(bepMonth+6, 18)}-${bepMonth+12} bulan.`
+        : `⚠️ <b>Warning:</b> Ops cost (${fmt(opsB)}/bln) > gross profit (${fmt(grossProfitB)}/bln) — buntung tiap bulan. <b>Solusi:</b> naikin omzet target ke min ${fmt(Math.ceil(opsB/(margin/100)))}, atau tekan ops cost, atau naikin margin.`}
+    </div>
+  `;
 }
 
 function simPnL() {
