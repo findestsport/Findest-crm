@@ -130,7 +130,7 @@ BEGIN
       url := 'https://api.fonnte.com/send',
       headers := jsonb_build_object(
         'Authorization', fonnte_token,
-        'Content-Type', 'application/x-www-form-urlencoded'
+        'Content-Type', 'application/json'
       ),
       body := jsonb_build_object(
         'target', cust_wa,
@@ -259,7 +259,7 @@ BEGIN
           url := 'https://api.fonnte.com/send',
           headers := jsonb_build_object(
             'Authorization', fonnte_token,
-            'Content-Type', 'application/x-www-form-urlencoded'
+            'Content-Type', 'application/json'
           ),
           body := jsonb_build_object(
             'target', inv.cust_wa, 'message', msg, 'countryCode', '62'
@@ -282,7 +282,7 @@ BEGIN
           url := 'https://api.fonnte.com/send',
           headers := jsonb_build_object(
             'Authorization', fonnte_token,
-            'Content-Type', 'application/x-www-form-urlencoded'
+            'Content-Type', 'application/json'
           ),
           body := jsonb_build_object(
             'target', admin_wa, 'message', admin_msg, 'countryCode', '62'
