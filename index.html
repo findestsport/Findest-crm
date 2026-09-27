@@ -3882,6 +3882,7 @@ function renderInv() {
       <td style="display:flex;gap:4px;flex-wrap:wrap">
         <button class="btn btn-sm btn-ghost" onclick="printFaktur(${inv.id})" title="Cetak Faktur">🖨️</button>
         ${inv.status!=='Lunas'?'<button class="btn btn-sm btn-ghost" style="color:var(--green);font-size:10px" onclick="markInvLunas('+inv.id+')">✅Lunas</button>':''}
+        ${isOverdue?'<button class="btn btn-sm btn-ghost" style="color:var(--gold);font-size:10px" onclick="sendManualReminder('+inv.id+')" title="Kirim WA Reminder ke customer">🔔Ingatkan</button>':''}
         <button class="btn btn-sm btn-ghost" onclick="editInv(${inv.id})">✏️</button>
         <button class="btn btn-sm btn-danger" onclick="deleteInv(${inv.id})">🗑️</button>
       </td>
@@ -6728,6 +6729,29 @@ async function markInvLunas(id) {
   await loadInvoices();
   if(typeof loadPayments === 'function') await loadPayments();
   updateDashboard();
+}
+
+async function sendManualReminder(id) {
+  const inv = (cache.invoices||[]).find(i => i.id === id);
+  if(!inv) { showToast('Invoice tidak ditemukan','error'); return; }
+  const confirmMsg = 'Kirim WA reminder ke customer?\n\n' +
+                     'Invoice: ' + inv.no_invoice + '\n' +
+                     'Customer: ' + inv.customer_nama + '\n' +
+                     'Total: Rp ' + fmt(inv.total);
+  if(!confirm(confirmMsg)) return;
+  showToast('📡 Sending reminder...', 'info');
+  try {
+    const { data, error } = await sb.rpc('send_reminder_for_invoice', { p_invoice_id: id });
+    if(error) { showToast('❌ ' + error.message, 'error'); return; }
+    if(!data || !data.ok) {
+      showToast('❌ ' + (data?.error || 'Gagal kirim reminder'), 'error');
+      return;
+    }
+    showToast('✅ Reminder T' + data.tier + ' terkirim ke ' + data.customer + ' via WA (' + data.wa_target + ')');
+    await loadInvoices();
+  } catch(e) {
+    showToast('❌ ' + e.message, 'error');
+  }
 }
 async function deleteInv(id) {
   if(!confirm('Hapus invoice ini?')) return;
