@@ -239,6 +239,63 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     </div>
   </div>
 
+  <div class="card" id="anatomi-modal-card">
+    <div class="card-h">
+      <div>
+        <div class="card-title">💎 Anatomi Modal &amp; Ekuitas</div>
+        <div class="card-sub">Di mana modal Boss saat ini + validasi balance sheet</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;margin-top:8px" id="anatomi-grid">
+      <div>
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:12px">🎯 EKUITAS (yg dimiliki Boss + Fazar)</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;padding:10px 12px;background:rgba(255,255,255,0.03);border-radius:8px">
+            <span style="font-size:13px;color:var(--text-muted)">Modal Awal Boss</span>
+            <b class="c-teal" id="an-modal-boss" style="font-size:14px">Rp 0</b>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:10px 12px;background:rgba(255,255,255,0.03);border-radius:8px">
+            <span style="font-size:13px;color:var(--text-muted)">+ Laba Kumulatif</span>
+            <b id="an-laba-kum" style="font-size:14px">Rp 0</b>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:12px;background:rgba(13,148,136,.15);border-radius:8px;border:1px solid rgba(13,148,136,.3)">
+            <span style="font-size:14px;font-weight:700">Total Ekuitas</span>
+            <b class="c-teal" id="an-ekuitas" style="font-size:16px">Rp 0</b>
+          </div>
+        </div>
+        <div id="an-growth-badge" style="margin-top:10px;font-size:12px;color:var(--text-muted);text-align:center"></div>
+      </div>
+
+      <div>
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:12px">📊 ASET (di mana modal berada)</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;padding:10px 12px;background:rgba(255,255,255,0.03);border-radius:8px">
+            <span style="font-size:13px;color:var(--text-muted)">💵 Cash Bank BCA</span>
+            <b id="an-cash" style="font-size:14px">Rp 0</b>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:10px 12px;background:rgba(255,255,255,0.03);border-radius:8px">
+            <span style="font-size:13px;color:var(--text-muted)">📦 Stok Gudang FP</span>
+            <b id="an-stok-fp" style="font-size:14px">Rp 0</b>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:10px 12px;background:rgba(255,255,255,0.03);border-radius:8px">
+            <span style="font-size:13px;color:var(--text-muted)">🏪 Titipan Konsi</span>
+            <b id="an-konsi" style="font-size:14px">Rp 0</b>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:10px 12px;background:rgba(255,255,255,0.03);border-radius:8px">
+            <span style="font-size:13px;color:var(--text-muted)">📄 Piutang Termin</span>
+            <b id="an-piutang" style="font-size:14px">Rp 0</b>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:12px;background:rgba(217,119,6,.15);border-radius:8px;border:1px solid rgba(217,119,6,.3)">
+            <span style="font-size:14px;font-weight:700">Total Aset</span>
+            <b class="c-gold" id="an-aset" style="font-size:16px">Rp 0</b>
+          </div>
+        </div>
+        <div id="an-balance-badge" style="margin-top:10px;text-align:center"></div>
+      </div>
+    </div>
+    <div id="an-narrative" style="margin-top:16px;padding:12px 14px;background:rgba(255,255,255,0.03);border-radius:8px;font-size:12px;line-height:1.6;color:var(--text-muted)"></div>
+  </div>
+
   <div class="footer">
     <div>Findest Sport Nutrition · Confidential — for authorized viewers only</div>
     <div style="margin-top:6px">Data updated real-time from CRM · Do not share PIN or link</div>
@@ -375,10 +432,90 @@ async function loadDashboard(){
   const {data:outs}=await SB.from('outlets').select('id').eq('status','Aktif');
   document.getElementById('kpi-outlet').textContent=(outs||[]).length;
 
+  // ═══ ANATOMI MODAL & EKUITAS ═══
+  await renderAnatomiModal({
+    nilaiFP, nilaiKonsi, totalPiutang, monthStart
+  });
+
   // Charts: 6 bulan terakhir
   await loadCharts();
   // Setup realtime — cuma sekali (first load)
   if(realtimeChannels.length === 0) setupRealtime();
+}
+
+// ═══════ ANATOMI MODAL & EKUITAS ═══════
+async function renderAnatomiModal({nilaiFP, nilaiKonsi, totalPiutang}) {
+  try {
+    // Load config: modal Boss + tanggal suntikan + cash bank current
+    const {data:cfg} = await SB.from('config').select('key,value').in('key',['modal_boss_amount','modal_boss_date','cash_bank_current']);
+    const cMap = {};
+    (cfg||[]).forEach(c => cMap[c.key] = c.value);
+    const modalBoss = parseFloat(cMap.modal_boss_amount || 0);
+    const modalDate = cMap.modal_boss_date || '';
+    const cashBank = parseFloat(cMap.cash_bank_current || 0);
+
+    const set = (id, val) => { const el=document.getElementById(id); if(el) el.textContent = val; };
+
+    if(modalBoss <= 0) {
+      set('an-modal-boss', 'Belum diset');
+      set('an-narrative', '⚙️ Belum ada data Suntikan Dana Boss. Admin bisa input via CRM → Settings → tambah config key: modal_boss_amount, modal_boss_date, cash_bank_current.');
+      return;
+    }
+
+    // Total Aset = Cash + Stok FP + Konsi + Piutang
+    const totalAset = cashBank + nilaiFP + nilaiKonsi + totalPiutang;
+    // Laba Kumulatif = Total Aset - Modal Boss
+    const labaKum = totalAset - modalBoss;
+    const totalEkuitas = modalBoss + labaKum;
+
+    set('an-modal-boss', fmt(modalBoss));
+    document.getElementById('an-laba-kum').textContent = (labaKum >= 0 ? '+' : '') + fmt(labaKum);
+    document.getElementById('an-laba-kum').className = labaKum >= 0 ? 'c-green' : 'c-red';
+    set('an-ekuitas', fmt(totalEkuitas));
+    set('an-cash', fmt(cashBank));
+    set('an-stok-fp', fmt(nilaiFP));
+    set('an-konsi', fmt(nilaiKonsi));
+    set('an-piutang', fmt(totalPiutang));
+    set('an-aset', fmt(totalAset));
+
+    // Growth badge
+    const growthPct = modalBoss > 0 ? ((labaKum / modalBoss) * 100) : 0;
+    const monthsSince = modalDate ? Math.max(1, Math.floor((Date.now() - new Date(modalDate).getTime()) / (30*86400000))) : 1;
+    const annualizedROI = growthPct * (12 / monthsSince);
+    const growthEl = document.getElementById('an-growth-badge');
+    if(growthEl) {
+      const gColor = labaKum >= 0 ? 'var(--green)' : 'var(--red)';
+      growthEl.innerHTML = `<span style="color:${gColor};font-weight:700">${growthPct.toFixed(1)}%</span> growth in ${monthsSince} bulan · <span style="color:${gColor};font-weight:700">${annualizedROI.toFixed(1)}%</span> annualized ROI`;
+    }
+
+    // Balance validation
+    const balanceGap = Math.abs(totalAset - totalEkuitas);
+    const balanceOk = balanceGap < 1000; // <1000 = balance
+    const badge = document.getElementById('an-balance-badge');
+    if(badge) {
+      badge.innerHTML = balanceOk
+        ? `<span style="color:var(--green);font-weight:700;font-size:13px">✅ BALANCE — Aset = Ekuitas</span>`
+        : `<span style="color:var(--gold);font-weight:700;font-size:13px">⚠️ Selisih ${fmt(balanceGap)} — cek Cash Bank input</span>`;
+    }
+
+    // Narrative
+    const nar = document.getElementById('an-narrative');
+    if(nar) {
+      let narrative = '';
+      if(labaKum > 0) {
+        const boss10 = modalBoss * 0.10 * (monthsSince / 12);
+        const deposito5 = modalBoss * 0.05 * (monthsSince / 12);
+        narrative = `💡 <b>Baca dgn tenang:</b> Boss suntik ${fmt(modalBoss)} pada ${modalDate || 'N/A'}, sekarang ekuitas jadi <b>${fmt(totalEkuitas)}</b> (naik ${fmt(labaKum)} dalam ${monthsSince} bulan). ` +
+                    `Kalo naruh di deposito bank 5% p.a., cuma dapet ${fmt(deposito5)}. Target Boss 10% p.a. = ${fmt(boss10)}. ` +
+                    `Bisnis Findest ${labaKum >= boss10 ? '✅ EXCEED target Boss' : labaKum >= deposito5 ? '🟡 Above deposito, below target' : '🔴 Below both'}.`;
+      } else {
+        narrative = `⚠️ <b>Perhatian:</b> Ekuitas turun ${fmt(Math.abs(labaKum))} dari modal awal. Kemungkinan: (a) bulan-bulan awal fase warming, (b) belanja stok besar yg belum kejual, (c) cost operasional > gross profit. Cek Rekap Kas + Laba Rugi tab di CRM.`;
+      }
+      nar.innerHTML = narrative;
+    }
+  } catch(e) {
+    console.warn('Anatomi modal load failed:', e);
+  }
 }
 
 // ═══════ REALTIME SUBSCRIPTION ═══════
