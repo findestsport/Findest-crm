@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Panduan CRM Findest Sport</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --teal:#0D9488;--teal-2:#0F766E;--gold:#D97706;--green:#059669;
+  --red:#DC2626;--purple:#7c3aed;--bg:#F7F8FA;--surface:#FFFFFF;
+  --border:#E5E7EB;--text:#0F172A;--text-2:#475569;--text-muted:#94A3B8;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
+.wrap{max-width:900px;margin:0 auto;padding:24px 20px}
+.page{background:var(--surface);border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:32px;margin-bottom:24px;page-break-after:always}
+.cover{background:linear-gradient(135deg,#0D9488 0%,#0F766E 100%);color:#fff;padding:60px 32px;border-radius:16px;margin-bottom:24px;position:relative;overflow:hidden}
+.cover::before{content:'';position:absolute;top:-40px;right:-40px;width:280px;height:280px;background:rgba(255,255,255,.08);border-radius:50%}
+.cover h1{font-size:44px;font-weight:900;letter-spacing:-1.5px;line-height:1;margin-bottom:16px;position:relative;z-index:1}
+.cover .sub{font-size:16px;color:rgba(255,255,255,.9);max-width:600px;position:relative;z-index:1;margin-bottom:24px}
+.cover .badge{display:inline-block;background:rgba(255,255,255,.15);backdrop-filter:blur(10px);padding:6px 14px;border-radius:100px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:20px;position:relative;z-index:1}
+.cover .partners{display:flex;flex-wrap:wrap;gap:6px;margin-top:24px;position:relative;z-index:1}
+.cover .partners span{background:rgba(255,255,255,.15);padding:5px 12px;border-radius:100px;font-size:11px;font-weight:600}
+
+.role-header{display:flex;align-items:center;gap:14px;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid var(--border)}
+.role-icon{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff;flex-shrink:0}
+.role-icon.gm{background:linear-gradient(135deg,#7c3aed,#5b21b6)}
+.role-icon.admin{background:linear-gradient(135deg,#0D9488,#0F766E)}
+.role-icon.sales{background:linear-gradient(135deg,#D97706,#B45309)}
+.role-icon.all{background:linear-gradient(135deg,#DC2626,#B91C1C)}
+.role-title{font-size:24px;font-weight:800;letter-spacing:-.5px}
+.role-sub{font-size:13px;color:var(--text-muted)}
+
+h2{font-size:16px;font-weight:800;margin:24px 0 12px;color:var(--teal);text-transform:uppercase;letter-spacing:1px}
+h3{font-size:15px;font-weight:700;margin:16px 0 8px}
+.step{display:flex;gap:12px;padding:12px 14px;background:var(--bg);border-radius:10px;margin-bottom:8px}
+.step-num{width:26px;height:26px;background:var(--teal);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0}
+.step-body{flex:1;font-size:13px;line-height:1.5}
+.step-body b{color:var(--text)}
+.tip{background:rgba(217,119,6,.08);border-left:3px solid var(--gold);padding:10px 14px;border-radius:6px;font-size:12px;margin:12px 0;line-height:1.5}
+.tip b{color:var(--gold)}
+.warn{background:rgba(220,38,38,.08);border-left:3px solid var(--red);padding:10px 14px;border-radius:6px;font-size:12px;margin:12px 0;line-height:1.5}
+.warn b{color:var(--red)}
+.card{background:var(--bg);border-radius:10px;padding:14px;margin:12px 0}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn{display:inline-block;background:var(--text);color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;font-family:monospace}
+.link{color:var(--teal);text-decoration:none;font-weight:600;word-break:break-all}
+.kbd{display:inline-block;background:#111;color:#fff;padding:2px 8px;border-radius:5px;font-size:11px;font-family:monospace;font-weight:600}
+
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:12px}
+th{text-align:left;padding:8px;background:var(--bg);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted)}
+td{padding:8px;border-bottom:1px solid var(--border)}
+
+.print-btn{position:fixed;bottom:24px;right:24px;background:var(--teal);color:#fff;border:none;padding:14px 20px;border-radius:100px;font-weight:700;cursor:pointer;box-shadow:0 8px 24px rgba(13,148,136,.3);font-size:14px;font-family:'Inter'}
+@media print{
+  body{background:#fff}
+  .print-btn{display:none}
+  .page{box-shadow:none;margin:0;border-radius:0}
+  .cover{border-radius:0}
+}
+@media (max-width:640px){
+  .grid-2{grid-template-columns:1fr}
+  .cover h1{font-size:32px}
+  .role-title{font-size:20px}
+}
+</style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">🖨️ Print / Save PDF</button>
+
+<div class="wrap">
+
+<!-- COVER -->
+<div class="cover">
+  <div class="badge">📘 Panduan Internal</div>
+  <h1>CRM Findest Sport<br>Quick Guide</h1>
+  <div class="sub">Panduan pemakaian sistem CRM buat tim internal (4 orang). Print per role, tempel di dinding kantor.</div>
+  <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:16px;position:relative;z-index:1"><b>8 Konsi Partner Aktif:</b></div>
+  <div class="partners">
+    <span>APOTEK Adam</span>
+    <span>Alvin</span>
+    <span>Canggu</span>
+    <span>Kawan</span>
+    <span>Sunset Farma</span>
+    <span>Medicare</span>
+    <span>GWS</span>
+    <span>Linjong</span>
+  </div>
+</div>
+
+<!-- ROLE 1: FAZAR / GM -->
+<div class="page">
+  <div class="role-header">
+    <div class="role-icon gm">👔</div>
+    <div>
+      <div class="role-title">Fazar / General Manager</div>
+      <div class="role-sub">Monitoring bisnis, closing bulanan, investor, decision maker</div>
+    </div>
+  </div>
+
+  <h2>🌅 Rutinitas Harian (5 menit)</h2>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body"><b>Buka Dashboard</b> → cek KPI hari ini (order, revenue, ED alert)</div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body"><b>Cek Order Monitor</b> — pending konfirmasi, jatuh tempo dekat</div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body"><b>Cek ED Alert Watchlist</b> — barang mau expired, action WA ke partner</div>
+  </div>
+
+  <h2>📅 Monthly Closing (Akhir Bulan)</h2>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body"><b>Finance → Rekap Kas</b> — pilih bulan, klik Tampilkan, verifikasi saldo</div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body"><b>Dashboard → 💾 Snap Now</b> — save snapshot bulan ini ke History Bulanan</div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body"><b>Sales → Konsinyasi → History Retur</b> — cocokin dengan SO fisik akhir bulan</div>
+  </div>
+
+  <h2>💼 Investor Management</h2>
+  <div class="card">
+    <b>Link Investor Dashboard:</b><br>
+    <span class="link">findestsport.github.io/Findest-crm/investor.html</span><br>
+    <b>PIN default:</b> <span class="kbd">findest2024</span> (ubah di Settings → Investor Dashboard PIN)<br>
+    <div style="margin-top:8px;font-size:12px;color:var(--text-muted)">Kasih link + PIN ke investor. Dashboard live realtime, mereka bisa monitor kapan aja.</div>
+  </div>
+
+  <h2>🎯 Decision Tools</h2>
+  <div class="grid-2">
+    <div class="card">
+      <b>💉 Simulator Suntikan Dana</b><br>
+      <span style="font-size:11px;color:var(--text-muted)">Settings → scroll bawah. Input modal + target omzet → dapet BEP, ROI, warning</span>
+    </div>
+    <div class="card">
+      <b>📊 History Bulanan</b><br>
+      <span style="font-size:11px;color:var(--text-muted)">Dashboard → pilih bulan → agregat KPI + 🔍 Cari Detail per-transaksi</span>
+    </div>
+  </div>
+
+  <div class="tip">
+    <b>💡 Tip:</b> Investor Dashboard update realtime. Kalo lu bikin order baru di CRM, dalam 1 detik dashboard investor otomatis update tanpa refresh.
+  </div>
+</div>
+
+<!-- ROLE 2: ADMIN -->
+<div class="page">
+  <div class="role-header">
+    <div class="role-icon admin">📝</div>
+    <div>
+      <div class="role-title">Admin / Finance</div>
+      <div class="role-sub">Input order manual, generate faktur, mark payment, rekap kas</div>
+    </div>
+  </div>
+
+  <h2>📦 Input Order Manual</h2>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body"><b>Sales → Orders → + Tambah Order</b></div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">Isi <b>customer nama</b> (auto-suggest), produk, total, pembayaran</div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body">Kalo customer sistem <b>Konsinyasi</b> → otomatis masuk ke tab Konsinyasi juga (via trigger)</div>
+  </div>
+
+  <h2>🧾 Generate Faktur</h2>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body"><b>Order Monitor</b> → cari order → ubah status ke <b>Selesai</b></div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">Faktur auto-generate (trigger phase 6). Cek di Finance → Invoice</div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body">Klik 🖨️ <b>Faktur</b> → print A4 (ED + batch otomatis dari data)</div>
+  </div>
+
+  <h2>💳 Mark Payment Diterima</h2>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body"><b>Finance → Invoice</b> → cari invoice → klik 💰 <b>Mark Lunas</b></div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">Atau <b>Finance → Payment → + Payment</b> — record manual dengan invoice_id, nominal, tanggal</div>
+  </div>
+
+  <h2>📤 Input Pengeluaran</h2>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body"><b>Finance → Pengeluaran → + Tambah</b></div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">Isi kategori (Gaji, Sewa, Bensin, Ops, dll), tanggal, nominal</div>
+  </div>
+
+  <h2>📊 Rekap Kas Bulanan</h2>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body"><b>Finance → Rekap Kas</b> → pilih bulan → klik Tampilkan</div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">Isi <b>Kas Awal Bulan</b> (saldo dari bulan lalu) → klik Simpan</div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body">Verifikasi: Saldo Awal + Masuk − Keluar = Saldo Akhir</div>
+  </div>
+
+  <div class="tip"><b>💡 Tip:</b> Semua nominal input otomatis dikasih titik ribuan. Ketik <code>50000000</code> → tampil <code>50.000.000</code>.</div>
+</div>
+
+<!-- ROLE 3: SALES / GUDANG -->
+<div class="page">
+  <div class="role-header">
+    <div class="role-icon sales">📦</div>
+    <div>
+      <div class="role-title">Sales / Gudang</div>
+      <div class="role-sub">Scan QR customer, catat konsi, ED alert, retur, batch tracking</div>
+    </div>
+  </div>
+
+  <h2>🏷️ Generate QR Customer</h2>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body">Buka <span class="link">findestsport.github.io/Findest-crm/qr-generator.html</span></div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">Pilih customer (Adam, Alvin, dll) → <b>Download PNG</b> atau <b>Print</b></div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body">Tempel QR di apotek partner / kasih ke customer FnB</div>
+  </div>
+
+  <h2>🔄 Konsi Auto (dari Scan QR)</h2>
+  <div class="warn"><b>⚠ Penting:</b> Customer sistem="Konsinyasi" scan QR mereka + order → OTOMATIS masuk ke Konsinyasi tab. Ga perlu manual input lagi.</div>
+
+  <h2>📜 History Titipan Konsi</h2>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body"><b>Sales → Konsinyasi</b> → view Outlet (card view)</div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">Klik card partner (Adam, Sunset, dll) → drilldown detail titipan per produk</div>
+  </div>
+
+  <h2>🔁 Retur Konsi (Barang Balik ke Gudang)</h2>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body"><b>Sales → Konsinyasi → view Tabel</b> → cari row</div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">Klik 🔁 <b>Retur</b> → isi qty, tanggal, tujuan (Gudang FP / Customer / Buang), alasan</div>
+  </div>
+
+  <h2>🚀 Order dari Konsi (Transfer ke Customer Lain)</h2>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body">Skenario: Customer FnB minta produk, di gudang habis, tapi ada di Sunset Farma</div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body"><b>Sales → Konsinyasi → 🚀 Order dari Konsi</b></div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body">Pilih customer tujuan (FnB) → payment → pilih item dari partner konsi → klik 🎯 <b>Reprice ke Markup Customer</b> → submit</div>
+  </div>
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-body">Auto: konsi partner qty_retur ↑, order + faktur auto-generate, langsung print</div>
+  </div>
+
+  <h2>⚠️ ED Alert (Barang Mau Expired)</h2>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body"><b>Dashboard</b> → scroll ke <b>ED Watchlist</b> — list produk deket ED</div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">Klik 💬 <b>WA Partner</b> — auto message ke PIC apotek buat push jualan</div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body">Kalo mau tarik → 🔁 Retur (tujuan Gudang FP) → dapat ke stok FP + jual di catalog</div>
+  </div>
+
+  <div class="tip"><b>💡 Golden Rule:</b> Cek ED Watchlist tiap Senin. Barang &lt;60 hari ED = action segera (transfer, discount, atau bundle).</div>
+</div>
+
+<!-- ROLE 4: ALL / CHEAT SHEET -->
+<div class="page">
+  <div class="role-header">
+    <div class="role-icon all">📌</div>
+    <div>
+      <div class="role-title">Cheat Sheet — Semua Role</div>
+      <div class="role-sub">FAQ + shortcut umum</div>
+    </div>
+  </div>
+
+  <h2>🔗 URL Penting</h2>
+  <table>
+    <thead><tr><th>Halaman</th><th>URL</th></tr></thead>
+    <tbody>
+      <tr><td><b>CRM</b> (internal)</td><td class="link">findestsport.github.io/Findest-crm/</td></tr>
+      <tr><td><b>Catalog Customer</b></td><td class="link">findestsport.github.io/Findest-crm/catalog.html</td></tr>
+      <tr><td><b>Order Monitor</b></td><td class="link">findestsport.github.io/Findest-crm/admin-orders.html</td></tr>
+      <tr><td><b>QR Generator</b></td><td class="link">findestsport.github.io/Findest-crm/qr-generator.html</td></tr>
+      <tr><td><b>Investor Dashboard</b></td><td class="link">findestsport.github.io/Findest-crm/investor.html</td></tr>
+    </tbody>
+  </table>
+
+  <h2>❓ FAQ Sering Ditanya</h2>
+
+  <div class="card">
+    <b>Q: Order dari catalog gak muncul di CRM?</b><br>
+    <span style="font-size:12px;color:var(--text-2)">A: Refresh Order Monitor (klik ↻ button). Kalo tetep gak muncul, cek internet + refresh full CRM.</span>
+  </div>
+
+  <div class="card">
+    <b>Q: Konsi partner scan QR, kok gak muncul di tab Konsinyasi?</b><br>
+    <span style="font-size:12px;color:var(--text-2)">A: Pastikan trigger auto-konsi udah di-apply di Supabase (phase 14 SQL). Kalo belum, contact tech.</span>
+  </div>
+
+  <div class="card">
+    <b>Q: Harga di catalog salah / ga sesuai markup?</b><br>
+    <span style="font-size:12px;color:var(--text-2)">A: Cek Sales → Customer → edit customer tsb → field 💰 Markup % dari HPP. Sesuaikan angka.</span>
+  </div>
+
+  <div class="card">
+    <b>Q: Retur konsi error "function not found"?</b><br>
+    <span style="font-size:12px;color:var(--text-2)">A: SQL phase 12 belum di-apply. Contact tech buat run migration.</span>
+  </div>
+
+  <div class="card">
+    <b>Q: Investor liat dashboard cuma refresh manual?</b><br>
+    <span style="font-size:12px;color:var(--text-2)">A: Enggak, dashboard realtime. Kalo ga update, cek SQL phase 17 udah di-apply, browser refresh.</span>
+  </div>
+
+  <h2>📋 8 Konsi Partner Findest</h2>
+  <table>
+    <thead><tr><th>#</th><th>Partner</th><th>Tipe</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>APOTEK Adam</td><td>Apotek Konsi</td></tr>
+      <tr><td>2</td><td>Alvin</td><td>Apotek Konsi</td></tr>
+      <tr><td>3</td><td>Canggu</td><td>Apotek Konsi</td></tr>
+      <tr><td>4</td><td>Kawan</td><td>Apotek Konsi</td></tr>
+      <tr><td>5</td><td>Sunset Farma</td><td>Apotek Konsi</td></tr>
+      <tr><td>6</td><td>Medicare</td><td>Apotek Konsi</td></tr>
+      <tr><td>7</td><td>GWS</td><td>Apotek Konsi</td></tr>
+      <tr><td>8</td><td>Linjong</td><td>Apotek Konsi</td></tr>
+    </tbody>
+  </table>
+
+  <h2>🚨 Emergency Contact</h2>
+  <div class="card">
+    <b>Tech Support / Bug Report:</b><br>
+    <span style="font-size:12px;color:var(--text-2)">Kalo sistem down, error blocker, atau data hilang — screenshot + kirim ke tech tim.</span>
+  </div>
+
+  <div class="tip">
+    <b>💡 Tips Umum:</b><br>
+    • <b>Hard refresh</b> kalo UI aneh: Safari → clear cache, Chrome → Ctrl+Shift+R<br>
+    • <b>Backup rutin</b>: Reset Data Trial auto-archive sebelum wipe (Riwayat Historis Detail)<br>
+    • <b>Konsi rekonsiliasi</b> tiap akhir bulan biar SO fisik match sama sistem
+  </div>
+
+  <div style="text-align:center;margin-top:40px;padding-top:24px;border-top:2px solid var(--border);font-size:11px;color:var(--text-muted)">
+    Findest Sport Nutrition — Internal Use Only<br>
+    Dokumen ini dibuat untuk 4 tim inti Findest. Tempel di dinding kantor untuk quick reference.
+  </div>
+</div>
+
+</div>
+
+</body>
+</html>
