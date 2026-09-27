@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Panduan CRM Findest Sport</title>
+<title>Panduan CRM Findest Sport — Complete Reference</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -12,57 +12,89 @@
   --border:#E5E7EB;--text:#0F172A;--text-2:#475569;--text-muted:#94A3B8;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
-.wrap{max-width:900px;margin:0 auto;padding:24px 20px}
-.page{background:var(--surface);border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:32px;margin-bottom:24px;page-break-after:always}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.55}
+.wrap{max-width:940px;margin:0 auto;padding:24px 20px}
+
+/* COVER */
 .cover{background:linear-gradient(135deg,#0D9488 0%,#0F766E 100%);color:#fff;padding:60px 32px;border-radius:16px;margin-bottom:24px;position:relative;overflow:hidden}
 .cover::before{content:'';position:absolute;top:-40px;right:-40px;width:280px;height:280px;background:rgba(255,255,255,.08);border-radius:50%}
+.cover .badge{display:inline-block;background:rgba(255,255,255,.18);backdrop-filter:blur(10px);padding:6px 14px;border-radius:100px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:20px;position:relative;z-index:1}
 .cover h1{font-size:44px;font-weight:900;letter-spacing:-1.5px;line-height:1;margin-bottom:16px;position:relative;z-index:1}
-.cover .sub{font-size:16px;color:rgba(255,255,255,.9);max-width:600px;position:relative;z-index:1;margin-bottom:24px}
-.cover .badge{display:inline-block;background:rgba(255,255,255,.15);backdrop-filter:blur(10px);padding:6px 14px;border-radius:100px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:20px;position:relative;z-index:1}
-.cover .partners{display:flex;flex-wrap:wrap;gap:6px;margin-top:24px;position:relative;z-index:1}
-.cover .partners span{background:rgba(255,255,255,.15);padding:5px 12px;border-radius:100px;font-size:11px;font-weight:600}
+.cover .sub{font-size:16px;color:rgba(255,255,255,.9);max-width:640px;position:relative;z-index:1;margin-bottom:24px}
+.cover .toc{background:rgba(255,255,255,.1);border-radius:12px;padding:16px 20px;position:relative;z-index:1;margin-top:24px}
+.cover .toc-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.85);margin-bottom:10px}
+.cover .toc-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px;font-size:13px}
+.cover .toc-list a{color:#fff;text-decoration:none;padding:3px 0;opacity:.9}
+.cover .toc-list a:hover{opacity:1;text-decoration:underline}
 
-.role-header{display:flex;align-items:center;gap:14px;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid var(--border)}
-.role-icon{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff;flex-shrink:0}
+/* SECTIONS */
+.section{background:var(--surface);border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);padding:32px;margin-bottom:24px}
+.section-num{display:inline-block;background:var(--teal);color:#fff;width:32px;height:32px;border-radius:8px;text-align:center;line-height:32px;font-weight:800;font-size:14px;margin-right:12px}
+.section h2{font-size:22px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px;color:var(--text);display:flex;align-items:center}
+.section-sub{font-size:13px;color:var(--text-muted);margin-bottom:20px;margin-left:44px}
+
+/* CASE CARDS */
+.case{background:#F9FAFB;border-radius:12px;padding:20px;margin-bottom:16px;border-left:4px solid var(--teal)}
+.case-title{font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px}
+.case-scenario{font-size:13px;color:var(--text-2);font-style:italic;margin-bottom:14px;padding:10px 14px;background:rgba(217,119,6,.06);border-left:3px solid var(--gold);border-radius:6px}
+.case-scenario b{color:var(--gold);font-style:normal}
+.step-row{display:flex;gap:12px;padding:10px 0;border-bottom:1px dashed var(--border)}
+.step-row:last-child{border:none}
+.step-num{width:24px;height:24px;background:var(--teal);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0}
+.step-body{flex:1;font-size:13px;line-height:1.5}
+.step-body b{color:var(--text);font-weight:700}
+.step-body code{background:#111;color:#fff;padding:2px 8px;border-radius:4px;font-family:monospace;font-size:11px}
+.result-box{background:rgba(5,150,105,.08);border-left:3px solid var(--green);padding:10px 14px;border-radius:6px;font-size:12px;margin-top:12px;line-height:1.5}
+.result-box b{color:var(--green)}
+
+/* ROLE CARDS */
+.role-card{background:linear-gradient(135deg,var(--bg),#fff);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:14px}
+.role-head{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.role-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;flex-shrink:0}
 .role-icon.gm{background:linear-gradient(135deg,#7c3aed,#5b21b6)}
 .role-icon.admin{background:linear-gradient(135deg,#0D9488,#0F766E)}
 .role-icon.sales{background:linear-gradient(135deg,#D97706,#B45309)}
-.role-icon.all{background:linear-gradient(135deg,#DC2626,#B91C1C)}
-.role-title{font-size:24px;font-weight:800;letter-spacing:-.5px}
-.role-sub{font-size:13px;color:var(--text-muted)}
+.role-name{font-size:16px;font-weight:800}
+.role-desc{font-size:11px;color:var(--text-muted)}
+.task-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}
+.task{background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.4}
+.task-name{font-weight:700;color:var(--text);margin-bottom:2px}
+.task-desc{color:var(--text-muted);font-size:11px}
 
-h2{font-size:16px;font-weight:800;margin:24px 0 12px;color:var(--teal);text-transform:uppercase;letter-spacing:1px}
-h3{font-size:15px;font-weight:700;margin:16px 0 8px}
-.step{display:flex;gap:12px;padding:12px 14px;background:var(--bg);border-radius:10px;margin-bottom:8px}
-.step-num{width:26px;height:26px;background:var(--teal);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0}
-.step-body{flex:1;font-size:13px;line-height:1.5}
-.step-body b{color:var(--text)}
-.tip{background:rgba(217,119,6,.08);border-left:3px solid var(--gold);padding:10px 14px;border-radius:6px;font-size:12px;margin:12px 0;line-height:1.5}
+/* TIPS / WARN */
+.tip{background:rgba(217,119,6,.08);border-left:3px solid var(--gold);padding:12px 16px;border-radius:8px;font-size:12px;margin:14px 0;line-height:1.55}
 .tip b{color:var(--gold)}
-.warn{background:rgba(220,38,38,.08);border-left:3px solid var(--red);padding:10px 14px;border-radius:6px;font-size:12px;margin:12px 0;line-height:1.5}
+.warn{background:rgba(220,38,38,.08);border-left:3px solid var(--red);padding:12px 16px;border-radius:8px;font-size:12px;margin:14px 0;line-height:1.55}
 .warn b{color:var(--red)}
-.card{background:var(--bg);border-radius:10px;padding:14px;margin:12px 0}
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.btn{display:inline-block;background:var(--text);color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;font-family:monospace}
+.info{background:rgba(13,148,136,.08);border-left:3px solid var(--teal);padding:12px 16px;border-radius:8px;font-size:12px;margin:14px 0;line-height:1.55}
+.info b{color:var(--teal)}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:12px}
+th{text-align:left;padding:10px;background:var(--bg);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);border-bottom:2px solid var(--border)}
+td{padding:10px;border-bottom:1px solid var(--border);vertical-align:top}
+
 .link{color:var(--teal);text-decoration:none;font-weight:600;word-break:break-all}
 .kbd{display:inline-block;background:#111;color:#fff;padding:2px 8px;border-radius:5px;font-size:11px;font-family:monospace;font-weight:600}
 
-table{width:100%;border-collapse:collapse;margin:12px 0;font-size:12px}
-th{text-align:left;padding:8px;background:var(--bg);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted)}
-td{padding:8px;border-bottom:1px solid var(--border)}
+h3{font-size:14px;font-weight:800;margin:18px 0 10px;color:var(--teal);text-transform:uppercase;letter-spacing:.5px}
 
-.print-btn{position:fixed;bottom:24px;right:24px;background:var(--teal);color:#fff;border:none;padding:14px 20px;border-radius:100px;font-weight:700;cursor:pointer;box-shadow:0 8px 24px rgba(13,148,136,.3);font-size:14px;font-family:'Inter'}
+/* CHECKLIST */
+.checklist{background:var(--bg);border-radius:10px;padding:14px 18px;margin:12px 0}
+.check-item{display:flex;gap:10px;padding:6px 0;font-size:12px;align-items:flex-start}
+.check-box{width:16px;height:16px;border:2px solid var(--teal);border-radius:4px;flex-shrink:0;margin-top:2px}
+
+.print-btn{position:fixed;bottom:24px;right:24px;background:var(--teal);color:#fff;border:none;padding:14px 20px;border-radius:100px;font-weight:700;cursor:pointer;box-shadow:0 8px 24px rgba(13,148,136,.3);font-size:14px;font-family:'Inter';z-index:100}
 @media print{
   body{background:#fff}
   .print-btn{display:none}
-  .page{box-shadow:none;margin:0;border-radius:0}
+  .section{box-shadow:none;margin:0 0 20px;page-break-inside:avoid}
   .cover{border-radius:0}
+  .case{page-break-inside:avoid}
 }
 @media (max-width:640px){
-  .grid-2{grid-template-columns:1fr}
-  .cover h1{font-size:32px}
-  .role-title{font-size:20px}
+  .cover h1{font-size:30px}
+  .section{padding:20px}
 }
 </style>
 </head>
@@ -72,310 +104,430 @@ td{padding:8px;border-bottom:1px solid var(--border)}
 
 <div class="wrap">
 
-<!-- COVER -->
+<!-- ═══════ COVER ═══════ -->
 <div class="cover">
-  <div class="badge">📘 Panduan Internal</div>
-  <h1>CRM Findest Sport<br>Quick Guide</h1>
-  <div class="sub">Panduan pemakaian sistem CRM buat tim internal (4 orang). Print per role, tempel di dinding kantor.</div>
-  <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:16px;position:relative;z-index:1"><b>Konsi Partner (1 pintu perwakilan):</b></div>
-  <div class="partners">
-    <span>🏥 Sunset Farma Group</span>
+  <div class="badge">📘 Complete Reference · Internal</div>
+  <h1>CRM Findest Sport<br>Case-by-Case Guide</h1>
+  <div class="sub">Panduan lengkap pemakaian CRM buat 4 tim inti Findest. Real business scenarios + step-by-step. Print → tempel dinding kantor.</div>
+
+  <div class="toc">
+    <div class="toc-title">📑 Daftar Isi</div>
+    <div class="toc-list">
+      <a href="#s1">1. Overview Sistem</a>
+      <a href="#s2">2. Setup Awal</a>
+      <a href="#s3">3. Case: Order & Sales</a>
+      <a href="#s4">4. Case: Konsinyasi</a>
+      <a href="#s5">5. Case: ED Alert</a>
+      <a href="#s6">6. Case: Finance</a>
+      <a href="#s7">7. Case: Investor</a>
+      <a href="#s8">8. Panduan Per Role</a>
+      <a href="#s9">9. Monthly Closing</a>
+      <a href="#s10">10. FAQ & Troubleshoot</a>
+    </div>
   </div>
 </div>
 
-<!-- ROLE 1: FAZAR / GM -->
-<div class="page">
-  <div class="role-header">
-    <div class="role-icon gm">👔</div>
-    <div>
-      <div class="role-title">Fazar / General Manager</div>
-      <div class="role-sub">Monitoring bisnis, closing bulanan, investor, decision maker</div>
-    </div>
-  </div>
+<!-- ═══════ 1. OVERVIEW ═══════ -->
+<div class="section" id="s1">
+  <h2><span class="section-num">1</span> Overview Sistem CRM</h2>
+  <div class="section-sub">Apa itu CRM Findest, komponen utama, dan philosophy nya</div>
 
-  <h2>🌅 Rutinitas Harian (5 menit)</h2>
-  <div class="step">
-    <div class="step-num">1</div>
-    <div class="step-body"><b>Buka Dashboard</b> → cek KPI hari ini (order, revenue, ED alert)</div>
-  </div>
-  <div class="step">
-    <div class="step-num">2</div>
-    <div class="step-body"><b>Cek Order Monitor</b> — pending konfirmasi, jatuh tempo dekat</div>
-  </div>
-  <div class="step">
-    <div class="step-num">3</div>
-    <div class="step-body"><b>Cek ED Alert Watchlist</b> — barang mau expired, action WA ke partner</div>
-  </div>
+  <p style="font-size:13px;line-height:1.6;margin-bottom:14px">CRM Findest adalah sistem terintegrasi buat manage <b>Sales, Konsinyasi, Inventory, Finance, dan Investor Reporting</b>. Semua data di satu database (Supabase), semua channel (CRM admin, Catalog customer, Order Monitor, Investor Dashboard) share data yang sama.</p>
 
-  <h2>📅 Monthly Closing (Akhir Bulan)</h2>
-  <div class="step">
-    <div class="step-num">1</div>
-    <div class="step-body"><b>Finance → Rekap Kas</b> — pilih bulan, klik Tampilkan, verifikasi saldo</div>
-  </div>
-  <div class="step">
-    <div class="step-num">2</div>
-    <div class="step-body"><b>Dashboard → 💾 Snap Now</b> — save snapshot bulan ini ke History Bulanan</div>
-  </div>
-  <div class="step">
-    <div class="step-num">3</div>
-    <div class="step-body"><b>Sales → Konsinyasi → History Retur</b> — cocokin dengan SO fisik akhir bulan</div>
-  </div>
-
-  <h2>💼 Investor Management</h2>
-  <div class="card">
-    <b>Link Investor Dashboard:</b><br>
-    <span class="link">findestsport.github.io/Findest-crm/investor.html</span><br>
-    <b>PIN default:</b> <span class="kbd">findest2024</span> (ubah di Settings → Investor Dashboard PIN)<br>
-    <div style="margin-top:8px;font-size:12px;color:var(--text-muted)">Kasih link + PIN ke investor. Dashboard live realtime, mereka bisa monitor kapan aja.</div>
-  </div>
-
-  <h2>🎯 Decision Tools</h2>
-  <div class="grid-2">
-    <div class="card">
-      <b>💉 Simulator Suntikan Dana</b><br>
-      <span style="font-size:11px;color:var(--text-muted)">Settings → scroll bawah. Input modal + target omzet → dapet BEP, ROI, warning</span>
-    </div>
-    <div class="card">
-      <b>📊 History Bulanan</b><br>
-      <span style="font-size:11px;color:var(--text-muted)">Dashboard → pilih bulan → agregat KPI + 🔍 Cari Detail per-transaksi</span>
-    </div>
-  </div>
-
-  <div class="tip">
-    <b>💡 Tip:</b> Investor Dashboard update realtime. Kalo lu bikin order baru di CRM, dalam 1 detik dashboard investor otomatis update tanpa refresh.
-  </div>
-</div>
-
-<!-- ROLE 2: ADMIN -->
-<div class="page">
-  <div class="role-header">
-    <div class="role-icon admin">📝</div>
-    <div>
-      <div class="role-title">Admin / Finance</div>
-      <div class="role-sub">Input order manual, generate faktur, mark payment, rekap kas</div>
-    </div>
-  </div>
-
-  <h2>📦 Input Order Manual</h2>
-  <div class="step">
-    <div class="step-num">1</div>
-    <div class="step-body"><b>Sales → Orders → + Tambah Order</b></div>
-  </div>
-  <div class="step">
-    <div class="step-num">2</div>
-    <div class="step-body">Isi <b>customer nama</b> (auto-suggest), produk, total, pembayaran</div>
-  </div>
-  <div class="step">
-    <div class="step-num">3</div>
-    <div class="step-body">Kalo customer sistem <b>Konsinyasi</b> → otomatis masuk ke tab Konsinyasi juga (via trigger)</div>
-  </div>
-
-  <h2>🧾 Generate Faktur</h2>
-  <div class="step">
-    <div class="step-num">1</div>
-    <div class="step-body"><b>Order Monitor</b> → cari order → ubah status ke <b>Selesai</b></div>
-  </div>
-  <div class="step">
-    <div class="step-num">2</div>
-    <div class="step-body">Faktur auto-generate (trigger phase 6). Cek di Finance → Invoice</div>
-  </div>
-  <div class="step">
-    <div class="step-num">3</div>
-    <div class="step-body">Klik 🖨️ <b>Faktur</b> → print A4 (ED + batch otomatis dari data)</div>
-  </div>
-
-  <h2>💳 Mark Payment Diterima</h2>
-  <div class="step">
-    <div class="step-num">1</div>
-    <div class="step-body"><b>Finance → Invoice</b> → cari invoice → klik 💰 <b>Mark Lunas</b></div>
-  </div>
-  <div class="step">
-    <div class="step-num">2</div>
-    <div class="step-body">Atau <b>Finance → Payment → + Payment</b> — record manual dengan invoice_id, nominal, tanggal</div>
-  </div>
-
-  <h2>📤 Input Pengeluaran</h2>
-  <div class="step">
-    <div class="step-num">1</div>
-    <div class="step-body"><b>Finance → Pengeluaran → + Tambah</b></div>
-  </div>
-  <div class="step">
-    <div class="step-num">2</div>
-    <div class="step-body">Isi kategori (Gaji, Sewa, Bensin, Ops, dll), tanggal, nominal</div>
-  </div>
-
-  <h2>📊 Rekap Kas Bulanan</h2>
-  <div class="step">
-    <div class="step-num">1</div>
-    <div class="step-body"><b>Finance → Rekap Kas</b> → pilih bulan → klik Tampilkan</div>
-  </div>
-  <div class="step">
-    <div class="step-num">2</div>
-    <div class="step-body">Isi <b>Kas Awal Bulan</b> (saldo dari bulan lalu) → klik Simpan</div>
-  </div>
-  <div class="step">
-    <div class="step-num">3</div>
-    <div class="step-body">Verifikasi: Saldo Awal + Masuk − Keluar = Saldo Akhir</div>
-  </div>
-
-  <div class="tip"><b>💡 Tip:</b> Semua nominal input otomatis dikasih titik ribuan. Ketik <code>50000000</code> → tampil <code>50.000.000</code>.</div>
-</div>
-
-<!-- ROLE 3: SALES / GUDANG -->
-<div class="page">
-  <div class="role-header">
-    <div class="role-icon sales">📦</div>
-    <div>
-      <div class="role-title">Sales / Gudang</div>
-      <div class="role-sub">Scan QR customer, catat konsi, ED alert, retur, batch tracking</div>
-    </div>
-  </div>
-
-  <h2>🏷️ Generate QR Customer</h2>
-  <div class="step">
-    <div class="step-num">1</div>
-    <div class="step-body">Buka <span class="link">findestsport.github.io/Findest-crm/qr-generator.html</span></div>
-  </div>
-  <div class="step">
-    <div class="step-num">2</div>
-    <div class="step-body">Pilih customer (Adam, Alvin, dll) → <b>Download PNG</b> atau <b>Print</b></div>
-  </div>
-  <div class="step">
-    <div class="step-num">3</div>
-    <div class="step-body">Tempel QR di apotek partner / kasih ke customer FnB</div>
-  </div>
-
-  <h2>🔄 Konsi Auto (dari Scan QR)</h2>
-  <div class="warn"><b>⚠ Penting:</b> Customer sistem="Konsinyasi" scan QR mereka + order → OTOMATIS masuk ke Konsinyasi tab. Ga perlu manual input lagi.</div>
-
-  <h2>📜 History Titipan Konsi</h2>
-  <div class="step">
-    <div class="step-num">1</div>
-    <div class="step-body"><b>Sales → Konsinyasi</b> → view Outlet (card view)</div>
-  </div>
-  <div class="step">
-    <div class="step-num">2</div>
-    <div class="step-body">Klik card partner (Adam, Sunset, dll) → drilldown detail titipan per produk</div>
-  </div>
-
-  <h2>🔁 Retur Konsi (Barang Balik ke Gudang)</h2>
-  <div class="step">
-    <div class="step-num">1</div>
-    <div class="step-body"><b>Sales → Konsinyasi → view Tabel</b> → cari row</div>
-  </div>
-  <div class="step">
-    <div class="step-num">2</div>
-    <div class="step-body">Klik 🔁 <b>Retur</b> → isi qty, tanggal, tujuan (Gudang FP / Customer / Buang), alasan</div>
-  </div>
-
-  <h2>🚀 Order dari Konsi (Transfer ke Customer Lain)</h2>
-  <div class="step">
-    <div class="step-num">1</div>
-    <div class="step-body">Skenario: Customer FnB minta produk, di gudang habis, tapi ada di Sunset Farma</div>
-  </div>
-  <div class="step">
-    <div class="step-num">2</div>
-    <div class="step-body"><b>Sales → Konsinyasi → 🚀 Order dari Konsi</b></div>
-  </div>
-  <div class="step">
-    <div class="step-num">3</div>
-    <div class="step-body">Pilih customer tujuan (FnB) → payment → pilih item dari partner konsi → klik 🎯 <b>Reprice ke Markup Customer</b> → submit</div>
-  </div>
-  <div class="step">
-    <div class="step-num">4</div>
-    <div class="step-body">Auto: konsi partner qty_retur ↑, order + faktur auto-generate, langsung print</div>
-  </div>
-
-  <h2>⚠️ ED Alert (Barang Mau Expired)</h2>
-  <div class="step">
-    <div class="step-num">1</div>
-    <div class="step-body"><b>Dashboard</b> → scroll ke <b>ED Watchlist</b> — list produk deket ED</div>
-  </div>
-  <div class="step">
-    <div class="step-num">2</div>
-    <div class="step-body">Klik 💬 <b>WA Partner</b> — auto message ke PIC apotek buat push jualan</div>
-  </div>
-  <div class="step">
-    <div class="step-num">3</div>
-    <div class="step-body">Kalo mau tarik → 🔁 Retur (tujuan Gudang FP) → dapat ke stok FP + jual di catalog</div>
-  </div>
-
-  <div class="tip"><b>💡 Golden Rule:</b> Cek ED Watchlist tiap Senin. Barang &lt;60 hari ED = action segera (transfer, discount, atau bundle).</div>
-</div>
-
-<!-- ROLE 4: ALL / CHEAT SHEET -->
-<div class="page">
-  <div class="role-header">
-    <div class="role-icon all">📌</div>
-    <div>
-      <div class="role-title">Cheat Sheet — Semua Role</div>
-      <div class="role-sub">FAQ + shortcut umum</div>
-    </div>
-  </div>
-
-  <h2>🔗 URL Penting</h2>
+  <h3>Komponen Utama</h3>
   <table>
-    <thead><tr><th>Halaman</th><th>URL</th></tr></thead>
+    <thead><tr><th>Halaman</th><th>URL</th><th>Siapa Pakai</th></tr></thead>
     <tbody>
-      <tr><td><b>CRM</b> (internal)</td><td class="link">findestsport.github.io/Findest-crm/</td></tr>
-      <tr><td><b>Catalog Customer</b></td><td class="link">findestsport.github.io/Findest-crm/catalog.html</td></tr>
-      <tr><td><b>Order Monitor</b></td><td class="link">findestsport.github.io/Findest-crm/admin-orders.html</td></tr>
-      <tr><td><b>QR Generator</b></td><td class="link">findestsport.github.io/Findest-crm/qr-generator.html</td></tr>
-      <tr><td><b>Investor Dashboard</b></td><td class="link">findestsport.github.io/Findest-crm/investor.html</td></tr>
+      <tr><td><b>CRM Internal</b></td><td class="link">/</td><td>Fazar, Admin, Sales</td></tr>
+      <tr><td><b>Catalog Customer</b></td><td class="link">/catalog.html</td><td>Customer (via QR)</td></tr>
+      <tr><td><b>Order Monitor</b></td><td class="link">/admin-orders.html</td><td>Admin (PIN)</td></tr>
+      <tr><td><b>QR Generator</b></td><td class="link">/qr-generator.html</td><td>Admin</td></tr>
+      <tr><td><b>Investor Dashboard</b></td><td class="link">/investor.html</td><td>Investor (PIN)</td></tr>
     </tbody>
   </table>
 
-  <h2>❓ FAQ Sering Ditanya</h2>
+  <h3>Model Pricing</h3>
+  <div class="info"><b>💡 HPP-based markup:</b> Di catalog CRM, isi <b>HPP</b> (harga beli). Sistem otomatis kasih markup berdasarkan siapa yang scan QR:<br>
+  • FnB customer (markup 12%) → HPP × 1.12<br>
+  • Konsi partner (markup 24%) → HPP × 1.24<br>
+  • Public visitor (default markup 20%) → HPP × 1.20 (biar HPP ga bocor)
+  </div>
+</div>
 
-  <div class="card">
-    <b>Q: Order dari catalog gak muncul di CRM?</b><br>
-    <span style="font-size:12px;color:var(--text-2)">A: Refresh Order Monitor (klik ↻ button). Kalo tetep gak muncul, cek internet + refresh full CRM.</span>
+<!-- ═══════ 2. SETUP AWAL ═══════ -->
+<div class="section" id="s2">
+  <h2><span class="section-num">2</span> Setup Awal (Sekali Doang)</h2>
+  <div class="section-sub">Checklist sebelum tim mulai pake CRM</div>
+
+  <h3>SQL Migrations di Supabase (WAJIB, urut)</h3>
+  <div class="checklist">
+    <div class="check-item"><div class="check-box"></div><div><b>Phase 2-10</b>: setup dasar (biasanya udah applied)</div></div>
+    <div class="check-item"><div class="check-box"></div><div><b>Phase 11 archive-detail</b>: backup detail sebelum reset</div></div>
+    <div class="check-item"><div class="check-box"></div><div><b>Phase 12 retur-konsi</b>: RPC retur_from_konsi()</div></div>
+    <div class="check-item"><div class="check-box"></div><div><b>Phase 14 auto-konsi</b>: trigger auto-add konsi dari scan QR</div></div>
+    <div class="check-item"><div class="check-box"></div><div><b>Phase 15 markup</b>: kolom customers.markup_pct</div></div>
+    <div class="check-item"><div class="check-box"></div><div><b>Phase 17 realtime</b>: enable realtime buat investor dashboard</div></div>
   </div>
 
-  <div class="card">
-    <b>Q: Konsi partner scan QR, kok gak muncul di tab Konsinyasi?</b><br>
-    <span style="font-size:12px;color:var(--text-2)">A: Pastikan trigger auto-konsi udah di-apply di Supabase (phase 14 SQL). Kalo belum, contact tech.</span>
+  <div class="tip"><b>💡 Cek status migration:</b><br>
+  <code style="display:block;background:#111;color:#fff;padding:10px;border-radius:6px;margin-top:6px;font-size:11px;line-height:1.5">SELECT<br>&nbsp;&nbsp;EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name='orders_archive') AS phase11,<br>&nbsp;&nbsp;EXISTS(SELECT 1 FROM information_schema.routines WHERE routine_name='retur_from_konsi') AS phase12,<br>&nbsp;&nbsp;EXISTS(SELECT 1 FROM information_schema.triggers WHERE trigger_name='trg_auto_konsi_from_order') AS phase14,<br>&nbsp;&nbsp;EXISTS(SELECT 1 FROM information_schema.columns WHERE column_name='markup_pct') AS phase15;</code>
   </div>
 
-  <div class="card">
-    <b>Q: Harga di catalog salah / ga sesuai markup?</b><br>
-    <span style="font-size:12px;color:var(--text-2)">A: Cek Sales → Customer → edit customer tsb → field 💰 Markup % dari HPP. Sesuaikan angka.</span>
+  <h3>Setup Data Master</h3>
+  <div class="step-row">
+    <div class="step-num">1</div>
+    <div class="step-body"><b>Settings → Catalog Settings</b> — isi WA sales, nama, default markup 20%</div>
+  </div>
+  <div class="step-row">
+    <div class="step-num">2</div>
+    <div class="step-body"><b>Settings → Info Pembayaran</b> — BCA rekening, atas nama, QRIS URL</div>
+  </div>
+  <div class="step-row">
+    <div class="step-num">3</div>
+    <div class="step-body"><b>Settings → Investor PIN</b> — set PIN buat kasih ke investor</div>
+  </div>
+  <div class="step-row">
+    <div class="step-num">4</div>
+    <div class="step-body"><b>Gudang → Catalog</b> — input semua produk + HPP</div>
+  </div>
+  <div class="step-row">
+    <div class="step-num">5</div>
+    <div class="step-body"><b>Sales → Customer</b> — input customer + set <b>Markup %</b> per customer</div>
+  </div>
+  <div class="step-row">
+    <div class="step-num">6</div>
+    <div class="step-body"><b>Gudang → Batch</b> — input batch masuk (dgn ED per batch)</div>
+  </div>
+</div>
+
+<!-- ═══════ 3. CASE: ORDER & SALES ═══════ -->
+<div class="section" id="s3">
+  <h2><span class="section-num">3</span> Case: Order & Sales</h2>
+  <div class="section-sub">Skenario penerimaan order + pemrosesan</div>
+
+  <!-- CASE 3.1 -->
+  <div class="case">
+    <div class="case-title">Case 3.1: Customer FnB scan QR → order dari catalog</div>
+    <div class="case-scenario">
+      <b>Skenario:</b> Alive Vana (F&B, markup 12%) scan QR mereka → catalog buka → pilih 3 BSN Syntha 5lb → checkout Termin 30 hari
+    </div>
+    <div class="step-row"><div class="step-num">1</div><div class="step-body">Customer scan QR di HP → catalog auto-open dengan banner "Halo, Alive Vana" + markup 12%</div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-body">Add produk ke cart → checkout → pilih Termin 30 Hari</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-body">Sistem cek stok latest (guard race condition) → kirim WA ke sales + save ke <code>orders</code></div></div>
+    <div class="step-row"><div class="step-num">4</div><div class="step-body">Order muncul di <b>Order Monitor</b> — admin cek + ubah status ke "Selesai"</div></div>
+    <div class="step-row"><div class="step-num">5</div><div class="step-body">Trigger phase 6 auto-generate <b>invoice</b> di Finance → Invoice tab</div></div>
+    <div class="step-row"><div class="step-num">6</div><div class="step-body">Admin klik 🖨️ <b>Faktur</b> → print A4 (ED + batch otomatis dari data batches)</div></div>
+    <div class="result-box"><b>✅ Result:</b> Order tersimpan, invoice auto, faktur ready buat kirim. Customer bisa lacak via link <code>?o=ORDER_ID</code></div>
   </div>
 
-  <div class="card">
-    <b>Q: Retur konsi error "function not found"?</b><br>
-    <span style="font-size:12px;color:var(--text-2)">A: SQL phase 12 belum di-apply. Contact tech buat run migration.</span>
+  <!-- CASE 3.2 -->
+  <div class="case">
+    <div class="case-title">Case 3.2: Customer overdue scan QR → popup pengingat tagihan</div>
+    <div class="case-scenario">
+      <b>Skenario:</b> 71Gym punya invoice FKT-73 lewat jatuh tempo 12 hari, mereka scan QR mau order lagi
+    </div>
+    <div class="step-row"><div class="step-num">1</div><div class="step-body">71Gym scan QR → catalog load → sistem cek invoice belum lunas + jatuh tempo lewat</div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-body"><b>Popup otomatis muncul</b>: "⏰ Pengingat Tagihan" dengan list invoice overdue + total</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-body">Tombol <b>💬 Konfirmasi via WhatsApp</b> — auto-generate message ke sales dgn detail invoice</div></div>
+    <div class="step-row"><div class="step-num">4</div><div class="step-body">Atau tombol "Nanti aja, lanjut belanja" (dismiss session)</div></div>
+    <div class="result-box"><b>✅ Result:</b> Soft-collection tanpa WA broadcast agresif. Customer sadar sendiri, ada pilihan konfirmasi langsung.</div>
   </div>
 
-  <div class="card">
-    <b>Q: Investor liat dashboard cuma refresh manual?</b><br>
-    <span style="font-size:12px;color:var(--text-2)">A: Enggak, dashboard realtime. Kalo ga update, cek SQL phase 17 udah di-apply, browser refresh.</span>
+  <!-- CASE 3.3 -->
+  <div class="case">
+    <div class="case-title">Case 3.3: Admin buat order manual (customer telfon/datang langsung)</div>
+    <div class="case-scenario">
+      <b>Skenario:</b> Customer datang ke gudang, admin input order manual (bukan via catalog)
+    </div>
+    <div class="step-row"><div class="step-num">1</div><div class="step-body"><b>Sales → Orders → + Tambah Order</b></div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-body">Isi customer (auto-suggest), produk, total, pembayaran, sales PIC</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-body">Simpan → status default "Proses" → kalo sudah kirim, ubah ke "Selesai"</div></div>
+    <div class="step-row"><div class="step-num">4</div><div class="step-body">Auto-invoice generated → print faktur</div></div>
+  </div>
+</div>
+
+<!-- ═══════ 4. CASE: KONSINYASI ═══════ -->
+<div class="section" id="s4">
+  <h2><span class="section-num">4</span> Case: Konsinyasi</h2>
+  <div class="section-sub">Titipan barang ke partner, retur, transfer ke customer FnB</div>
+
+  <!-- CASE 4.1 -->
+  <div class="case">
+    <div class="case-title">Case 4.1: Konsi partner scan QR → auto-titipan tercatat</div>
+    <div class="case-scenario">
+      <b>Skenario:</b> Sunset Farma Group (perwakilan konsi) scan QR mereka → order 15 unit produk dari catalog. Ini bukan "jual", tapi "titip" ke sana.
+    </div>
+    <div class="step-row"><div class="step-num">1</div><div class="step-body">Sunset Farma Group scan QR → catalog buka dengan banner <b>UNGU</b> "🔄 TITIPAN KONSI"</div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-body">Add produk → checkout → tombol jadi <b>"Konfirmasi Titipan"</b></div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-body">Submit → order tersimpan di <code>orders</code> dgn channel="Konsinyasi (Titipan)"</div></div>
+    <div class="step-row"><div class="step-num">4</div><div class="step-body"><b>Trigger phase 14 auto-fire</b>: insert row di <code>konsinyasi</code> per produk dengan outlet=Sunset Farma, qty, harga, ED (auto dari batches FIFO)</div></div>
+    <div class="step-row"><div class="step-num">5</div><div class="step-body">CRM → <b>Sales → Konsinyasi</b> → row baru muncul di tab tsb, badge "🔄 TITIPAN KONSI" di Order Monitor</div></div>
+    <div class="result-box"><b>✅ Result:</b> Single entry via scan QR = order + konsi auto-populate. Ga perlu manual "+ Catat Konsinyasi" lagi.</div>
   </div>
 
-  <h2>📋 Konsi Partner Findest</h2>
-  <div class="card">
-    <b>🏥 Sunset Farma Group</b> — 1 pintu perwakilan
-    <div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.5">
-      Order + rekonsiliasi via 1 perwakilan Sunset Farma Group. Setup 1 customer di CRM (Sales → Customer → + Baru), assign markup% + PIC + WA, generate 1 QR, kasih ke perwakilan.
+  <!-- CASE 4.2 -->
+  <div class="case">
+    <div class="case-title">Case 4.2: Retur barang dari konsi → balik ke gudang FP</div>
+    <div class="case-scenario">
+      <b>Skenario:</b> Barang di Sunset Farma udah 60 hari, ED deket, mau ditarik balik ke gudang FP
+    </div>
+    <div class="step-row"><div class="step-num">1</div><div class="step-body"><b>Sales → Konsinyasi → view Tabel</b> → cari row Sunset Farma yg mau diretur</div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-body">Klik 🔁 <b>Retur</b> di kolom Aksi</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-body">Isi qty retur, tanggal, tujuan: <b>🏭 Masuk Gudang FP</b>, alasan</div></div>
+    <div class="step-row"><div class="step-num">4</div><div class="step-body">Submit → RPC atomic: konsi qty_retur ↑, products.stok ↑, batches baru (ED sama), log ke konsi_returns</div></div>
+    <div class="result-box"><b>✅ Result:</b> Stok balik ke FP, ED info ke-preserve, semua tercatat rapih buat rekonsiliasi.</div>
+  </div>
+
+  <!-- CASE 4.3 -->
+  <div class="case">
+    <div class="case-title">Case 4.3: Order dari Konsi → transfer barang ke customer FnB langsung</div>
+    <div class="case-scenario">
+      <b>Skenario:</b> Customer FnB minta WGS 10lb, tapi gudang FP habis. Sunset Farma masih ada 5 unit titipan. Tarik dari sana → langsung ke FnB (bukan mampir gudang).
+    </div>
+    <div class="step-row"><div class="step-num">1</div><div class="step-body"><b>Sales → Konsinyasi</b> → klik tombol <b>🚀 Order dari Konsi</b> (kuning)</div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-body">Pilih customer FnB tujuan → payment method (Termin 3/7/30 hari)</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-body">Search produk → pilih dari list konsi partner (multi-partner OK) → add ke cart</div></div>
+    <div class="step-row"><div class="step-num">4</div><div class="step-body">Kalo mau reprice ke markup customer FnB: klik <b>🎯 Reprice ke Markup</b> (auto HPP × markup_pct)</div></div>
+    <div class="step-row"><div class="step-num">5</div><div class="step-body">Atau adjust manual per line di input harga (kalo mau kasih diskon khusus)</div></div>
+    <div class="step-row"><div class="step-num">6</div><div class="step-body">Klik <b>🚀 Buat Order + Faktur</b></div></div>
+    <div class="step-row"><div class="step-num">7</div><div class="step-body">Auto: konsi partner qty_retur ↑, order OFK-xxx tersimpan, invoice auto-generate, faktur otomatis kebuka</div></div>
+    <div class="result-box"><b>✅ Result:</b> 1 klik, no selisih akhir bulan. Konsi partner tau barang berkurang, customer FnB dapet order + faktur, gudang FP ga di-touch (barang langsung transfer).</div>
+  </div>
+
+  <!-- CASE 4.4 -->
+  <div class="case">
+    <div class="case-title">Case 4.4: Rekonsiliasi konsi akhir bulan</div>
+    <div class="case-scenario">
+      <b>Skenario:</b> Akhir September, perlu cocokin data konsi CRM dgn SO fisik di Sunset Farma
+    </div>
+    <div class="step-row"><div class="step-num">1</div><div class="step-body"><b>Sales → Konsinyasi</b> → filter outlet=Sunset Farma Group, filter bulan=Sep</div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-body">Buka <b>📜 History Retur</b> — liat total retur bulan itu ke gudang FP</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-body">Datangi Sunset Farma → hitung fisik SO → catat qty aktual sisa</div></div>
+    <div class="step-row"><div class="step-num">4</div><div class="step-body">Edit tiap row konsi → update <b>qty_terjual</b> dan <b>qty_retur</b> aktual → ubah status ke <b>Rekonsiliasi</b> atau <b>Lunas</b></div></div>
+    <div class="step-row"><div class="step-num">5</div><div class="step-body">Kalo ada selisih (barang hilang / rusak) → catat di catatan row tsb</div></div>
+    <div class="result-box"><b>✅ Result:</b> Data CRM match SO fisik. Ga bakal kecolongan 200jt kaya sebelum ada sistem 🎯</div>
+  </div>
+</div>
+
+<!-- ═══════ 5. CASE: ED ALERT ═══════ -->
+<div class="section" id="s5">
+  <h2><span class="section-num">5</span> Case: ED Alert (Barang Mau Expired)</h2>
+  <div class="section-sub">Cegah loss dari barang expired</div>
+
+  <div class="case">
+    <div class="case-title">Case 5.1: Monitor produk deket ED tiap Senin pagi</div>
+    <div class="case-scenario">
+      <b>Skenario:</b> Rutin Monday morning cek barang mau ED, action segera
+    </div>
+    <div class="step-row"><div class="step-num">1</div><div class="step-body"><b>Dashboard</b> → scroll ke <b>⚠️ ED Alert Watchlist</b> card</div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-body">List produk mau ED muncul dgn: outlet lokasi, produk, sisa qty, hari sampai ED</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-body">Klik 💬 <b>WA Partner</b> — auto message ke PIC partner: "Boss, sisa X unit ED tgl Y, tolong push jualan"</div></div>
+    <div class="step-row"><div class="step-num">4</div><div class="step-body">Kalo mau tarik ke gudang: pergi ke Konsinyasi tab → 🔁 Retur ke Gudang FP</div></div>
+    <div class="step-row"><div class="step-num">5</div><div class="step-body">Kalo mau transfer ke FnB langsung: pake fitur 🚀 Order dari Konsi</div></div>
+    <div class="result-box"><b>✅ Result:</b> ED loss dari 200jt/tahun bisa turun drastis kalo consistent tiap Senin.</div>
+  </div>
+
+  <div class="info"><b>💡 Golden Rule ED Management:</b><br>
+  • <b>90 hari</b> sebelum ED: Push sales, notif ke PIC partner<br>
+  • <b>60 hari</b> sebelum ED: Transfer ke konsi partner dgn margin lower<br>
+  • <b>30 hari</b> sebelum ED: Flash sale broadcast ke B2C customer<br>
+  • <b>&lt;15 hari</b>: Bundle dengan produk fast-mover (contoh: WGS + Amino Energy 50% off)
+  </div>
+</div>
+
+<!-- ═══════ 6. CASE: FINANCE ═══════ -->
+<div class="section" id="s6">
+  <h2><span class="section-num">6</span> Case: Finance & Kas</h2>
+  <div class="section-sub">Payment, pengeluaran, rekap kas bulanan</div>
+
+  <div class="case">
+    <div class="case-title">Case 6.1: Mark payment diterima (customer bayar invoice)</div>
+    <div class="step-row"><div class="step-num">1</div><div class="step-body"><b>Finance → Invoice</b> → cari invoice yg dibayar</div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-body">Klik 💰 <b>Mark Lunas</b> → status berubah, tgl_lunas auto-set today</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-body">Atau kalo mau input dgn detail: <b>Finance → Payment → + Payment</b> — isi invoice_id, nominal, metode, tanggal</div></div>
+    <div class="result-box"><b>✅ Result:</b> Kas masuk tercatat, piutang berkurang, muncul di Rekap Kas + Investor Dashboard.</div>
+  </div>
+
+  <div class="case">
+    <div class="case-title">Case 6.2: Input pengeluaran (gaji, sewa, ops, dll)</div>
+    <div class="step-row"><div class="step-num">1</div><div class="step-body"><b>Finance → Pengeluaran → + Tambah</b></div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-body">Isi kategori (Gaji, Sewa, Bensin, Ops, Marketing, dll), tanggal, nominal, keterangan</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-body">Simpan → auto muncul di Rekap Kas keluar</div></div>
+  </div>
+
+  <div class="case">
+    <div class="case-title">Case 6.3: Rekap Kas bulanan (closing)</div>
+    <div class="step-row"><div class="step-num">1</div><div class="step-body"><b>Finance → Rekap Kas</b> → pilih bulan → klik Tampilkan</div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-body">Isi <b>Kas Awal Bulan</b> (saldo akhir bulan lalu) → Simpan</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-body">Verifikasi angka:<br>&nbsp;&nbsp;• Total Kas Masuk (payment diterima)<br>&nbsp;&nbsp;• Total Kas Keluar (semua expenses)<br>&nbsp;&nbsp;• Saldo Akhir = Awal + Masuk − Keluar<br>&nbsp;&nbsp;• Piutang Outstanding (invoice belum lunas)</div></div>
+    <div class="step-row"><div class="step-num">4</div><div class="step-body">Cocokin sama mutasi rekening bank BCA — kalo selisih, cek transaksi mana yg missing</div></div>
+    <div class="step-row"><div class="step-num">5</div><div class="step-body">Kalo aman, <b>Dashboard → 💾 Snap Now</b> → save snapshot bulan tsb</div></div>
+    <div class="result-box"><b>✅ Result:</b> Closing bulan clean, snapshot tersimpan di History Bulanan, siap buat report investor.</div>
+  </div>
+</div>
+
+<!-- ═══════ 7. CASE: INVESTOR ═══════ -->
+<div class="section" id="s7">
+  <h2><span class="section-num">7</span> Case: Investor Management</h2>
+  <div class="section-sub">Share dashboard read-only ke investor, planning modal</div>
+
+  <div class="case">
+    <div class="case-title">Case 7.1: Kasih akses dashboard ke investor</div>
+    <div class="step-row"><div class="step-num">1</div><div class="step-body"><b>Settings → Investor Dashboard PIN</b> → set PIN custom (contoh: findest2024)</div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-body">Klik <b>📋 Copy Link</b> — dapetin URL investor.html</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-body">WA/email investor: kasih link + PIN</div></div>
+    <div class="step-row"><div class="step-num">4</div><div class="step-body">Investor buka link → input PIN → dashboard tampil live realtime</div></div>
+    <div class="result-box"><b>✅ Result:</b> Investor liat KPI, cash flow, top produk, chart 6 bulan trend — real-time, zero manual report bulanan.</div>
+  </div>
+
+  <div class="case">
+    <div class="case-title">Case 7.2: Simulator Suntikan Dana (planning modal)</div>
+    <div class="case-scenario">
+      <b>Skenario:</b> Investor tawarin suntikan Rp 500jt, mau tau BEP dan ROI berapa
+    </div>
+    <div class="step-row"><div class="step-num">1</div><div class="step-body"><b>Settings → 💉 Simulator Suntikan Dana</b> (scroll bawah)</div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-body">Isi 4 input:<br>&nbsp;• Modal: 500.000.000<br>&nbsp;• Target Omzet Bulanan: 100.000.000<br>&nbsp;• Gross Margin %: 18<br>&nbsp;• Biaya Ops Bulanan: 40.000.000</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-body">Sistem auto-compute: Gross Profit, Net Profit, BEP bulan, ROI 12 bulan, proyeksi 12 bulan</div></div>
+    <div class="step-row"><div class="step-num">4</div><div class="step-body">Rekomendasi: "BEP tercapai 8 bulan → suggest tenor Convertible Loan 14-20 bulan"</div></div>
+    <div class="result-box"><b>✅ Result:</b> Angka konkret buat pitch investor, ga cuma feeling.</div>
+  </div>
+</div>
+
+<!-- ═══════ 8. PANDUAN PER ROLE ═══════ -->
+<div class="section" id="s8">
+  <h2><span class="section-num">8</span> Panduan Per Role (4 Orang Tim)</h2>
+  <div class="section-sub">Task harian + prioritas per orang</div>
+
+  <div class="role-card">
+    <div class="role-head">
+      <div class="role-icon gm">👔</div>
+      <div><div class="role-name">Fazar (GM)</div><div class="role-desc">Decision maker, monitoring bisnis, investor</div></div>
+    </div>
+    <div class="task-list">
+      <div class="task"><div class="task-name">🌅 Pagi (5 menit)</div><div class="task-desc">Buka Dashboard, cek KPI hari ini, ED Alert Watchlist</div></div>
+      <div class="task"><div class="task-name">📋 Weekly</div><div class="task-desc">Review Order Monitor, konsi status, decision besar</div></div>
+      <div class="task"><div class="task-name">📅 Monthly Closing</div><div class="task-desc">Rekap Kas, Snap Now, review Investor Dashboard</div></div>
+      <div class="task"><div class="task-name">💼 Investor</div><div class="task-desc">Share PIN, monitoring feedback investor</div></div>
+      <div class="task"><div class="task-name">🎯 Planning</div><div class="task-desc">Simulator Suntikan Dana, projection</div></div>
     </div>
   </div>
 
-  <h2>🚨 Emergency Contact</h2>
-  <div class="card">
-    <b>Tech Support / Bug Report:</b><br>
-    <span style="font-size:12px;color:var(--text-2)">Kalo sistem down, error blocker, atau data hilang — screenshot + kirim ke tech tim.</span>
+  <div class="role-card">
+    <div class="role-head">
+      <div class="role-icon admin">📝</div>
+      <div><div class="role-name">Admin / Finance</div><div class="role-desc">Input transaksi, faktur, kas, rekonsiliasi</div></div>
+    </div>
+    <div class="task-list">
+      <div class="task"><div class="task-name">📦 Order Confirm</div><div class="task-desc">Order Monitor: konfirmasi order, ubah status</div></div>
+      <div class="task"><div class="task-name">🧾 Faktur</div><div class="task-desc">Print faktur pas order Selesai (auto-invoice)</div></div>
+      <div class="task"><div class="task-name">💳 Payment</div><div class="task-desc">Mark Lunas + input payment detail</div></div>
+      <div class="task"><div class="task-name">📤 Pengeluaran</div><div class="task-desc">Input expenses harian</div></div>
+      <div class="task"><div class="task-name">📊 Rekap Kas</div><div class="task-desc">Closing bulanan + verifikasi bank</div></div>
+    </div>
   </div>
 
-  <div class="tip">
-    <b>💡 Tips Umum:</b><br>
-    • <b>Hard refresh</b> kalo UI aneh: Safari → clear cache, Chrome → Ctrl+Shift+R<br>
-    • <b>Backup rutin</b>: Reset Data Trial auto-archive sebelum wipe (Riwayat Historis Detail)<br>
-    • <b>Konsi rekonsiliasi</b> tiap akhir bulan biar SO fisik match sama sistem
+  <div class="role-card">
+    <div class="role-head">
+      <div class="role-icon sales">📦</div>
+      <div><div class="role-name">Sales / Gudang</div><div class="role-desc">QR customer, konsi, ED, retur, stock</div></div>
+    </div>
+    <div class="task-list">
+      <div class="task"><div class="task-name">🏷️ Generate QR</div><div class="task-desc">Customer baru → generate QR + kasih fisik</div></div>
+      <div class="task"><div class="task-name">🔄 Konsi Track</div><div class="task-desc">Monitor sisa titipan per partner</div></div>
+      <div class="task"><div class="task-name">🔁 Retur</div><div class="task-desc">Tarik barang dari konsi ke gudang</div></div>
+      <div class="task"><div class="task-name">🚀 OFK</div><div class="task-desc">Transfer konsi → customer FnB langsung</div></div>
+      <div class="task"><div class="task-name">⚠️ ED Alert</div><div class="task-desc">Monday cek ED Watchlist, action</div></div>
+      <div class="task"><div class="task-name">📦 Batch Input</div><div class="task-desc">Input batch masuk gudang dgn ED per batch</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ 9. MONTHLY CLOSING ═══════ -->
+<div class="section" id="s9">
+  <h2><span class="section-num">9</span> Monthly Closing Checklist</h2>
+  <div class="section-sub">Ritual akhir bulan biar clean report + no selisih</div>
+
+  <div class="checklist">
+    <div class="check-item"><div class="check-box"></div><div><b>Rekonsiliasi Konsi</b> — datangi Sunset Farma, SO fisik, update qty_terjual + qty_retur di CRM</div></div>
+    <div class="check-item"><div class="check-box"></div><div><b>Update semua status invoice</b> — mark Lunas yg udah dibayar</div></div>
+    <div class="check-item"><div class="check-box"></div><div><b>Input semua pengeluaran</b> bulan itu (gaji, sewa, ops, bensin, dll)</div></div>
+    <div class="check-item"><div class="check-box"></div><div><b>Finance → Rekap Kas</b> pilih bulan → isi kas awal → cek saldo akhir</div></div>
+    <div class="check-item"><div class="check-box"></div><div><b>Verifikasi vs mutasi BCA</b> — kalo selisih, cari transaksi missing</div></div>
+    <div class="check-item"><div class="check-box"></div><div><b>Dashboard → 💾 Snap Now</b> — save snapshot bulan tsb</div></div>
+    <div class="check-item"><div class="check-box"></div><div><b>Review Investor Dashboard</b> — pastiin KPI muncul semua bener</div></div>
+    <div class="check-item"><div class="check-box"></div><div><b>Cek ED Watchlist</b> — action barang deket ED buat bulan depan</div></div>
+    <div class="check-item"><div class="check-box"></div><div><b>Backup mental: screenshot dashboard</b> buat arsip</div></div>
   </div>
 
-  <div style="text-align:center;margin-top:40px;padding-top:24px;border-top:2px solid var(--border);font-size:11px;color:var(--text-muted)">
-    Findest Sport Nutrition — Internal Use Only<br>
-    Dokumen ini dibuat untuk 4 tim inti Findest. Tempel di dinding kantor untuk quick reference.
+  <div class="warn"><b>⚠️ Peringatan:</b> Jangan reset Data Trial tiap bulan. Cukup Snap Now aja. Reset cuma dilakukan kalo lu mau full clean slate (misal awal tahun baru). Reset otomatis archive semua detail ke *_archive tables — accessible via 🔍 Cari Detail.</div>
+</div>
+
+<!-- ═══════ 10. FAQ & TROUBLESHOOT ═══════ -->
+<div class="section" id="s10">
+  <h2><span class="section-num">10</span> FAQ & Troubleshooting</h2>
+  <div class="section-sub">Masalah umum + solusi cepat</div>
+
+  <h3>❓ Order/Login</h3>
+  <table>
+    <thead><tr><th>Problem</th><th>Solusi</th></tr></thead>
+    <tbody>
+      <tr><td>Order dari catalog gak muncul di CRM</td><td>Refresh Order Monitor (↻ button), cek internet</td></tr>
+      <tr><td>Login CRM gagal / tombol Masuk stuck</td><td>Hard refresh (Ctrl+Shift+R), clear browser cache</td></tr>
+      <tr><td>Order Monitor: PIN salah</td><td>Default findest2024, atau cek Settings → PIN admin</td></tr>
+    </tbody>
+  </table>
+
+  <h3>❓ Konsi</h3>
+  <table>
+    <thead><tr><th>Problem</th><th>Solusi</th></tr></thead>
+    <tbody>
+      <tr><td>Konsi partner scan QR, gak masuk ke tab Konsinyasi</td><td>Pastikan customer.sistem='Konsinyasi'. Trigger phase 14 perlu applied.</td></tr>
+      <tr><td>Retur error: "function not found"</td><td>Phase 12 SQL belum applied. Run di Supabase.</td></tr>
+      <tr><td>Order dari Konsi: harga default terlalu tinggi</td><td>Klik 🎯 Reprice ke Markup — auto-sesuaikan sama markup customer</td></tr>
+    </tbody>
+  </table>
+
+  <h3>❓ Faktur / Print</h3>
+  <table>
+    <thead><tr><th>Problem</th><th>Solusi</th></tr></thead>
+    <tbody>
+      <tr><td>ED column di faktur kosong</td><td>Pastikan batches tsb udah input dgn ED date. Sistem auto-fetch FIFO.</td></tr>
+      <tr><td>Faktur multi-item ga muat 1 halaman</td><td>Sistem auto-compress kalo 9+ items. Kalo tetap ga muat, adjust manual.</td></tr>
+      <tr><td>Pop-up blocked saat print faktur</td><td>Allow pop-up di browser settings buat findestsport.github.io</td></tr>
+    </tbody>
+  </table>
+
+  <h3>❓ Investor Dashboard</h3>
+  <table>
+    <thead><tr><th>Problem</th><th>Solusi</th></tr></thead>
+    <tbody>
+      <tr><td>PIN salah walau udah bener</td><td>Cek Settings → Investor PIN, save Semua, hard refresh investor.html</td></tr>
+      <tr><td>Data ga live update</td><td>Phase 17 realtime SQL belum applied</td></tr>
+      <tr><td>Badge LIVE jadi kuning "RECONNECTING"</td><td>Cek internet investor. Auto-reconnect pas online.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>❓ Markup / Harga</h3>
+  <table>
+    <thead><tr><th>Problem</th><th>Solusi</th></tr></thead>
+    <tbody>
+      <tr><td>Harga di catalog ga sesuai markup customer</td><td>Sales → Customer → edit tsb → set markup_pct</td></tr>
+      <tr><td>Public catalog (tanpa QR) tampil HPP</td><td>Settings → Catalog Default Markup, isi 20% (biar HPP ga bocor)</td></tr>
+      <tr><td>Nominal input tanpa titik ribuan</td><td>Sistem auto-format saat ngetik. Kalo ga jalan, hard refresh.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="warn"><b>🚨 Emergency</b> — kalo sistem down / error blocker / data missing → screenshot + kirim ke tech tim.</div>
+</div>
+
+<!-- ═══════ FOOTER ═══════ -->
+<div style="text-align:center;padding:32px 20px 20px;font-size:11px;color:var(--text-muted);line-height:1.6">
+  <div style="font-weight:700;color:var(--text);margin-bottom:6px">Findest Sport Nutrition CRM</div>
+  <div>Complete Reference Guide · Internal Use Only</div>
+  <div style="margin-top:6px">Latest update: Sep 2026 · v1.0 · Dibuat buat 4 tim inti Findest</div>
+  <div style="margin-top:14px;font-size:10px">
+    🔗 Bookmark:<br>
+    <span class="link">findestsport.github.io/Findest-crm/panduan.html</span>
   </div>
 </div>
 
