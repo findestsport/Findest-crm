@@ -755,6 +755,52 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
     <div class="kpi" style="--kc:var(--orange)"><div class="kpi-label">ED Alert</div><div class="kpi-val c-gold" id="d-ed">–</div><div class="kpi-sub">Unit total</div></div>
   </div>
 
+  <!-- ═══════ CHANNEL FOCUS DASHBOARD ═══════ -->
+  <div class="card" id="channel-focus-card" style="margin-bottom:14px">
+    <div class="card-h">
+      <div>
+        <div class="card-title">🎯 Focus Minggu Ini — Genjot Channel Mana?</div>
+        <div class="card-sub">Auto-analyze mix revenue vs target. Kasih action items concrete buat tim.</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="openMo('mo-channel-target');initChannelTargetModal()" title="Set target mix">⚙️ Target</button>
+    </div>
+    <div id="channel-focus-content" style="padding:4px 0">
+      <div class="empty"><div class="empty-icon">🎯</div><div class="empty-txt">Memuat channel data…</div></div>
+    </div>
+  </div>
+
+  <!-- Modal: set target channel mix -->
+  <div class="mo" id="mo-channel-target">
+    <div class="mo-box">
+      <div class="mo-h">
+        <div class="mo-title">🎯 Set Target Channel Mix</div>
+        <button class="mo-x" onclick="closeMo('mo-channel-target')">×</button>
+      </div>
+      <div class="mo-b">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;line-height:1.5">
+          Target % revenue per channel. Total harus 100%. Sistem bakal rekomendasi push channel yg gap terbesar.
+        </div>
+        <div class="fg">
+          <label class="fl">🍔 Target F&B (%)</label>
+          <input class="fi" type="number" id="tgt-mix-fnb" placeholder="50" min="0" max="100" step="1"/>
+        </div>
+        <div class="fg">
+          <label class="fl">🏪 Target Konsinyasi (%)</label>
+          <input class="fi" type="number" id="tgt-mix-konsi" placeholder="40" min="0" max="100" step="1"/>
+        </div>
+        <div class="fg">
+          <label class="fl">🛒 Target Public/Retail (%)</label>
+          <input class="fi" type="number" id="tgt-mix-public" placeholder="10" min="0" max="100" step="1"/>
+        </div>
+        <div id="tgt-mix-total" style="text-align:right;font-size:12px;color:var(--text-muted);margin-top:6px">Total: 0%</div>
+      </div>
+      <div class="mo-f">
+        <button class="btn btn-ghost" onclick="closeMo('mo-channel-target')">Batal</button>
+        <button class="btn btn-primary" onclick="saveChannelTarget()">💾 Simpan Target</button>
+      </div>
+    </div>
+  </div>
+
   <div class="g2">
     <div class="card">
       <div class="card-h">
@@ -4034,6 +4080,7 @@ function updateDashboard() {
   updateTopProducts();
   updateTopCustomers();
   updateAgingPiutang();
+  updateChannelFocus(); // Channel Focus recommendation
   // Sales Intelligence — GM only
   const siSection = document.getElementById('sales-intel-section');
   if(siSection) {
@@ -4071,6 +4118,181 @@ function updatePiutangBadge() {
   } else if(badge) {
     badge.remove();
   }
+}
+
+// ════════════════════════════════════════════
+// CHANNEL FOCUS — auto-analyze mix vs target
+// ════════════════════════════════════════════
+async function updateChannelFocus() {
+  const el = document.getElementById('channel-focus-content');
+  if(!el) return;
+
+  // Load target from config
+  const targetFnb   = parseFloat(appConfig?.target_mix_fnb || 50);
+  const targetKonsi = parseFloat(appConfig?.target_mix_konsi || 40);
+  const targetPub   = parseFloat(appConfig?.target_mix_public || 10);
+
+  // Get bulan ini orders
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  const monthOrders = (cache.orders||[]).filter(o => {
+    if(!o.created_at) return false;
+    if(o.status === 'Batal' || o.status === 'Dibatalkan') return false;
+    return o.created_at.slice(0,10) >= monthStart;
+  });
+
+  const total = monthOrders.reduce((s,o) => s + (o.total_nilai||0), 0);
+
+  // Classify per channel
+  const revByChannel = { fnb: 0, konsi: 0, public: 0 };
+  monthOrders.forEach(o => {
+    const sistem = (o.channel_sistem||'').toLowerCase();
+    const tipe = (o.channel_tipe||'').toLowerCase();
+    if(sistem.includes('konsinyasi') || tipe.includes('konsi')) revByChannel.konsi += o.total_nilai||0;
+    else if(tipe.includes('f&b') || tipe.includes('fnb') || tipe.includes('cafe') || tipe.includes('gym')) revByChannel.fnb += o.total_nilai||0;
+    else revByChannel.public += o.total_nilai||0;
+  });
+
+  const pct = (v) => total > 0 ? (v / total * 100) : 0;
+  const actualFnb = pct(revByChannel.fnb);
+  const actualKonsi = pct(revByChannel.konsi);
+  const actualPub = pct(revByChannel.public);
+
+  // Determine biggest gap → recommend push
+  const channels = [
+    {key:'fnb', label:'F&B (Cafe/Gym)', emoji:'🍔', actual: actualFnb, target: targetFnb, color:'var(--gold)'},
+    {key:'konsi', label:'Konsinyasi', emoji:'🏪', actual: actualKonsi, target: targetKonsi, color:'var(--teal)'},
+    {key:'public', label:'Public/Retail', emoji:'🛒', actual: actualPub, target: targetPub, color:'var(--purple)'}
+  ];
+  channels.forEach(c => c.gap = c.target - c.actual);
+  const priority = [...channels].sort((a,b) => b.gap - a.gap)[0];
+
+  // Kalo total 0 → tampilkan setup hint
+  if(total === 0) {
+    el.innerHTML = `<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px">Belum ada revenue bulan ini. Bikin order dulu buat lihat channel mix.</div>`;
+    return;
+  }
+
+  // Bar renderer
+  const bar = (c) => {
+    const status = c.gap > 5 ? '🔴 BELOW' : c.gap > -5 ? '🟢 ON-TRACK' : '🟢 EXCEED';
+    const statusColor = c.gap > 5 ? 'var(--red)' : 'var(--green)';
+    return `
+      <div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;font-size:13px">
+          <span><b>${c.emoji} ${c.label}</b></span>
+          <span style="color:var(--text-muted);font-size:12px">${c.actual.toFixed(1)}% / target ${c.target}% · <span style="color:${statusColor};font-weight:700">${status}</span></span>
+        </div>
+        <div style="position:relative;height:12px;background:var(--surface2);border-radius:6px;overflow:hidden">
+          <div style="position:absolute;left:0;top:0;bottom:0;background:${c.color};width:${Math.min(c.actual,100)}%;transition:width .4s"></div>
+          <div style="position:absolute;left:${Math.min(c.target,100)}%;top:-2px;bottom:-2px;width:2px;background:var(--text);z-index:2" title="Target ${c.target}%"></div>
+        </div>
+      </div>`;
+  };
+
+  // Recommended actions per channel
+  const actionMap = {
+    fnb: `
+      <li><b>Kontak 5 cafe/gym dormant</b> — customer F&B yg ga order 30+ hari, WA follow-up</li>
+      <li><b>Broadcast promo bundling F&B</b> via Fonnte (contoh: WGS 1kg + Amino = harga khusus cafe)</li>
+      <li><b>Sales visit 3 lead F&B baru</b> minggu ini — kafe protein bowl, gym cafe di area Denpasar Selatan</li>
+      <li><b>Tawarin sample gratis</b> ke 2-3 cafe premium buat introduce ke menu mereka</li>`,
+    konsi: `
+      <li><b>Visit 3 outlet Konsi</b> — cek ED, retur, restock kalo perlu</li>
+      <li><b>Tawarin Konsi ke 2 apotek baru</b> di area Ubud/Kuta (partner Sunset Farma bisa jadi referral)</li>
+      <li><b>Rekonsiliasi Konsi bulan berjalan</b> — cek qty terjual vs titip, tagih pembayaran</li>
+      <li><b>Update katalog Konsi</b> — kirim WA daftar produk fast mover ke perwakilan outlet</li>`,
+    public: `
+      <li><b>Aktifin catalog public link</b> — share ke gym owner grup WA</li>
+      <li><b>Iklan lokal minim budget</b> — Instagram post produk best-seller</li>
+      <li><b>Retention repeat buyer</b> — Fonnte broadcast promo balik lagi ke customer yg pernah order</li>
+      <li><b>Referral program</b> — customer refer 3 orang dapet diskon 5%</li>`
+  };
+
+  // Verdict
+  let verdict, verdictColor;
+  if(priority.gap > 10) {
+    verdict = `🚨 URGENT: Push <b>${priority.label}</b> minggu ini — gap ${priority.gap.toFixed(1)}pp di bawah target`;
+    verdictColor = 'var(--red)';
+  } else if(priority.gap > 3) {
+    verdict = `⚠️ Push <b>${priority.label}</b> — gap ${priority.gap.toFixed(1)}pp masih di bawah target`;
+    verdictColor = 'var(--gold)';
+  } else {
+    verdict = `✅ Mix seimbang! Semua channel on-track. Maintenance mode.`;
+    verdictColor = 'var(--green)';
+  }
+
+  el.innerHTML = `
+    <div style="padding:14px 16px;background:rgba(255,255,255,0.03);border-radius:8px;border-left:3px solid ${verdictColor};margin-bottom:16px;font-size:13px">
+      ${verdict}
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;margin-bottom:16px">
+      <div>
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:12px">📊 Current Mix vs Target</div>
+        ${channels.map(bar).join('')}
+        <div style="font-size:11px;color:var(--text-muted);margin-top:8px">
+          Total revenue bulan ini: <b>${fmt(total)}</b> · ${monthOrders.length} order
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:12px">🎯 Action Items — Push ${priority.label}</div>
+        <ul style="list-style:none;padding:0;margin:0;font-size:12.5px;line-height:1.6">
+          ${actionMap[priority.key] || '<li>Set target mix dulu (klik ⚙️ Target di atas)</li>'}
+        </ul>
+        <div style="margin-top:12px;padding:10px;background:rgba(13,148,136,.08);border-radius:6px;font-size:11px;color:var(--text-muted);line-height:1.5">
+          💡 Bagi action items ini ke tim di weekly meeting. Track progress di Sales tab tiap Jumat sore.
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function saveChannelTarget() {
+  const fnb = parseFloat(document.getElementById('tgt-mix-fnb').value) || 0;
+  const konsi = parseFloat(document.getElementById('tgt-mix-konsi').value) || 0;
+  const pub = parseFloat(document.getElementById('tgt-mix-public').value) || 0;
+  const total = fnb + konsi + pub;
+  if(Math.abs(total - 100) > 0.1) { showToast('Total harus 100% (sekarang '+total+'%)', 'error'); return; }
+
+  try {
+    await sb.from('config').upsert([
+      {key:'target_mix_fnb', value: String(fnb)},
+      {key:'target_mix_konsi', value: String(konsi)},
+      {key:'target_mix_public', value: String(pub)}
+    ]);
+    if(!appConfig) appConfig = {};
+    appConfig.target_mix_fnb = fnb;
+    appConfig.target_mix_konsi = konsi;
+    appConfig.target_mix_public = pub;
+    showToast('✅ Target mix tersimpan');
+    closeMo('mo-channel-target');
+    updateChannelFocus();
+  } catch(e) {
+    showToast('Gagal: '+e.message, 'error');
+  }
+}
+
+// Auto-open target modal: pre-fill dari config + live total counter
+function initChannelTargetModal() {
+  const fnbEl = document.getElementById('tgt-mix-fnb');
+  const konsiEl = document.getElementById('tgt-mix-konsi');
+  const pubEl = document.getElementById('tgt-mix-public');
+  if(!fnbEl) return;
+  fnbEl.value = appConfig?.target_mix_fnb || 50;
+  konsiEl.value = appConfig?.target_mix_konsi || 40;
+  pubEl.value = appConfig?.target_mix_public || 10;
+  const updateTotal = () => {
+    const t = (parseFloat(fnbEl.value)||0) + (parseFloat(konsiEl.value)||0) + (parseFloat(pubEl.value)||0);
+    const totalEl = document.getElementById('tgt-mix-total');
+    if(totalEl) {
+      totalEl.textContent = 'Total: ' + t + '%';
+      totalEl.style.color = Math.abs(t-100) < 0.1 ? 'var(--green)' : 'var(--red)';
+    }
+  };
+  [fnbEl, konsiEl, pubEl].forEach(el => el.oninput = updateTotal);
+  updateTotal();
 }
 
 // ════════════════════════════════════════════
