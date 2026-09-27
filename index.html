@@ -5414,6 +5414,53 @@ function simBonus() {
 }
 
 // Simulator Suntikan Dana — investor projection
+async function fillSimFromCRM() {
+  // Auto-fill simulator dgn data real dari CRM
+  const now = new Date();
+  const startMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+
+  try {
+    // Ops actual bulan ini (from expenses)
+    const {data: exps} = await sb.from('expenses').select('nominal,tgl').gte('tgl', startMonth);
+    const opsActual = (exps||[]).reduce((s,e)=>s+(e.nominal||0),0);
+
+    // Omzet actual = payments diterima bulan ini (yg beneran cash masuk)
+    const {data: pays} = await sb.from('payments').select('jumlah,tanggal_bayar').gte('tanggal_bayar', startMonth);
+    const omzetActual = (pays||[]).reduce((s,p)=>s+(p.jumlah||0),0);
+
+    // Blended margin: dari 30 order terakhir (Selesai)
+    const {data: orders} = await sb.from('orders').select('produk_json,total_nilai').eq('status','Selesai').order('id',{ascending:false}).limit(30);
+    let totalRev=0, totalHpp=0;
+    (orders||[]).forEach(o => {
+      const items = o.produk_json || [];
+      totalRev += o.total_nilai || 0;
+      items.forEach(it => {
+        const p = (cache.products||[]).find(x=>x.id===it.product_id);
+        const hpp = p ? (p.hpp || 0) : 0;
+        totalHpp += hpp * (it.qty || 0);
+      });
+    });
+    const marginActual = totalRev > 0 ? Math.round((totalRev - totalHpp) / totalRev * 1000) / 10 : 20;
+
+    // Isi input (kalo kosong)
+    const setIfEmpty = (id, val, formatter=fmtInputRp) => {
+      const el = document.getElementById(id);
+      if(el && !el.value && val > 0) el.value = formatter(val);
+    };
+    const fmtInputRp = (n) => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+    setIfEmpty('sim-omzet-bulanan', omzetActual);
+    setIfEmpty('sim-ops', opsActual);
+    const mEl = document.getElementById('sim-margin');
+    if(mEl && (!mEl.value || parseFloat(mEl.value) === 18) && marginActual > 0) mEl.value = marginActual;
+
+    showToast('✅ Data actual dari CRM ke-load');
+    simSuntikanDana();
+  } catch(e) {
+    showToast('Gagal load: '+e.message, 'error');
+  }
+}
+
 function simSuntikanDana() {
   const modal   = parseRp(document.getElementById('sim-modal')?.value)||0;
   const omzetB  = parseRp(document.getElementById('sim-omzet-bulanan')?.value)||0;
@@ -5422,7 +5469,12 @@ function simSuntikanDana() {
   const el = document.getElementById('sim-suntikan-result');
   if(!el) return;
   if(modal <= 0 || omzetB <= 0 || margin <= 0) {
-    el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px">Isi 4 input di atas → proyeksi otomatis muncul</div>';
+    el.innerHTML = `<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px">
+      Isi 4 input di atas → proyeksi otomatis muncul<br>
+      <button onclick="fillSimFromCRM()" style="margin-top:12px;background:var(--text);color:var(--white);border:none;padding:10px 20px;border-radius:100px;font-size:13px;font-weight:600;cursor:pointer">
+        ⚡ Auto-fill dari data CRM real
+      </button>
+    </div>`;
     return;
   }
 
@@ -5447,6 +5499,85 @@ function simSuntikanDana() {
   for(let m=1; m<=24; m++) cumNet.push(m * netProfitB - modal);
   const bepIdx = cumNet.findIndex(v => v >= 0);
   const bepMonth = bepIdx >= 0 ? bepIdx + 1 : null;
+
+  // ═══ TARGET METRICS (yg harus dicapai) ═══
+  const bossInterestM = modal * 0.10 / 12; // 10% p.a. = monthly interest
+  const marginDecimal = margin / 100;
+  // Target 1: Break-even omzet (gross = ops)
+  const target1_bepOmzet = marginDecimal > 0 ? opsB / marginDecimal : 0;
+  // Target 2: Cover Boss return (ops + bunga Boss)
+  const target2_bossOmzet = marginDecimal > 0 ? (opsB + bossInterestM) / marginDecimal : 0;
+  // Target 3: Scale (30% growth from current)
+  const target3_scaleOmzet = omzetB * 1.3;
+  // Recommended margin (kalo omzet fixed, margin minimum brp)
+  const recommendedMargin = omzetB > 0 ? Math.ceil((opsB + bossInterestM) / omzetB * 1000) / 10 : 0;
+
+  const compareStatus = (current, target) => {
+    if(current >= target * 1.2) return {icon:'🟢', color:'var(--green)', label:'EXCEED', desc:'Di atas target'};
+    if(current >= target) return {icon:'🟢', color:'var(--green)', label:'ON-TRACK', desc:'Tercapai'};
+    if(current >= target * 0.8) return {icon:'🟡', color:'var(--gold)', label:'CLOSE', desc:'Dekat target'};
+    return {icon:'🔴', color:'var(--red)', label:'BELOW', desc:'Perlu push'};
+  };
+
+  const s1 = compareStatus(omzetB, target1_bepOmzet);
+  const s2 = compareStatus(omzetB, target2_bossOmzet);
+  const s3 = compareStatus(omzetB, target3_scaleOmzet);
+
+  // Actionable advice based on scenario
+  let adviceHTML = '';
+  if(netProfitB < 0) {
+    adviceHTML = `
+      <div style="padding:14px;background:rgba(220,38,38,.08);border-left:3px solid var(--red);border-radius:8px;margin-top:12px">
+        <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:6px">🚨 URGENT: Bisnis BUNTUNG</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.6">
+          <b>Diagnosa:</b> Ops (${fmt(opsB)}/bln) > Gross Profit (${fmt(grossProfitB)}/bln) = tekor ${fmt(Math.abs(netProfitB))}/bulan.<br><br>
+          <b>3 Action items (prioritas):</b><br>
+          1. <b>Naikin omzet ke min ${fmt(target1_bepOmzet)}/bln</b> — biar gross = ops (impas)<br>
+          2. <b>Tekan ops turun ${fmt(Math.abs(netProfitB))}/bln</b> — audit gaji, sewa, marketing<br>
+          3. <b>Naikin margin ke ${recommendedMargin}%+</b> — cherry-pick produk fast mover, hindari deep discount
+        </div>
+      </div>`;
+  } else if(omzetB < target2_bossOmzet) {
+    adviceHTML = `
+      <div style="padding:14px;background:rgba(217,119,6,.08);border-left:3px solid var(--gold);border-radius:8px;margin-top:12px">
+        <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:6px">⚠️ Untung tapi BELUM cover return Boss</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.6">
+          <b>Net profit:</b> +${fmt(netProfitB)}/bln — tapi target Boss butuh ${fmt(bossInterestM)}/bln (10% p.a.).<br><br>
+          <b>Gap:</b> ${fmt(bossInterestM - netProfitB)}/bulan. <br><br>
+          <b>Action:</b><br>
+          1. <b>Push omzet ke ${fmt(target2_bossOmzet)}/bln</b> (naik ${(((target2_bossOmzet-omzetB)/omzetB)*100).toFixed(1)}%) — biar Boss dapet fixed 10% p.a.<br>
+          2. <b>Atau nego Boss</b>: bulan 1-3 pause return, mulai bulan 4 mulai jalan (warming period)<br>
+          3. <b>Reinvest netto</b> ${fmt(netProfitB)}/bln buat marketing → growth omzet
+        </div>
+      </div>`;
+  } else if(omzetB < target3_scaleOmzet) {
+    adviceHTML = `
+      <div style="padding:14px;background:rgba(13,148,136,.08);border-left:3px solid var(--teal);border-radius:8px;margin-top:12px">
+        <div style="font-size:13px;font-weight:700;color:var(--teal);margin-bottom:6px">✅ SEHAT — Ready buat Fase Scale</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.6">
+          <b>Kondisi:</b> Bisnis untung ${fmt(netProfitB)}/bln, sudah cover return Boss ${fmt(bossInterestM)}/bln. 🎉<br><br>
+          <b>Next milestone:</b> Push omzet ke ${fmt(target3_scaleOmzet)}/bln (scale mode) buat:<br>
+          &nbsp;• Bonus performance Boss (di atas fixed 10%)<br>
+          &nbsp;• Reserve buat ekspansi (buka outlet baru, hire sales)<br>
+          &nbsp;• Buffer cashflow (kalo customer telat bayar 1-2 bulan)<br><br>
+          <b>BEP:</b> ${bepMonth} bulan · <b>ROI 12 bln:</b> ${roi12.toFixed(1)}%. Cocok pitch tenor ${Math.max(bepMonth+6,18)}-${bepMonth+12} bulan.
+        </div>
+      </div>`;
+  } else {
+    adviceHTML = `
+      <div style="padding:14px;background:rgba(5,150,105,.1);border-left:3px solid var(--green);border-radius:8px;margin-top:12px">
+        <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:6px">🚀 EXCELLENT — Scale Mode</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.6">
+          <b>Perfect scenario.</b> Omzet ${fmt(omzetB)}/bln = 30%+ di atas target scale.<br><br>
+          <b>Rekomendasi:</b><br>
+          &nbsp;• Boss dapet fixed 10% + bonus performance ~20% dari untung di atas ${fmt(target2_bossOmzet)}<br>
+          &nbsp;• Reinvest 40-50% net profit buat expansion<br>
+          &nbsp;• Ekuitas year-end proyeksi: ${fmt(modal + net12)}<br>
+          &nbsp;• Boss ROI: ${roi12.toFixed(1)}% (jauh di atas deposito 5%)<br><br>
+          <b>Long-term:</b> Fase 2 (year 2) bisa top-up modal ${fmt(modal*0.5)} buat capture market share Bali.
+        </div>
+      </div>`;
+  }
 
   const stateBadge = (v, positive='✅ SEHAT', negative='⚠️ BUNTUNG') =>
     v >= 0 ? `<span style="color:var(--green);font-weight:700">${positive}</span>` : `<span style="color:var(--red);font-weight:700">${negative}</span>`;
@@ -5493,10 +5624,46 @@ function simSuntikanDana() {
       </div>
     </div>
 
-    <div style="margin-top:14px;padding:10px 14px;background:${bepMonth ? 'rgba(13,148,136,.08)':'rgba(220,38,38,.08)'};border-radius:8px;border-left:3px solid ${bepMonth?'var(--teal)':'var(--red)'};font-size:12px;line-height:1.5">
-      ${bepMonth
-        ? `💡 <b>Rekomendasi:</b> Dengan omzet ${fmt(omzetB)}/bulan, modal Rp ${(modal/1e6).toFixed(0)}jt balik dalam <b>${bepMonth} bulan</b>. Setelah itu net profit ${fmt(netProfitB)}/bulan = pure keuntungan. Cocok buat pitch investor Convertible Loan tenor ${Math.max(bepMonth+6, 18)}-${bepMonth+12} bulan.`
-        : `⚠️ <b>Warning:</b> Ops cost (${fmt(opsB)}/bln) > gross profit (${fmt(grossProfitB)}/bln) — buntung tiap bulan. <b>Solusi:</b> naikin omzet target ke min ${fmt(Math.ceil(opsB/(margin/100)))}, atau tekan ops cost, atau naikin margin.`}
+    <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px">🎯 Target Omzet yg Harus Dicapai</div>
+        <button onclick="fillSimFromCRM()" style="background:none;border:1px solid var(--border);padding:5px 12px;border-radius:100px;font-size:11px;font-weight:600;cursor:pointer;color:var(--text)">⚡ Sync CRM</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;font-size:12px">
+
+        <div style="background:var(--surface2);padding:12px;border-radius:8px;border-left:3px solid ${s1.color}">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <span style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">1. Break-Even</span>
+            <span style="font-size:10px;font-weight:700;color:${s1.color}">${s1.icon} ${s1.label}</span>
+          </div>
+          <div style="font-size:16px;font-weight:800;color:var(--text)">${fmt(target1_bepOmzet)}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Impas (gross = ops). Current: ${fmt(omzetB)}</div>
+        </div>
+
+        <div style="background:var(--surface2);padding:12px;border-radius:8px;border-left:3px solid ${s2.color}">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <span style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">2. Cover Boss 10% p.a.</span>
+            <span style="font-size:10px;font-weight:700;color:${s2.color}">${s2.icon} ${s2.label}</span>
+          </div>
+          <div style="font-size:16px;font-weight:800;color:var(--text)">${fmt(target2_bossOmzet)}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Boss dapet ${fmt(bossInterestM)}/bln (${fmt(bossInterestM*12)}/thn)</div>
+        </div>
+
+        <div style="background:var(--surface2);padding:12px;border-radius:8px;border-left:3px solid ${s3.color}">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <span style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">3. Scale Mode</span>
+            <span style="font-size:10px;font-weight:700;color:${s3.color}">${s3.icon} ${s3.label}</span>
+          </div>
+          <div style="font-size:16px;font-weight:800;color:var(--text)">${fmt(target3_scaleOmzet)}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">30% growth dari current buat expansion</div>
+        </div>
+      </div>
+    </div>
+
+    ${adviceHTML}
+
+    <div style="margin-top:14px;padding:10px 14px;background:var(--surface2);border-radius:8px;font-size:11px;line-height:1.6;color:var(--text-muted)">
+      💡 <b>Panduan baca angka:</b> Break-even = wajib capai biar ga rugi · Cover Boss = target realistis 6 bulan pertama · Scale Mode = target ideal buat ekspansi & bonus performance. <b>Sync CRM</b> tarik data actual (omzet payments diterima, ops expenses, margin blended dari orders).
     </div>
   `;
 }
