@@ -1215,6 +1215,7 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
   </div>
   <div id="f-inv">
     <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+      <input type="search" class="filt" id="inv-filter-search" oninput="renderInvoices()" placeholder="🔍 No Faktur / Nominal / Customer" style="min-width:260px;flex:1"/>
       <input type="date" class="filt" id="inv-filter-from" onchange="renderInvoices()" style="max-width:150px"/>
       <span style="color:var(--text-muted);font-size:12px">s/d</span>
       <input type="date" class="filt" id="inv-filter-to" onchange="renderInvoices()" style="max-width:150px"/>
@@ -1224,7 +1225,7 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
         <option value="Lunas">Lunas</option>
         <option value="Overdue">Overdue</option>
       </select>
-      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('inv-filter-from').value='';document.getElementById('inv-filter-to').value='';document.getElementById('inv-filter-status').value='';renderInvoices()">Reset</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('inv-filter-search').value='';document.getElementById('inv-filter-from').value='';document.getElementById('inv-filter-to').value='';document.getElementById('inv-filter-status').value='';renderInvoices()">Reset</button>
       <div style="margin-left:auto;display:flex;gap:8px">
         <button class="btn btn-ghost" onclick="exportInvoicesCSV()">📥 Export CSV</button>
         <button class="btn btn-primary btn-sm" onclick="openExportRekap()">📊 Export Rekap Bulanan</button>
@@ -3824,17 +3825,30 @@ const renderOrders = renderOrd;
 function renderInv() {
   const tbody = document.getElementById('tb-inv');
   if(!cache.invoices.length) {
-    tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-icon">📄</div><div class="empty-txt">Belum ada invoice</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="empty-icon">📄</div><div class="empty-txt">Belum ada invoice</div></div></td></tr>`;
     return;
   }
   
   // Apply filters
+  const searchRaw = (document.getElementById('inv-filter-search')?.value || '').trim().toLowerCase();
   const fromDate = document.getElementById('inv-filter-from')?.value || '';
   const toDate = document.getElementById('inv-filter-to')?.value || '';
   const status = document.getElementById('inv-filter-status')?.value || '';
   const today = new Date().toISOString().split('T')[0];
-  
+
+  // Deteksi apakah search itu nominal (angka setelah strip separator)
+  const searchAsNum = parseInt((searchRaw||'').replace(/[^\d]/g,''), 10);
+  const hasNumSearch = !isNaN(searchAsNum) && searchAsNum > 0 && /\d/.test(searchRaw);
+
   let filtered = cache.invoices;
+  if(searchRaw) {
+    filtered = filtered.filter(inv => {
+      const matchNo = (inv.no_invoice||'').toLowerCase().includes(searchRaw);
+      const matchCust = (inv.customer_nama||'').toLowerCase().includes(searchRaw);
+      const matchNom = hasNumSearch && Math.abs((inv.total||0) - searchAsNum) < 1;
+      return matchNo || matchCust || matchNom;
+    });
+  }
   if(fromDate) filtered = filtered.filter(inv => (inv.tgl_invoice||'') >= fromDate);
   if(toDate) filtered = filtered.filter(inv => (inv.tgl_invoice||'') <= toDate);
   if(status === 'Overdue') {
@@ -3842,20 +3856,24 @@ function renderInv() {
   } else if(status) {
     filtered = filtered.filter(inv => inv.status === status);
   }
-  
+
   if(!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="empty-icon">🔍</div><div class="empty-txt">Tidak ada invoice match filter</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="empty-icon">🔍</div><div class="empty-txt">Tidak ada invoice match filter</div></div></td></tr>`;
     return;
   }
-  
-  // Compute aging for each
+
+  // Compute aging & reminder badge for each
   tbody.innerHTML = filtered.map(inv=>{
     const invDrag = `data-id="${inv.id}" data-table="invoices" class="drag-row"`;
     const isOverdue = inv.status !== 'Lunas' && inv.jatuh_tempo && inv.jatuh_tempo < today;
     const aging = isOverdue ? Math.floor((new Date(today) - new Date(inv.jatuh_tempo)) / 86400000) : 0;
+    const tier = inv.last_reminder_tier || 0;
+    const tierBadge = (isOverdue && tier>0)
+      ? `<span title="Reminder terakhir: T${tier} pada ${inv.last_reminder_sent||'-'}" style="display:inline-block;margin-left:4px;padding:1px 5px;border-radius:3px;background:${tier===3?'#7f1d1d':tier===2?'#78350f':'#365314'};color:#fff;font-size:9px;font-weight:600">🔔T${tier}</span>`
+      : '';
     return `
     <tr ${invDrag}>
-      <td class="mono c-teal">${inv.no_invoice}</td>
+      <td class="mono c-teal">${inv.no_invoice}${tierBadge}</td>
       <td class="fw6">${inv.customer_nama}</td>
       <td>${inv.tgl_invoice}</td>
       <td class="${isOverdue?'c-red':'c-gold'}">${inv.jatuh_tempo}${isOverdue?' <span style="font-size:10px">('+aging+'d)</span>':''}</td>
@@ -3864,6 +3882,7 @@ function renderInv() {
       <td style="display:flex;gap:4px;flex-wrap:wrap">
         <button class="btn btn-sm btn-ghost" onclick="printFaktur(${inv.id})" title="Cetak Faktur">🖨️</button>
         ${inv.status!=='Lunas'?'<button class="btn btn-sm btn-ghost" style="color:var(--green);font-size:10px" onclick="markInvLunas('+inv.id+')">✅Lunas</button>':''}
+        ${isOverdue?'<button class="btn btn-sm btn-ghost" style="color:var(--gold);font-size:10px" onclick="sendManualReminder('+inv.id+')" title="Kirim WA Reminder ke customer">🔔Ingatkan</button>':''}
         <button class="btn btn-sm btn-ghost" onclick="editInv(${inv.id})">✏️</button>
         <button class="btn btn-sm btn-danger" onclick="deleteInv(${inv.id})">🗑️</button>
       </td>
@@ -6703,10 +6722,36 @@ async function printFaktur(invoiceId) {
 }
 
 async function markInvLunas(id) {
-  if(!confirm('Tandai invoice ini sebagai LUNAS?')) return;
+  if(!confirm('Tandai invoice ini sebagai LUNAS?\n\nOtomatis buat catatan pembayaran ke Rekap Kas.')) return;
   const { error } = await sb.from('invoices').update({status:'Lunas', tgl_lunas: new Date().toISOString().split('T')[0]}).eq('id', id);
-  if(!error) { showToast('✅ Invoice ditandai Lunas!'); await loadInvoices(); updateDashboard(); }
-  else showToast(error.message,'error');
+  if(error) { showToast(error.message,'error'); return; }
+  showToast('✅ Invoice Lunas! Payment auto-sync ke Rekap Kas.');
+  await loadInvoices();
+  if(typeof loadPayments === 'function') await loadPayments();
+  updateDashboard();
+}
+
+async function sendManualReminder(id) {
+  const inv = (cache.invoices||[]).find(i => i.id === id);
+  if(!inv) { showToast('Invoice tidak ditemukan','error'); return; }
+  const confirmMsg = 'Kirim WA reminder ke customer?\n\n' +
+                     'Invoice: ' + inv.no_invoice + '\n' +
+                     'Customer: ' + inv.customer_nama + '\n' +
+                     'Total: Rp ' + fmt(inv.total);
+  if(!confirm(confirmMsg)) return;
+  showToast('📡 Sending reminder...', 'info');
+  try {
+    const { data, error } = await sb.rpc('send_reminder_for_invoice', { p_invoice_id: id });
+    if(error) { showToast('❌ ' + error.message, 'error'); return; }
+    if(!data || !data.ok) {
+      showToast('❌ ' + (data?.error || 'Gagal kirim reminder'), 'error');
+      return;
+    }
+    showToast('✅ Reminder T' + data.tier + ' terkirim ke ' + data.customer + ' via WA (' + data.wa_target + ')');
+    await loadInvoices();
+  } catch(e) {
+    showToast('❌ ' + e.message, 'error');
+  }
 }
 async function deleteInv(id) {
   if(!confirm('Hapus invoice ini?')) return;
