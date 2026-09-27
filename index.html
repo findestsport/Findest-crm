@@ -2212,12 +2212,12 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:14px">
           <div class="fg">
             <label class="fl">💰 Modal Suntikan (Rp)</label>
-            <input class="fi" type="number" id="sim-modal" placeholder="500000000" oninput="simSuntikanDana()"/>
+            <input class="fi" type="text" inputmode="numeric" id="sim-modal" placeholder="500.000.000" oninput="simSuntikanDana()"/>
             <div style="font-size:10px;color:var(--text-muted);margin-top:4px">Buat purchase inventory + operasional</div>
           </div>
           <div class="fg">
             <label class="fl">📈 Target Omzet Bulanan (Rp)</label>
-            <input class="fi" type="number" id="sim-omzet-bulanan" placeholder="100000000" oninput="simSuntikanDana()"/>
+            <input class="fi" type="text" inputmode="numeric" id="sim-omzet-bulanan" placeholder="100.000.000" oninput="simSuntikanDana()"/>
             <div style="font-size:10px;color:var(--text-muted);margin-top:4px">Proyeksi realistic monthly revenue</div>
           </div>
           <div class="fg">
@@ -2227,7 +2227,7 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
           </div>
           <div class="fg">
             <label class="fl">🏢 Biaya Ops Bulanan (Rp)</label>
-            <input class="fi" type="number" id="sim-ops" placeholder="40000000" oninput="simSuntikanDana()"/>
+            <input class="fi" type="text" inputmode="numeric" id="sim-ops" placeholder="40.000.000" oninput="simSuntikanDana()"/>
             <div style="font-size:10px;color:var(--text-muted);margin-top:4px">Gaji + sewa + bensin + dll</div>
           </div>
         </div>
@@ -2967,11 +2967,18 @@ const RP_FIELDS = [
   'emp-gaji','edit-emp-gaji',
   'cfg-biaya_fp_per_outlet','cfg-bensin_buffer','cfg-target_bonus',
   'sim-omzet','sim-omzet-pnl',
+  // Simulator Suntikan Dana (Phase 15c)
+  'sim-modal','sim-omzet-bulanan','sim-ops',
+  // Konsi
+  'konsi-harga','konsi-nilai',
+  // Payments
   'pay-omzet','pay-jumlah',
-  'bat-harga',
-  'eo-aset',
+  'bat-harga','bat-harga-beli',
+  'eo-aset','po-total','po-harga','po-qty',
   'vis-harga-unit',
   'kpi-target',
+  // Cash awal bulan
+  'rekap-start-balance',
 ];
 
 // Init semua RP fields setelah DOM ready
@@ -3317,7 +3324,7 @@ function nav(page, btnEl) {
 
   // Trigger salary simulator on settings page
   if(page === 'settings') {
-    setTimeout(() => { updateSalarySimulator(); loadCatalogConfig(); }, 100);
+    setTimeout(() => { updateSalarySimulator(); loadCatalogConfig(); initAllRpFields(); }, 100);
   }
   // Clear badge saat masuk Gudang
   if(page === 'gudang') {
@@ -5368,10 +5375,10 @@ function simBonus() {
 
 // Simulator Suntikan Dana — investor projection
 function simSuntikanDana() {
-  const modal   = parseFloat(document.getElementById('sim-modal')?.value)||0;
-  const omzetB  = parseFloat(document.getElementById('sim-omzet-bulanan')?.value)||0;
+  const modal   = parseRp(document.getElementById('sim-modal')?.value)||0;
+  const omzetB  = parseRp(document.getElementById('sim-omzet-bulanan')?.value)||0;
   const margin  = parseFloat(document.getElementById('sim-margin')?.value)||0;
-  const opsB    = parseFloat(document.getElementById('sim-ops')?.value)||0;
+  const opsB    = parseRp(document.getElementById('sim-ops')?.value)||0;
   const el = document.getElementById('sim-suntikan-result');
   if(!el) return;
   if(modal <= 0 || omzetB <= 0 || margin <= 0) {
