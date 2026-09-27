@@ -7413,22 +7413,69 @@ function renderOfkSelected() {
     el.innerHTML = '<div class="empty" style="padding:12px;font-size:12px;color:var(--text-muted)">Belum ada item dipilih</div>';
     return;
   }
-  el.innerHTML = items.map(({konsi:k, qty}) => {
+  // Reprice helper button — show kalo customer terpilih dan punya markup_pct
+  const custId = parseInt(document.getElementById('ofk-customer')?.value);
+  const cust = custId ? (cache.customers||[]).find(c => c.id === custId) : null;
+  const custMkp = cust ? parseFloat(cust.markup_pct) : null;
+  const showRepriceBtn = cust && !isNaN(custMkp) && custMkp > 0;
+  const repriceBtnHtml = showRepriceBtn
+    ? `<div style="padding:8px;text-align:right;border-bottom:1px dashed var(--border)"><button class="btn btn-sm btn-warn" onclick="ofkRepriceAll()" title="Set harga semua item = HPP × (1 + ${custMkp}%)">🎯 Reprice ke Markup ${cust.nama} (${custMkp}%)</button></div>`
+    : '';
+  el.innerHTML = repriceBtnHtml + items.map(({konsi:k, qty, hargaOverride}) => {
     const sisa = (k.qty_titip||0) - (k.qty_terjual||0) - (k.qty_retur||0);
-    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 6px;border-bottom:1px solid var(--border);gap:8px">
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:600;font-size:13px">${k.produk||'-'}</div>
-        <div style="font-size:11px;color:var(--text-muted)">📍 ${k.outlet||'-'} · sisa ${sisa} · ${fmt(k.harga||0)}/unit</div>
+    const currentHarga = hargaOverride != null ? hargaOverride : (k.harga||0);
+    const isOverridden = hargaOverride != null && hargaOverride !== (k.harga||0);
+    return `<div style="padding:10px 6px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;font-size:13px">${k.produk||'-'}</div>
+          <div style="font-size:11px;color:var(--text-muted)">📍 ${k.outlet||'-'} · sisa ${sisa} · asal ${fmt(k.harga||0)}/unit</div>
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="ofkRemove(${k.id})" title="Hapus">×</button>
       </div>
-      <div style="display:flex;align-items:center;gap:4px">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Qty</span>
         <button class="btn btn-sm btn-ghost" onclick="ofkChgQty(${k.id},-1)">−</button>
         <input type="number" style="width:52px;text-align:center;padding:4px;border:1px solid var(--border);border-radius:6px;font-weight:700" value="${qty}" min="1" max="${sisa}" onchange="ofkSetQty(${k.id},this.value)"/>
         <button class="btn btn-sm btn-ghost" onclick="ofkChgQty(${k.id},1)">+</button>
-        <div class="fw6 c-teal" style="min-width:100px;text-align:right;font-size:13px">${fmt((k.harga||0)*qty)}</div>
-        <button class="btn btn-sm btn-danger" onclick="ofkRemove(${k.id})" title="Hapus">×</button>
+        <span style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-left:6px">Harga/unit</span>
+        <input type="number" style="width:110px;padding:4px 6px;border:1px solid ${isOverridden?'var(--warn)':'var(--border)'};border-radius:6px;font-weight:700;color:${isOverridden?'var(--warn)':'var(--text)'}" value="${currentHarga}" min="0" onchange="ofkSetHarga(${k.id},this.value)" title="${isOverridden?'Harga di-adjust manual':'Klik buat adjust harga (misal buat markup customer FnB)'}"/>
+        ${isOverridden?'<span style="font-size:9px;color:var(--warn);font-weight:700">EDITED</span>':''}
+        <div class="fw6 c-teal" style="margin-left:auto;font-size:13px">${fmt(currentHarga*qty)}</div>
       </div>
     </div>`;
   }).join('');
+}
+
+function ofkSetHarga(konsiId, val) {
+  const item = ofkSelected[konsiId]; if(!item) return;
+  const n = parseFloat(val);
+  if(isNaN(n) || n < 0) { showToast('Harga ga valid','error'); return; }
+  item.hargaOverride = n;
+  renderOfkSelected();
+  updateOfkPreview();
+}
+
+function ofkRepriceAll() {
+  const custId = parseInt(document.getElementById('ofk-customer')?.value);
+  const cust = (cache.customers||[]).find(c => c.id === custId);
+  if(!cust) { showToast('Pilih customer dulu','error'); return; }
+  const mkp = parseFloat(cust.markup_pct);
+  if(isNaN(mkp) || mkp <= 0) { showToast('Customer ini ga punya markup_pct','warn'); return; }
+  const mult = 1 + mkp/100;
+  let cnt = 0;
+  Object.values(ofkSelected).forEach(item => {
+    // Find HPP from products by nama
+    const prod = (cache.products||[]).find(p => p.nama === item.konsi.produk);
+    if(prod && prod.harga) {
+      item.hargaOverride = Math.round(prod.harga * mult);
+      cnt++;
+    }
+  });
+  if(cnt === 0) { showToast('Ga ada produk match di master catalog','warn'); return; }
+  renderOfkSelected();
+  updateOfkPreview();
+  showToast(`🎯 ${cnt} item di-reprice pake markup ${cust.nama} (${mkp}%)`);
 }
 
 function ofkChgQty(konsiId, delta) {
@@ -7464,7 +7511,7 @@ function updateOfkPreview() {
   const preview = document.getElementById('ofk-preview');
   if(!items.length) { preview.style.display = 'none'; return; }
   preview.style.display = '';
-  const subtotal = items.reduce((s,i)=>s+(i.konsi.harga||0)*i.qty, 0);
+  const subtotal = items.reduce((s,i)=>s+((i.hargaOverride != null ? i.hargaOverride : (i.konsi.harga||0))*i.qty), 0);
   const ppn = Math.round(subtotal * 0.11);
   const total = subtotal + ppn;
   // Jatuh tempo based on payment
@@ -7523,20 +7570,24 @@ async function submitOrderFromKonsi() {
   }
 
   // Step 2: Compose produk_json + insert order (status=Selesai → phase 6 trigger auto-invoice)
-  const produkJson = items.map(({konsi:k, qty}) => ({
-    product_id: null,
-    nama: k.produk,
-    brand: '',
-    qty,
-    harga: k.harga || 0,
-    subtotal: (k.harga||0) * qty,
-    batch_no: k.batch_no || null,
-    ed_date: k.ed_date || null,
-    source: 'konsi',
-    source_outlet: k.outlet
-  }));
+  const produkJson = items.map(({konsi:k, qty, hargaOverride}) => {
+    const h = hargaOverride != null ? hargaOverride : (k.harga || 0);
+    return {
+      product_id: null,
+      nama: k.produk,
+      brand: '',
+      qty,
+      harga: h,
+      subtotal: h * qty,
+      batch_no: k.batch_no || null,
+      ed_date: k.ed_date || null,
+      source: 'konsi',
+      source_outlet: k.outlet,
+      harga_konsi_asal: k.harga || 0
+    };
+  });
   const produkText = items.map(({konsi:k, qty}) => `${k.produk} x${qty}`).join(', ');
-  const totalNilai = items.reduce((s,{konsi:k, qty})=>s+(k.harga||0)*qty, 0);
+  const totalNilai = items.reduce((s,{konsi:k, qty, hargaOverride})=>s+((hargaOverride != null ? hargaOverride : (k.harga||0))*qty), 0);
 
   const orderRow = {
     no_order: 'OFK-' + Date.now(),
@@ -11946,7 +11997,7 @@ function dcEditCust() {
       <div class="frow">
         <div class="fg">
           <label class="fl">Customer Tujuan</label>
-          <select class="fi" id="ofk-customer">
+          <select class="fi" id="ofk-customer" onchange="renderOfkSelected()">
             <option value="">-- Pilih Customer --</option>
           </select>
         </div>
