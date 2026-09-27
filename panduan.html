@@ -167,6 +167,12 @@ h3{font-size:14px;font-weight:800;margin:18px 0 10px;color:var(--teal);text-tran
     <div class="check-item"><div class="check-box"></div><div><b>Phase 14 auto-konsi</b>: trigger auto-add konsi dari scan QR</div></div>
     <div class="check-item"><div class="check-box"></div><div><b>Phase 15 markup</b>: kolom customers.markup_pct</div></div>
     <div class="check-item"><div class="check-box"></div><div><b>Phase 17 realtime</b>: enable realtime buat investor dashboard</div></div>
+    <div class="check-item"><div class="check-box"></div><div><b>Phase 4B Fonnte</b>: notify order baru via WA (butuh Fonnte token di config)</div></div>
+    <div class="check-item"><div class="check-box"></div><div><b>Phase 19 auto-sync Lunas + reminder</b>: auto-payment saat invoice Lunas, auto-WA no_invoice ke customer, cron reminder H+1/H+7/H+14</div></div>
+  </div>
+
+  <div class="tip" style="border-color:#f59e0b"><b>⚙️ Setup pg_cron (buat Phase 19):</b><br>
+  Sebelum run Phase 19, enable extension <code>pg_cron</code> dulu di Supabase Dashboard → Database → Extensions → search "pg_cron" → Enable. Kalo lupa, seluruh SQL Phase 19 tetep jalan tapi cron ga aktif (harus manual panggil <code>SELECT public.send_overdue_reminders();</code>).
   </div>
 
   <div class="tip"><b>💡 Cek status migration:</b><br>
@@ -341,28 +347,55 @@ h3{font-size:14px;font-weight:800;margin:18px 0 10px;color:var(--teal);text-tran
   <div class="section-sub">Payment, pengeluaran, rekap kas bulanan</div>
 
   <div class="case">
-    <div class="case-title">Case 6.1: Mark payment diterima (customer bayar invoice)</div>
-    <div class="step-row"><div class="step-num">1</div><div class="step-body"><b>Finance → Invoice</b> → cari invoice yg dibayar</div></div>
-    <div class="step-row"><div class="step-num">2</div><div class="step-body">Klik 💰 <b>Mark Lunas</b> → status berubah, tgl_lunas auto-set today</div></div>
-    <div class="step-row"><div class="step-num">3</div><div class="step-body">Atau kalo mau input dgn detail: <b>Finance → Payment → + Payment</b> — isi invoice_id, nominal, metode, tanggal</div></div>
-    <div class="result-box"><b>✅ Result:</b> Kas masuk tercatat, piutang berkurang, muncul di Rekap Kas + Investor Dashboard.</div>
+    <div class="case-title">Case 6.1: Customer transfer & konfirmasi bayar (1 klik = auto-sync)</div>
+    <div class="case-scenario">
+      <b>Skenario:</b> Customer WA Nadya "Kak, ini bukti transfer INV-2611-045 udah lunas ya". Nadya buka CRM, cari no faktur, klik ✅Lunas.
+    </div>
+    <div class="step-row"><div class="step-num">1</div><div class="step-body"><b>Finance → Invoice</b> → di search box paling atas, ketik <code>INV-2611-045</code> (atau ketik <b>nominal</b> kalo customer lupa cantumin, misal <code>12500000</code>)</div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-body">Klik ✅<b>Lunas</b> di baris invoice → konfirmasi</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-body">Otomatis:<br>&nbsp;&nbsp;• Invoice status = Lunas, tgl_lunas = hari ini<br>&nbsp;&nbsp;• Payment record auto-create ke tabel <code>payments</code> (metode Transfer)<br>&nbsp;&nbsp;• Kas Masuk di Rekap Kas naik segitu<br>&nbsp;&nbsp;• Piutang Outstanding turun<br>&nbsp;&nbsp;• Investor Dashboard update realtime</div></div>
+    <div class="result-box"><b>✅ Result:</b> 1 klik, 5 hal ke-sync. Ga perlu double input ke Payment. Angka Rekap Kas = angka mutasi bank Findest = balance.</div>
   </div>
 
   <div class="case">
-    <div class="case-title">Case 6.2: Input pengeluaran (gaji, sewa, ops, dll)</div>
+    <div class="case-title">Case 6.2: Auto-Reminder Fonnte (customer overdue di-WA otomatis)</div>
+    <div class="case-scenario">
+      <b>Skenario:</b> Setiap hari jam 9 pagi WIB, sistem scan invoice overdue → auto-kirim WA reminder ke customer via Fonnte. Ga perlu Nadya nagih satu-satu.
+    </div>
+    <div class="step-row"><div class="step-num">1</div><div class="step-body"><b>Tier 1 (H+1)</b> — invoice lewat 1 hari → reminder halus ke customer<br><i>"Halo, Invoice INV-XXX lewat jatuh tempo 1 hari, mohon konfirmasi ya. Cantumkan No Faktur INV-XXX saat kirim bukti transfer."</i></div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-body"><b>Tier 2 (H+7)</b> — lewat 7 hari → follow-up ke customer + CC WA ke Fazar<br><i>Fazar tau siapa yg mulai bandel bayarnya.</i></div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-body"><b>Tier 3 (H+14)</b> — lewat 14 hari → warning ke customer + CC ke Fazar<br><i>Fazar bisa ambil action langsung (nelpon, kunjungi outlet, dll).</i></div></div>
+    <div class="step-row"><div class="step-num">4</div><div class="step-body"><b>Anti-spam</b>: tiap invoice max 1x per tier. Sekali dikirim T1, ga akan dikirim T1 lagi walau overdue makin lama — nunggu naik ke T2.</div></div>
+    <div class="step-row"><div class="step-num">5</div><div class="step-body"><b>Cek badge di Invoice list</b>: baris invoice yg udah kena reminder ada tag <span style="background:#365314;color:#fff;padding:1px 6px;border-radius:3px;font-size:10px">🔔T1</span> / <span style="background:#78350f;color:#fff;padding:1px 6px;border-radius:3px;font-size:10px">🔔T2</span> / <span style="background:#7f1d1d;color:#fff;padding:1px 6px;border-radius:3px;font-size:10px">🔔T3</span></div></div>
+    <div class="result-box"><b>✅ Result:</b> Nadya ga perlu nagih customer 1-1. Fazar ga perlu monitor manual — cukup respons kalo dapet CC tier 2/3.</div>
+  </div>
+
+  <div class="case">
+    <div class="case-title">Case 6.3: Order Termin baru → auto-WA no_invoice ke customer</div>
+    <div class="case-scenario">
+      <b>Skenario:</b> Sales input order Termin 30 hari. Sistem auto-create invoice → langsung kirim WA ke customer dgn <b>No Faktur besar</b> — biar customer bisa cantumin saat kirim bukti bayar nanti.
+    </div>
+    <div class="step-row"><div class="step-num">1</div><div class="step-body">Sales/customer bikin order pembayaran <b>Termin 30 Hari</b></div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-body">Sales klik <b>Selesai</b> di order → auto-create invoice</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-body">Fonnte auto-kirim WA ke customer:<br><i>"Order kamu sudah masuk sistem. <b>No Faktur: INV-2611-045</b>. Total Rp 12.500.000. Jatuh Tempo 26 Des 2026. Mohon simpan No Faktur ini — dipakai saat kirim bukti transfer nanti."</i></div></div>
+    <div class="result-box"><b>✅ Result:</b> Customer paham dari awal harus cantumin no faktur. Nadya kerja gampang saat rekonsiliasi.</div>
+  </div>
+
+  <div class="case">
+    <div class="case-title">Case 6.4: Input pengeluaran (gaji, sewa, ops, dll)</div>
     <div class="step-row"><div class="step-num">1</div><div class="step-body"><b>Finance → Pengeluaran → + Tambah</b></div></div>
     <div class="step-row"><div class="step-num">2</div><div class="step-body">Isi kategori (Gaji, Sewa, Bensin, Ops, Marketing, dll), tanggal, nominal, keterangan</div></div>
     <div class="step-row"><div class="step-num">3</div><div class="step-body">Simpan → auto muncul di Rekap Kas keluar</div></div>
   </div>
 
   <div class="case">
-    <div class="case-title">Case 6.3: Rekap Kas bulanan (closing)</div>
+    <div class="case-title">Case 6.5: Rekap Kas bulanan (closing + balance vs rekening BCA)</div>
     <div class="step-row"><div class="step-num">1</div><div class="step-body"><b>Finance → Rekap Kas</b> → pilih bulan → klik Tampilkan</div></div>
     <div class="step-row"><div class="step-num">2</div><div class="step-body">Isi <b>Kas Awal Bulan</b> (saldo akhir bulan lalu) → Simpan</div></div>
-    <div class="step-row"><div class="step-num">3</div><div class="step-body">Verifikasi angka:<br>&nbsp;&nbsp;• Total Kas Masuk (payment diterima)<br>&nbsp;&nbsp;• Total Kas Keluar (semua expenses)<br>&nbsp;&nbsp;• Saldo Akhir = Awal + Masuk − Keluar<br>&nbsp;&nbsp;• Piutang Outstanding (invoice belum lunas)</div></div>
-    <div class="step-row"><div class="step-num">4</div><div class="step-body">Cocokin sama mutasi rekening bank BCA — kalo selisih, cek transaksi mana yg missing</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-body">Verifikasi angka:<br>&nbsp;&nbsp;• Total Kas Masuk (payment auto-sync dari invoice Lunas)<br>&nbsp;&nbsp;• Total Kas Keluar (semua expenses)<br>&nbsp;&nbsp;• Saldo Akhir = Awal + Masuk − Keluar<br>&nbsp;&nbsp;• Piutang Outstanding (invoice belum lunas)</div></div>
+    <div class="step-row"><div class="step-num">4</div><div class="step-body"><b>Cocokin sama mutasi rekening BCA Findest</b> — kalo selisih, cek transaksi mana yg missing (mungkin ada invoice belum di-mark Lunas, atau expense belum diinput)</div></div>
     <div class="step-row"><div class="step-num">5</div><div class="step-body">Kalo aman, <b>Dashboard → 💾 Snap Now</b> → save snapshot bulan tsb</div></div>
-    <div class="result-box"><b>✅ Result:</b> Closing bulan clean, snapshot tersimpan di History Bulanan, siap buat report investor.</div>
+    <div class="result-box"><b>✅ Result:</b> Closing bulan clean, angka CRM = angka bank, snapshot tersimpan di History Bulanan, siap buat report investor.</div>
   </div>
 </div>
 
