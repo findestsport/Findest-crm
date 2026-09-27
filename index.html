@@ -2083,6 +2083,18 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
           <input class="fi" type="number" step="0.1" id="cfg-catalog_default_markup" placeholder="20" value="20"/>
           <div style="font-size:11px;color:var(--text-muted);margin-top:4px">💡 Harga di gudang lu isi <b>HPP</b>. Public catalog (tanpa QR) tampil <b>HPP × (1 + markup)</b>. Customer authed pake markup di profil masing².</div>
         </div>
+        <div class="fg" style="margin-bottom:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <label class="fl">📊 Investor Dashboard PIN <span style="font-size:10px;color:var(--text-muted);text-transform:none;letter-spacing:0">(kasih ke investor buat akses dashboard read-only)</span></label>
+          <input class="fi" type="text" id="cfg-investor_pin" placeholder="findest2026" maxlength="10"/>
+          <div style="margin-top:8px;padding:10px;background:var(--surface2);border-radius:8px;font-size:11px;color:var(--text-muted)">
+            <div style="font-weight:600;color:var(--teal);margin-bottom:4px">🔗 Link Investor Dashboard:</div>
+            <div style="word-break:break-all;color:var(--text)" id="investor-link-display">findestsport.github.io/Findest-crm/investor.html</div>
+            <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+              <button class="btn btn-ghost btn-sm" onclick="copyInvestorLink()">📋 Copy Link</button>
+              <button class="btn btn-primary btn-sm" onclick="window.open('investor.html','_blank')">👀 Preview Dashboard</button>
+            </div>
+          </div>
+        </div>
         <div style="padding:10px;background:var(--surface2);border-radius:8px;font-size:11px;color:var(--text-muted)">
           <div style="font-weight:600;color:var(--teal);margin-bottom:4px">🔗 Link Catalog Customer:</div>
           <div id="catalog-link-display" style="word-break:break-all;color:var(--text)">findestsport.github.io/Findest-crm/catalog.html</div>
@@ -5213,6 +5225,8 @@ async function saveConfig() {
   if(catalogName) updates.push({ key:'catalog_sales_name', value:catalogName, updated_at:new Date().toISOString() });
   const defMarkup = document.getElementById('cfg-catalog_default_markup')?.value.trim();
   if(defMarkup !== undefined) updates.push({ key:'catalog_default_markup', value:String(defMarkup||'0'), updated_at:new Date().toISOString() });
+  const invPin = document.getElementById('cfg-investor_pin')?.value.trim();
+  if(invPin) updates.push({ key:'investor_pin', value:invPin, updated_at:new Date().toISOString() });
 
   // Info pembayaran
   const bankNama = document.getElementById('cfg-bank_nama')?.value.trim()||'';
@@ -5255,10 +5269,15 @@ function copyCatalogLink() {
   navigator.clipboard.writeText(link).then(()=>showToast('✅ Link catalog di-copy!')).catch(()=>showToast(link));
 }
 
+function copyInvestorLink() {
+  const link = window.location.origin + window.location.pathname.replace('index.html','') + 'investor.html';
+  navigator.clipboard.writeText(link).then(()=>showToast('✅ Link investor dashboard di-copy!')).catch(()=>showToast(link));
+}
+
 // Load catalog config into form on settings open
 async function loadCatalogConfig() {
   try {
-    const keys = ['catalog_wa','catalog_sales_name','catalog_default_markup','bank_nama','bank_rekening','bank_atas_nama','qris_url'];
+    const keys = ['catalog_wa','catalog_sales_name','catalog_default_markup','investor_pin','bank_nama','bank_rekening','bank_atas_nama','qris_url'];
     const { data } = await sb.from('config').select('key,value').in('key', keys);
     if(data) data.forEach(r=>{
       const el = document.getElementById('cfg-'+r.key);

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="theme-color" content="#0D9488">
+<title>Findest Sport — Investor Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --teal:#0D9488;--teal-2:#0F766E;--gold:#D97706;--green:#059669;
+  --red:#DC2626;--purple:#7c3aed;--bg:#F7F8FA;--surface:#FFFFFF;
+  --border:#E5E7EB;--text:#0F172A;--text-2:#475569;--text-muted:#94A3B8;
+  --shadow:0 1px 3px rgba(0,0,0,.05);--shadow-lg:0 10px 30px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5;-webkit-font-smoothing:antialiased}
+.container{max-width:1280px;margin:0 auto;padding:24px 20px 60px}
+.hero{background:linear-gradient(135deg,#0D9488 0%,#0F766E 100%);color:#fff;padding:40px 32px;border-radius:20px;margin-bottom:24px;box-shadow:var(--shadow-lg);position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-40px;right:-40px;width:220px;height:220px;background:rgba(255,255,255,.08);border-radius:50%}
+.hero-brand{display:flex;align-items:center;gap:14px;margin-bottom:16px;position:relative;z-index:1}
+.hero-logo{width:56px;height:56px;background:rgba(255,255,255,.15);border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;backdrop-filter:blur(10px)}
+.hero-tag{font-size:12px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:1px}
+.hero-title{font-size:36px;font-weight:900;letter-spacing:-1px;line-height:1;margin-bottom:8px;position:relative;z-index:1}
+.hero-sub{font-size:15px;color:rgba(255,255,255,.85);position:relative;z-index:1;max-width:560px;line-height:1.5}
+.hero-updated{position:absolute;top:24px;right:32px;font-size:11px;color:rgba(255,255,255,.7);z-index:2;text-align:right}
+
+.grid{display:grid;gap:16px}
+.grid-4{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.grid-3{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.grid-2{grid-template-columns:repeat(auto-fit,minmax(400px,1fr))}
+
+.kpi-card{background:var(--surface);border-radius:16px;padding:20px;box-shadow:var(--shadow);border-top:3px solid var(--teal);transition:transform .2s}
+.kpi-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.kpi-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.kpi-val{font-size:26px;font-weight:900;letter-spacing:-.5px;line-height:1}
+.kpi-sub{font-size:11px;color:var(--text-muted);margin-top:6px}
+.kpi-badge{display:inline-block;padding:3px 8px;border-radius:100px;font-size:10px;font-weight:700;margin-top:6px}
+.kpi-up{background:rgba(5,150,105,.1);color:var(--green)}
+.kpi-down{background:rgba(220,38,38,.1);color:var(--red)}
+.c-teal{color:var(--teal)}.c-green{color:var(--green)}.c-red{color:var(--red)}.c-gold{color:var(--gold)}.c-purple{color:var(--purple)}
+.bt-green{border-top-color:var(--green)}.bt-red{border-top-color:var(--red)}.bt-gold{border-top-color:var(--gold)}.bt-purple{border-top-color:var(--purple)}
+
+.card{background:var(--surface);border-radius:16px;padding:20px;box-shadow:var(--shadow);margin-top:16px}
+.card-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.card-title{font-size:16px;font-weight:800;letter-spacing:-.3px}
+.card-sub{font-size:11px;color:var(--text-muted)}
+.chart-wrap{position:relative;height:280px}
+
+.table{width:100%;border-collapse:collapse;font-size:13px}
+.table th{text-align:left;padding:10px 8px;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+.table td{padding:10px 8px;border-bottom:1px solid var(--border)}
+.table tr:last-child td{border:none}
+.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.rank{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--teal);color:#fff;font-size:10px;font-weight:700}
+
+.section-title{font-size:12px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin:24px 0 10px;padding-left:4px}
+
+/* GATE */
+.gate{position:fixed;inset:0;background:linear-gradient(135deg,#0D9488,#0F766E);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px}
+.gate-box{background:#fff;border-radius:20px;padding:32px 28px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.15);text-align:center}
+.gate-logo{width:64px;height:64px;background:linear-gradient(135deg,#0D9488,#0F766E);border-radius:16px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:22px;margin:0 auto 18px}
+.gate-title{font-size:22px;font-weight:800;margin-bottom:6px}
+.gate-sub{font-size:13px;color:var(--text-muted);margin-bottom:22px}
+.gate-input{width:100%;padding:14px;border:1px solid var(--border);border-radius:10px;font-size:16px;font-family:inherit;text-align:center;letter-spacing:6px;font-weight:700;margin-bottom:12px;outline:none;transition:all .2s}
+.gate-input:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,.12)}
+.gate-btn{width:100%;padding:14px;background:linear-gradient(135deg,#0D9488,#0F766E);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s}
+.gate-btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(13,148,136,.3)}
+.gate-msg{margin-top:12px;font-size:12px;color:var(--red);min-height:16px}
+.gate-hint{margin-top:16px;font-size:11px;color:var(--text-muted);line-height:1.5}
+
+.loading{text-align:center;padding:80px 20px;color:var(--text-muted)}
+.spinner{display:inline-block;width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.footer{text-align:center;padding:32px 20px 20px;font-size:11px;color:var(--text-muted);line-height:1.6}
+
+@media (max-width:640px){
+  .container{padding:16px 12px 40px}
+  .hero{padding:28px 20px;border-radius:16px}
+  .hero-title{font-size:26px}
+  .hero-updated{position:static;text-align:left;margin-top:12px}
+  .kpi-val{font-size:22px}
+}
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <div class="gate-box">
+    <div class="gate-logo">FS</div>
+    <div class="gate-title">Investor Access</div>
+    <div class="gate-sub">Findest Sport — Confidential Dashboard</div>
+    <input class="gate-input" id="pinInput" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="PIN" autocomplete="off" onkeydown="if(event.key==='Enter')checkPin()" maxlength="8"/>
+    <button class="gate-btn" onclick="checkPin()">Masuk</button>
+    <div class="gate-msg" id="gateMsg"></div>
+    <div class="gate-hint">Akses khusus investor & board.<br>PIN diberikan oleh manajemen Findest.</div>
+  </div>
+</div>
+
+<div class="container" id="content" style="display:none">
+  <div class="hero">
+    <div class="hero-updated" id="updated">—</div>
+    <div class="hero-brand">
+      <div class="hero-logo">FS</div>
+      <div>
+        <div class="hero-tag">Investor Dashboard</div>
+        <div style="font-size:18px;font-weight:700;color:#fff">Findest Sport Nutrition</div>
+      </div>
+    </div>
+    <div class="hero-title">Fuel Our Growth.</div>
+    <div class="hero-sub">Distributor sport nutrition premium — Bali. Real-time performance, transparency for our stakeholders.</div>
+  </div>
+
+  <div class="section-title">📊 Performance Snapshot (Bulan Ini)</div>
+  <div class="grid grid-4">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Omzet</div>
+      <div class="kpi-val c-teal" id="kpi-omzet">Rp 0</div>
+      <div class="kpi-sub" id="kpi-omzet-sub">—</div>
+    </div>
+    <div class="kpi-card bt-green">
+      <div class="kpi-label">Gross Margin</div>
+      <div class="kpi-val c-green" id="kpi-margin">0%</div>
+      <div class="kpi-sub" id="kpi-margin-sub">Blended margin actual</div>
+    </div>
+    <div class="kpi-card bt-gold">
+      <div class="kpi-label">Total Order</div>
+      <div class="kpi-val c-gold" id="kpi-orders">0</div>
+      <div class="kpi-sub" id="kpi-orders-sub">order confirmed</div>
+    </div>
+    <div class="kpi-card bt-purple">
+      <div class="kpi-label">Customer Aktif</div>
+      <div class="kpi-val c-purple" id="kpi-cust">0</div>
+      <div class="kpi-sub" id="kpi-cust-sub">outlet + FnB partner</div>
+    </div>
+  </div>
+
+  <div class="section-title">💰 Kas & Piutang</div>
+  <div class="grid grid-4">
+    <div class="kpi-card bt-green">
+      <div class="kpi-label">Kas Masuk</div>
+      <div class="kpi-val c-green" id="kpi-cash-in">Rp 0</div>
+      <div class="kpi-sub">Payment diterima</div>
+    </div>
+    <div class="kpi-card bt-red">
+      <div class="kpi-label">Kas Keluar</div>
+      <div class="kpi-val c-red" id="kpi-cash-out">Rp 0</div>
+      <div class="kpi-sub">Operasional + purchase</div>
+    </div>
+    <div class="kpi-card bt-gold">
+      <div class="kpi-label">Piutang Outstanding</div>
+      <div class="kpi-val c-gold" id="kpi-piutang">Rp 0</div>
+      <div class="kpi-sub" id="kpi-piutang-sub">Invoice belum lunas</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Net Cash Flow</div>
+      <div class="kpi-val c-teal" id="kpi-netcash">Rp 0</div>
+      <div class="kpi-sub">Kas masuk − keluar</div>
+    </div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:16px">
+    <div class="card">
+      <div class="card-h">
+        <div>
+          <div class="card-title">📈 Trend Omzet 6 Bulan Terakhir</div>
+          <div class="card-sub">Historical revenue trajectory</div>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="chartOmzet"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-h">
+        <div>
+          <div class="card-title">💸 Cash Flow 6 Bulan</div>
+          <div class="card-sub">Masuk vs keluar</div>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="chartCash"></canvas></div>
+    </div>
+  </div>
+
+  <div class="section-title">🏆 Top Performers Bulan Ini</div>
+  <div class="grid grid-2">
+    <div class="card">
+      <div class="card-h">
+        <div>
+          <div class="card-title">🎯 Top 10 Produk</div>
+          <div class="card-sub">By revenue contribution</div>
+        </div>
+      </div>
+      <table class="table">
+        <thead><tr><th style="width:32px">#</th><th>Produk</th><th class="num">Qty</th><th class="num">Revenue</th></tr></thead>
+        <tbody id="tb-prod"><tr><td colspan="4" class="loading"><div class="spinner"></div></td></tr></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-h">
+        <div>
+          <div class="card-title">👑 Top Customer</div>
+          <div class="card-sub">Loyal buyers</div>
+        </div>
+      </div>
+      <table class="table">
+        <thead><tr><th style="width:32px">#</th><th>Customer</th><th class="num">Order</th><th class="num">Revenue</th></tr></thead>
+        <tbody id="tb-cust"><tr><td colspan="4" class="loading"><div class="spinner"></div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">
+      <div>
+        <div class="card-title">📦 Inventory Health</div>
+        <div class="card-sub">Stock coverage & ED alert</div>
+      </div>
+    </div>
+    <div class="grid grid-4">
+      <div><div class="kpi-label">Nilai Stok FP</div><div class="kpi-val c-teal" id="kpi-stok-fp" style="font-size:20px">Rp 0</div></div>
+      <div><div class="kpi-label">Nilai Titipan Konsi</div><div class="kpi-val c-purple" id="kpi-stok-konsi" style="font-size:20px">Rp 0</div></div>
+      <div><div class="kpi-label">ED Alert (⚠ &lt;60 hari)</div><div class="kpi-val c-red" id="kpi-ed-alert" style="font-size:20px">0 unit</div></div>
+      <div><div class="kpi-label">Outlet Aktif</div><div class="kpi-val c-gold" id="kpi-outlet" style="font-size:20px">0</div></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div>Findest Sport Nutrition · Confidential — for authorized viewers only</div>
+    <div style="margin-top:6px">Data updated real-time from CRM · Do not share PIN or link</div>
+  </div>
+</div>
+
+<script>
+const SB=supabase.createClient('https://wuejoxgbtvmlrriwlofk.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZWpveGdidHZtbHJyaXdsb2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNjY1NTQsImV4cCI6MjA5Mjg0MjU1NH0.nq0xlsuXeJNXtb8SisPQ3Ml5fXNy2vguVRJ8pNFGai0');
+const fmt=n=>'Rp '+Math.round(n||0).toLocaleString('id-ID');
+const fmtShort=n=>{n=n||0;if(n>=1e9)return 'Rp '+(n/1e9).toFixed(1)+'M';if(n>=1e6)return 'Rp '+(n/1e6).toFixed(1)+'jt';if(n>=1e3)return 'Rp '+(n/1e3).toFixed(0)+'rb';return 'Rp '+n};
+
+let investorPin='findest2026';
+async function loadPin(){
+  try{
+    const {data}=await SB.from('config').select('value').eq('key','investor_pin').maybeSingle();
+    if(data?.value) investorPin=data.value;
+  }catch(e){}
+}
+loadPin();
+
+function checkPin(){
+  const v=(document.getElementById('pinInput')?.value||'').trim();
+  if(v===investorPin){
+    try{sessionStorage.setItem('findest_investor','1');}catch(e){}
+    document.getElementById('gate').style.display='none';
+    document.getElementById('content').style.display='';
+    loadDashboard();
+  }else{
+    document.getElementById('gateMsg').textContent='PIN salah. Coba lagi.';
+  }
+}
+try{if(sessionStorage.getItem('findest_investor')==='1'){document.getElementById('gate').style.display='none';document.getElementById('content').style.display='';loadDashboard();}}catch(e){}
+
+async function loadDashboard(){
+  document.getElementById('updated').textContent='Last update: '+new Date().toLocaleString('id-ID',{dateStyle:'long',timeStyle:'short'});
+  const now=new Date();
+  const bulan=now.getMonth()+1, tahun=now.getFullYear();
+  const bulanStr=String(bulan).padStart(2,'0');
+  const monthStart=`${tahun}-${bulanStr}-01`;
+  const monthEnd=new Date(tahun, bulan, 0).toISOString().slice(0,10);
+
+  // Load orders bulan ini
+  const {data:orders}=await SB.from('orders').select('id,total_nilai,status,produk_json,customer_nama,created_at').gte('created_at',monthStart).lte('created_at',monthEnd+' 23:59:59');
+  const confirmedOrders=(orders||[]).filter(o=>o.status!=='Batal'&&o.status!=='Dibatalkan');
+  const totalOmzet=confirmedOrders.reduce((s,o)=>s+(o.total_nilai||0),0);
+  document.getElementById('kpi-omzet').textContent=fmtShort(totalOmzet);
+  document.getElementById('kpi-omzet-sub').textContent=confirmedOrders.length+' order · MTD';
+  document.getElementById('kpi-orders').textContent=confirmedOrders.length;
+  document.getElementById('kpi-orders-sub').textContent='month-to-date';
+
+  // Gross margin — estimate 18% (bisa refine dari produk_json cost)
+  let totalCost=0,totalRevRealized=0;
+  confirmedOrders.forEach(o=>{
+    (o.produk_json||[]).forEach(p=>{
+      const rev=(p.harga||0)*(p.qty||0);
+      const cost=(p.harga_konsi_asal||p.harga||0)*(p.qty||0)*0.847; // approx 84.7% of catalog = HPP if markup 18%
+      totalRevRealized+=rev;
+      totalCost+=cost;
+    });
+  });
+  const margin=totalRevRealized>0?((totalRevRealized-totalCost)/totalRevRealized*100):0;
+  document.getElementById('kpi-margin').textContent=margin.toFixed(1)+'%';
+  document.getElementById('kpi-margin-sub').textContent=margin>15?'✅ Above target':'⚠ Below target 15%';
+
+  // Customers
+  const {data:custs}=await SB.from('customers').select('id,nama,sistem,status').eq('status','Aktif');
+  document.getElementById('kpi-cust').textContent=(custs||[]).length;
+  const konsi=(custs||[]).filter(c=>c.sistem==='Konsinyasi').length;
+  const fnb=(custs||[]).length-konsi;
+  document.getElementById('kpi-cust-sub').textContent=`${fnb} FnB · ${konsi} konsi`;
+
+  // Cash flow — payments (kas masuk) + expenses (kas keluar)
+  const {data:pays}=await SB.from('payments').select('nominal,tanggal_bayar').gte('tanggal_bayar',monthStart).lte('tanggal_bayar',monthEnd);
+  const {data:exps}=await SB.from('expenses').select('nominal,tgl').gte('tgl',monthStart).lte('tgl',monthEnd);
+  const cashIn=(pays||[]).reduce((s,p)=>s+(p.nominal||0),0);
+  const cashOut=(exps||[]).reduce((s,e)=>s+(e.nominal||0),0);
+  document.getElementById('kpi-cash-in').textContent=fmtShort(cashIn);
+  document.getElementById('kpi-cash-out').textContent=fmtShort(cashOut);
+  document.getElementById('kpi-netcash').textContent=fmtShort(cashIn-cashOut);
+  document.getElementById('kpi-netcash').className='kpi-val '+(cashIn>=cashOut?'c-green':'c-red');
+
+  // Piutang
+  const {data:invs}=await SB.from('invoices').select('total,status,jatuh_tempo');
+  const outstanding=(invs||[]).filter(i=>i.status!=='Lunas'&&i.status!=='Batal');
+  const totalPiutang=outstanding.reduce((s,i)=>s+(i.total||0),0);
+  const today=new Date().toISOString().slice(0,10);
+  const overdue=outstanding.filter(i=>i.jatuh_tempo&&i.jatuh_tempo<today);
+  const overdueTotal=overdue.reduce((s,i)=>s+(i.total||0),0);
+  document.getElementById('kpi-piutang').textContent=fmtShort(totalPiutang);
+  document.getElementById('kpi-piutang-sub').textContent=`${outstanding.length} invoice · overdue ${fmtShort(overdueTotal)}`;
+
+  // Top 10 produk (bulan ini)
+  const prodMap={};
+  confirmedOrders.forEach(o=>{
+    (o.produk_json||[]).forEach(p=>{
+      const key=p.nama||'-';
+      if(!prodMap[key])prodMap[key]={nama:key,qty:0,revenue:0};
+      prodMap[key].qty+=p.qty||0;
+      prodMap[key].revenue+=(p.harga||0)*(p.qty||0);
+    });
+  });
+  const topProds=Object.values(prodMap).sort((a,b)=>b.revenue-a.revenue).slice(0,10);
+  document.getElementById('tb-prod').innerHTML=topProds.length?topProds.map((p,i)=>`<tr><td><span class="rank">${i+1}</span></td><td>${p.nama.substring(0,40)}</td><td class="num">${p.qty}</td><td class="num c-teal">${fmtShort(p.revenue)}</td></tr>`).join(''):'<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:20px">Belum ada penjualan</td></tr>';
+
+  // Top customer
+  const custMap={};
+  confirmedOrders.forEach(o=>{
+    const k=o.customer_nama||'-';
+    if(!custMap[k])custMap[k]={nama:k,orders:0,revenue:0};
+    custMap[k].orders++;
+    custMap[k].revenue+=o.total_nilai||0;
+  });
+  const topCusts=Object.values(custMap).sort((a,b)=>b.revenue-a.revenue).slice(0,10);
+  document.getElementById('tb-cust').innerHTML=topCusts.length?topCusts.map((c,i)=>`<tr><td><span class="rank">${i+1}</span></td><td>${c.nama.substring(0,35)}</td><td class="num">${c.orders}</td><td class="num c-teal">${fmtShort(c.revenue)}</td></tr>`).join(''):'<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:20px">Belum ada</td></tr>';
+
+  // Inventory value
+  const {data:prods}=await SB.from('products').select('nama,harga,stok').eq('status','Aktif');
+  const nilaiFP=(prods||[]).reduce((s,p)=>s+((p.harga||0)*(p.stok||0)),0);
+  document.getElementById('kpi-stok-fp').textContent=fmtShort(nilaiFP);
+
+  const {data:konsis}=await SB.from('konsinyasi').select('qty_titip,qty_terjual,qty_retur,harga').eq('status','Aktif');
+  const nilaiKonsi=(konsis||[]).reduce((s,k)=>s+((k.qty_titip||0)-(k.qty_terjual||0)-(k.qty_retur||0))*(k.harga||0),0);
+  document.getElementById('kpi-stok-konsi').textContent=fmtShort(nilaiKonsi);
+
+  // ED alert
+  const {data:batches}=await SB.from('batches').select('produk_nama,jumlah_sisa,expired_date').eq('status','Aktif').gt('jumlah_sisa',0);
+  const in60=new Date(Date.now()+60*86400000).toISOString().slice(0,10);
+  const edAlert=(batches||[]).filter(b=>b.expired_date&&b.expired_date<=in60);
+  const edUnits=edAlert.reduce((s,b)=>s+(b.jumlah_sisa||0),0);
+  document.getElementById('kpi-ed-alert').textContent=edUnits+' unit';
+
+  const {data:outs}=await SB.from('outlets').select('id').eq('status','Aktif');
+  document.getElementById('kpi-outlet').textContent=(outs||[]).length;
+
+  // Charts: 6 bulan terakhir
+  await loadCharts();
+}
+
+async function loadCharts(){
+  const labels=[],omzetData=[],cashInData=[],cashOutData=[];
+  const now=new Date();
+  for(let i=5;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0');
+    const start=`${y}-${m}-01`,end=new Date(y,d.getMonth()+1,0).toISOString().slice(0,10);
+    labels.push(d.toLocaleDateString('id-ID',{month:'short',year:'2-digit'}));
+    const [{data:o},{data:p},{data:e}]=await Promise.all([
+      SB.from('orders').select('total_nilai,status').gte('created_at',start).lte('created_at',end+' 23:59:59'),
+      SB.from('payments').select('nominal').gte('tanggal_bayar',start).lte('tanggal_bayar',end),
+      SB.from('expenses').select('nominal').gte('tgl',start).lte('tgl',end)
+    ]);
+    omzetData.push((o||[]).filter(x=>x.status!=='Batal'&&x.status!=='Dibatalkan').reduce((s,x)=>s+(x.total_nilai||0),0));
+    cashInData.push((p||[]).reduce((s,x)=>s+(x.nominal||0),0));
+    cashOutData.push((e||[]).reduce((s,x)=>s+(x.nominal||0),0));
+  }
+  const commonOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{font:{family:'Inter',size:11}}}},scales:{y:{ticks:{callback:v=>fmtShort(v),font:{family:'Inter'}}},x:{ticks:{font:{family:'Inter'}}}}};
+  new Chart(document.getElementById('chartOmzet'),{type:'bar',data:{labels,datasets:[{label:'Omzet',data:omzetData,backgroundColor:'rgba(13,148,136,.85)',borderRadius:8}]},options:commonOpts});
+  new Chart(document.getElementById('chartCash'),{type:'line',data:{labels,datasets:[
+    {label:'Kas Masuk',data:cashInData,borderColor:'#059669',backgroundColor:'rgba(5,150,105,.1)',borderWidth:3,tension:.35,fill:true},
+    {label:'Kas Keluar',data:cashOutData,borderColor:'#DC2626',backgroundColor:'rgba(220,38,38,.1)',borderWidth:3,tension:.35,fill:true}
+  ]},options:commonOpts});
+}
+</script>
+</body>
+</html>
