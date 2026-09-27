@@ -1968,7 +1968,7 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
     </div>
   </div>
 
-  <!-- GM/HR VIEW — Rekap semua karyawan -->
+  <!-- REKAP KEHADIRAN TIM — visible ke semua karyawan (transparansi) -->
   <div id="abs-admin-section" style="display:none">
     <div class="ptabs">
       <button class="ptab active" onclick="abTab('ab-today',this);loadTodayAll()">📋 Hari Ini</button>
@@ -4596,8 +4596,9 @@ async function initAbsensi() {
   // Everyone sees self check-in
   if(selfSec) selfSec.style.display = 'block';
 
-  // GM & HR also see admin view
-  if(adminSec) adminSec.style.display = isAdmin ? 'block' : 'none';
+  // Semua karyawan sekarang bisa liat rekap tim (transparansi).
+  // Action buttons edit/hapus tetep gated ke GM/HR di loadTodayAll().
+  if(adminSec) adminSec.style.display = 'block';
 
   // Init rekap filters
   const now = new Date();
@@ -4609,8 +4610,8 @@ async function initAbsensi() {
   // Check if already checked in today
   await checkTodayStatus(todayStr);
 
-  // If admin, load today summary
-  if(isAdmin) loadTodayAll();
+  // Load rekap tim buat semua karyawan
+  loadTodayAll();
 }
 
 async function findMyEmployee() {
