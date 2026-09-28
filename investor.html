@@ -128,12 +128,60 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   </div>
 
   <div class="section-title">📊 Performance Snapshot (Bulan Ini)</div>
-  <div class="grid grid-4">
-    <div class="kpi-card">
-      <div class="kpi-label">Omzet Real (Sales + Konsi Terjual)</div>
-      <div class="kpi-val c-teal" id="kpi-omzet">Rp 0</div>
-      <div class="kpi-sub" id="kpi-omzet-sub">—</div>
+
+  <!-- OPSI A: Cash vs Pipeline 2 big cards -->
+  <div class="grid grid-2" style="margin-bottom:14px">
+    <div class="kpi-card" style="border-left:5px solid var(--teal);padding:20px 22px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+        <div class="kpi-label" style="font-size:12px">💰 CASH REVENUE</div>
+        <div style="font-size:10px;color:var(--green);font-weight:700;letter-spacing:1px">✅ CONFIRMED</div>
+      </div>
+      <div class="kpi-val c-teal" id="kpi-cash-rev" style="font-size:32px">Rp 0</div>
+      <div class="kpi-sub" id="kpi-cash-rev-sub" style="margin-top:6px">F&amp;B sales + Konsi realized</div>
+      <div style="display:flex;gap:14px;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);font-size:12px;color:var(--text-muted)">
+        <span>F&amp;B: <b class="c-gold" id="cash-fnb">Rp 0</b></span>
+        <span>Konsi ✔: <b class="c-teal" id="cash-konsi">Rp 0</b></span>
+      </div>
     </div>
+    <div class="kpi-card" style="border-left:5px solid #A78BFA;padding:20px 22px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+        <div class="kpi-label" style="font-size:12px">📦 KONSI PIPELINE</div>
+        <div style="font-size:10px;color:#A78BFA;font-weight:700;letter-spacing:1px">🟡 POTENTIAL</div>
+      </div>
+      <div class="kpi-val c-purple" id="kpi-pipeline" style="font-size:32px">Rp 0</div>
+      <div class="kpi-sub" id="kpi-pipeline-sub" style="margin-top:6px">Titipan aktif — belum kejual</div>
+      <div style="display:flex;gap:14px;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);font-size:12px;color:var(--text-muted)">
+        <span>Expected (60%): <b class="c-green" id="pipe-expected">Rp 0</b></span>
+        <span>Outlet: <b id="pipe-outlets">0</b></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPSI C: Revenue Projection compact bar -->
+  <div class="kpi-card" style="padding:14px 18px;margin-bottom:14px;border-left:5px solid var(--gold)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <div>
+        <div class="kpi-label" style="font-size:12px">🎯 REVENUE PROJECTION vs TARGET</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px" id="proj-narrative">Confirmed sekarang + expected pipeline convert = proyeksi akhir bulan</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:var(--text-muted)">Target Bulan</div>
+        <div style="font-size:16px;font-weight:700" id="proj-target">Rp 0</div>
+      </div>
+    </div>
+    <div style="position:relative;height:16px;background:var(--surface2);border-radius:8px;overflow:hidden">
+      <div id="proj-bar-confirmed" style="position:absolute;left:0;top:0;bottom:0;background:var(--teal);width:0%;transition:width .4s"></div>
+      <div id="proj-bar-projected" style="position:absolute;left:0;top:0;bottom:0;background:repeating-linear-gradient(45deg,rgba(167,139,250,.6),rgba(167,139,250,.6) 6px,rgba(167,139,250,.3) 6px,rgba(167,139,250,.3) 12px);width:0%;transition:width .4s;z-index:1"></div>
+      <div id="proj-marker-target" style="position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--gold);left:100%;z-index:2" title="Target"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:6px;color:var(--text-muted)">
+      <span>🟦 Confirmed: <b class="c-teal" id="proj-confirmed">Rp 0</b> (<span id="proj-confirmed-pct">0%</span>)</span>
+      <span>🟪 +Projected: <b class="c-purple" id="proj-total">Rp 0</b> (<span id="proj-total-pct">0%</span>)</span>
+      <span id="proj-verdict" style="font-weight:700">–</span>
+    </div>
+  </div>
+
+  <div class="grid grid-3">
     <div class="kpi-card bt-green">
       <div class="kpi-label">Gross Margin (Real Sales)</div>
       <div class="kpi-val c-green" id="kpi-margin">0%</div>
@@ -149,6 +197,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
       <div class="kpi-val c-purple" id="kpi-cust">0</div>
       <div class="kpi-sub" id="kpi-cust-sub">outlet + FnB partner</div>
     </div>
+  </div>
+
+  <!-- Hidden legacy KPI (dipertahankan biar JS lama ga error) -->
+  <div style="display:none">
+    <span id="kpi-omzet"></span><span id="kpi-omzet-sub"></span>
   </div>
 
   <div class="section-title">💰 Kas & Piutang</div>
@@ -237,6 +290,31 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
       <div><div class="kpi-label">ED Alert (⚠ &lt;60 hari)</div><div class="kpi-val c-red" id="kpi-ed-alert" style="font-size:20px">0 unit</div></div>
       <div><div class="kpi-label">Outlet Aktif</div><div class="kpi-val c-gold" id="kpi-outlet" style="font-size:20px">0</div></div>
     </div>
+  </div>
+
+  <!-- OPSI B: Konsi Turnover per Outlet -->
+  <div class="card" id="konsi-turnover-card">
+    <div class="card-h">
+      <div>
+        <div class="card-title">🏪 Konsi Turnover per Outlet</div>
+        <div class="card-sub">Fast mover vs slow mover — cek outlet mana yg produktif</div>
+      </div>
+    </div>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Outlet</th>
+          <th class="num">Titipan</th>
+          <th class="num">Terjual</th>
+          <th class="num">Sisa</th>
+          <th class="num">% Sold</th>
+          <th class="num">Age (hari)</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="tb-turnover"><tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr></tbody>
+    </table>
+    <div style="margin-top:10px;padding:10px;background:rgba(255,255,255,0.03);border-radius:6px;font-size:11px;color:var(--text-muted);line-height:1.5" id="turnover-insight"></div>
   </div>
 
   <div class="card" id="channel-mix-card">
@@ -368,16 +446,18 @@ async function loadDashboard(){
   const konsiRealized = (konsiSold||[]).reduce((s,k)=>s+((k.qty_terjual||0)*(k.harga||0)), 0);
 
   const omzetGabungan = totalOmzet + konsiRealized;
-  document.getElementById('kpi-omzet').textContent=fmtShort(omzetGabungan);
-  const subOmzet = konsiRealized>0
-    ? `${directSales.length} sale + ${fmtShort(konsiRealized)} konsi realized`
-    : `${directSales.length} sale · MTD`;
-  const subTitip = totalTitipan>0 ? ` · +${fmtShort(totalTitipan)} titipan aktif` : '';
-  document.getElementById('kpi-omzet-sub').textContent = subOmzet + subTitip;
+
+  // ═══ OPSI A: Cash Revenue vs Konsi Pipeline ═══
+  document.getElementById('kpi-cash-rev').textContent = fmtShort(omzetGabungan);
+  document.getElementById('kpi-cash-rev-sub').textContent = `${directSales.length} F&B sale + ${(konsiSold||[]).filter(k=>k.qty_terjual>0).length} konsi realized · MTD`;
+  document.getElementById('cash-fnb').textContent = fmtShort(totalOmzet);
+  document.getElementById('cash-konsi').textContent = fmtShort(konsiRealized);
+
+  // Legacy KPI (hidden but populated for backward-compat)
+  document.getElementById('kpi-omzet').textContent = fmtShort(omzetGabungan);
+  document.getElementById('kpi-omzet-sub').textContent = `${directSales.length} sale + ${fmtShort(konsiRealized)} konsi realized`;
   document.getElementById('kpi-orders').textContent = directSales.length;
-  document.getElementById('kpi-orders-sub').textContent = titipanOrders.length>0
-    ? `${titipanOrders.length} titipan konsi (inventory)`
-    : 'direct sale · MTD';
+  document.getElementById('kpi-orders-sub').textContent = 'direct sale · MTD';
 
   // Gross margin — dihitung dari REAL SALES saja (Konsi titipan bukan revenue realized)
   let totalCost=0,totalRevRealized=0;
@@ -392,6 +472,48 @@ async function loadDashboard(){
   const margin=totalRevRealized>0?((totalRevRealized-totalCost)/totalRevRealized*100):0;
   document.getElementById('kpi-margin').textContent=margin.toFixed(1)+'%';
   document.getElementById('kpi-margin-sub').textContent=margin>15?'✅ Above target · real sales only':'⚠ Below target 15% · real sales only';
+
+  // ═══ OPSI A: Konsi Pipeline (titipan aktif) ═══
+  // Fetch all Aktif konsi rows biar bisa hitung sisa titipan + turnover per outlet
+  const {data:allKonsiAktif}=await SB.from('konsinyasi').select('outlet,qty_titip,qty_terjual,qty_retur,harga,tgl_titip,status,produk').eq('status','Aktif');
+  const konsiActiveRows = allKonsiAktif||[];
+  const pipelineValue = konsiActiveRows.reduce((s,k)=>{
+    const sisa = (k.qty_titip||0) - (k.qty_terjual||0) - (k.qty_retur||0);
+    return s + (Math.max(0,sisa) * (k.harga||0));
+  }, 0);
+  const expectedPipeline = pipelineValue * 0.6; // 60% avg turnover assumption
+  const outletSet = new Set(konsiActiveRows.map(k=>k.outlet).filter(Boolean));
+  document.getElementById('kpi-pipeline').textContent = fmtShort(pipelineValue);
+  document.getElementById('kpi-pipeline-sub').textContent = `${konsiActiveRows.length} row aktif · ${outletSet.size} outlet`;
+  document.getElementById('pipe-expected').textContent = fmtShort(expectedPipeline);
+  document.getElementById('pipe-outlets').textContent = outletSet.size;
+
+  // ═══ OPSI C: Revenue Projection vs Target ═══
+  const {data:cfgTarget} = await SB.from('config').select('value').eq('key','target_bulan').maybeSingle();
+  const targetBulan = parseFloat(cfgTarget?.value || 1000000000); // default 1M
+  const confirmedNow = omzetGabungan; // cash rev sekarang
+  const projectedTotal = confirmedNow + expectedPipeline;
+  const pctConfirmed = targetBulan>0 ? Math.min(100, (confirmedNow/targetBulan*100)) : 0;
+  const pctProjected = targetBulan>0 ? Math.min(100, (projectedTotal/targetBulan*100)) : 0;
+  document.getElementById('proj-target').textContent = fmtShort(targetBulan);
+  document.getElementById('proj-confirmed').textContent = fmtShort(confirmedNow);
+  document.getElementById('proj-confirmed-pct').textContent = pctConfirmed.toFixed(0)+'%';
+  document.getElementById('proj-total').textContent = fmtShort(projectedTotal);
+  document.getElementById('proj-total-pct').textContent = pctProjected.toFixed(0)+'%';
+  document.getElementById('proj-bar-confirmed').style.width = pctConfirmed+'%';
+  document.getElementById('proj-bar-projected').style.width = pctProjected+'%';
+  const verdict = document.getElementById('proj-verdict');
+  if(pctProjected >= 100) { verdict.textContent = '✅ ON TRACK'; verdict.style.color = 'var(--green)'; }
+  else if(pctProjected >= 80) { verdict.textContent = '🟡 Close ('+pctProjected.toFixed(0)+'%)'; verdict.style.color = 'var(--gold)'; }
+  else { verdict.textContent = '🔴 Below ('+pctProjected.toFixed(0)+'%)'; verdict.style.color = 'var(--red)'; }
+  const gap = targetBulan - projectedTotal;
+  const narrative = gap > 0
+    ? `Confirmed ${fmtShort(confirmedNow)} + expected konsi ${fmtShort(expectedPipeline)} = ${fmtShort(projectedTotal)}. Gap ${fmtShort(gap)} ke target — push channel yg lagi below.`
+    : `Confirmed ${fmtShort(confirmedNow)} + expected konsi ${fmtShort(expectedPipeline)} = ${fmtShort(projectedTotal)}. Target sudah aman, fokus retention + closing pipeline.`;
+  document.getElementById('proj-narrative').textContent = narrative;
+
+  // ═══ OPSI B: Konsi Turnover per Outlet ═══
+  renderKonsiTurnover(konsiActiveRows);
 
   // Customers
   const {data:custs}=await SB.from('customers').select('id,nama,sistem,status').eq('status','Aktif');
@@ -539,6 +661,71 @@ async function renderChannelMix(orders, konsiRealized) {
       💡 Total revenue bulan ini: <b style="color:var(--text)">${fmtShort(total)}</b> dari ${(orders||[]).length} order. Garis hitam di bar = target. Bar warna = actual.
     </div>
   `;
+}
+
+// ═══════ KONSI TURNOVER PER OUTLET (Opsi B) ═══════
+function renderKonsiTurnover(rows) {
+  const tb = document.getElementById('tb-turnover');
+  const ins = document.getElementById('turnover-insight');
+  if(!tb) return;
+
+  if(!rows || rows.length === 0) {
+    tb.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">Belum ada titipan konsi aktif</td></tr>';
+    if(ins) ins.innerHTML = '💡 Belum ada data. Titipin barang ke outlet konsi lewat catalog scan biar tracker ini isi.';
+    return;
+  }
+
+  // Aggregate per outlet
+  const map = {};
+  const today = Date.now();
+  rows.forEach(r => {
+    const k = r.outlet || '(no outlet)';
+    if(!map[k]) map[k] = { outlet:k, titipan:0, terjual:0, retur:0, sisa:0, ageMin: Infinity, ageMax: 0, rows: 0 };
+    const val = (r.harga||0);
+    map[k].titipan += (r.qty_titip||0) * val;
+    map[k].terjual += (r.qty_terjual||0) * val;
+    map[k].retur   += (r.qty_retur||0) * val;
+    map[k].sisa    += Math.max(0, (r.qty_titip||0)-(r.qty_terjual||0)-(r.qty_retur||0)) * val;
+    map[k].rows++;
+    if(r.tgl_titip) {
+      const age = Math.floor((today - new Date(r.tgl_titip).getTime())/(86400000));
+      if(age < map[k].ageMin) map[k].ageMin = age;
+      if(age > map[k].ageMax) map[k].ageMax = age;
+    }
+  });
+
+  const outlets = Object.values(map).sort((a,b) => b.titipan - a.titipan);
+
+  tb.innerHTML = outlets.map(o => {
+    const pctSold = o.titipan > 0 ? (o.terjual/o.titipan*100) : 0;
+    const ageDisplay = o.ageMin === Infinity ? '-' : (o.ageMin === o.ageMax ? o.ageMin : `${o.ageMin}–${o.ageMax}`);
+    let status, statusColor;
+    if(pctSold >= 60) { status = '🟢 FAST MOVER'; statusColor = 'var(--green)'; }
+    else if(pctSold >= 30) { status = '🟡 STEADY'; statusColor = 'var(--gold)'; }
+    else if(o.ageMax > 60) { status = '🔴 SLOW / STUCK'; statusColor = 'var(--red)'; }
+    else { status = '⚪ FRESH'; statusColor = 'var(--text-muted)'; }
+    return `<tr>
+      <td><b>${o.outlet.substring(0,32)}</b><div style="font-size:10px;color:var(--text-muted)">${o.rows} row · retur ${fmtShort(o.retur)}</div></td>
+      <td class="num c-purple">${fmtShort(o.titipan)}</td>
+      <td class="num c-green">${fmtShort(o.terjual)}</td>
+      <td class="num c-teal">${fmtShort(o.sisa)}</td>
+      <td class="num"><b style="color:${statusColor}">${pctSold.toFixed(0)}%</b></td>
+      <td class="num">${ageDisplay}</td>
+      <td><span style="color:${statusColor};font-weight:700;font-size:11px">${status}</span></td>
+    </tr>`;
+  }).join('');
+
+  // Insight narrative
+  const totalTitipan = outlets.reduce((s,o)=>s+o.titipan, 0);
+  const totalTerjual = outlets.reduce((s,o)=>s+o.terjual, 0);
+  const totalSisa = outlets.reduce((s,o)=>s+o.sisa, 0);
+  const overallPct = totalTitipan>0 ? (totalTerjual/totalTitipan*100) : 0;
+  const slow = outlets.filter(o => o.titipan > 0 && (o.terjual/o.titipan) < 0.3 && o.ageMax > 30);
+  const fast = outlets.filter(o => o.titipan > 0 && (o.terjual/o.titipan) >= 0.6);
+  let msg = `💡 Total titipan aktif: <b>${fmtShort(totalTitipan)}</b> · terjual <b>${fmtShort(totalTerjual)}</b> (${overallPct.toFixed(0)}%) · sisa <b>${fmtShort(totalSisa)}</b>. `;
+  if(fast.length > 0) msg += `🟢 Fast mover: <b>${fast.slice(0,3).map(o=>o.outlet).join(', ')}</b> — restock priority. `;
+  if(slow.length > 0) msg += `🔴 Slow/stuck (>30 hari, <30% sold): <b>${slow.slice(0,3).map(o=>o.outlet).join(', ')}</b> — visit + retur cek.`;
+  if(ins) ins.innerHTML = msg;
 }
 
 // ═══════ ANATOMI MODAL & EKUITAS ═══════
