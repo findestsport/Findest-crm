@@ -831,7 +831,7 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
         </div>
         <div class="mstat"><span class="mstat-l" id="pl-payroll-label">Payroll</span><span class="mstat-v c-red" id="pl-payroll">Rp 0</span></div>
         <div style="background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.2);padding:8px 10px;border-radius:6px">
-          <div class="mstat" style="padding:0"><span class="mstat-l fw6">Sisa Pak Gun</span><span class="mstat-v c-green fw6" id="pl-sisa">Rp 0</span></div>
+          <div class="mstat" style="padding:0"><span class="mstat-l fw6">Sisa Investor</span><span class="mstat-v c-green fw6" id="pl-sisa">Rp 0</span></div>
         </div>
       </div>
     </div>
@@ -2202,7 +2202,7 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
           <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Persentase GP dari total omzet</div>
         </div>
         <div class="fg" style="margin-bottom:14px">
-          <label class="fl">Buffer Pak Gun (% dari GP)</label>
+          <label class="fl">Buffer Investor (% dari GP)</label>
           <input class="fi" type="number" id="cfg-buffer_pakgun" step="1" placeholder="10" value="10"/>
           <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Dipotong dari GP sebelum operasional</div>
         </div>
@@ -2612,7 +2612,7 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
       <div class="fg"><label class="fl">Keterangan</label><input class="fi" id="exp-ket" placeholder="Deskripsi pengeluaran..."></div>
       <div class="frow">
         <div class="fg"><label class="fl">Nominal (Rp)</label><input class="fi" type="number" id="exp-nominal" placeholder="1500000"></div>
-        <div class="fg"><label class="fl">Approved By</label><select class="fi" id="exp-app"><option>Finance Manager</option><option>GM (Fazar)</option><option>Aden</option><option>Pak Gun</option></select></div>
+        <div class="fg"><label class="fl">Approved By</label><select class="fi" id="exp-app"><option>Finance Manager</option><option>GM (Fazar)</option><option>Aden</option><option>Investor</option></select></div>
       </div>
     </div>
     <div class="mo-f"><button class="btn btn-ghost" onclick="closeMo('mo-exp')">Batal</button><button class="btn btn-primary" onclick="addExp()">💾 Simpan</button></div>
@@ -4366,7 +4366,7 @@ function updatePnL() {
   const bensin = cfg.bensin_buffer;
   const netSebelumGaji = gpKerja - biayaFP - bensin;
   const payroll = empAktif.reduce((s,e)=>s+(e.gaji||0),0);
-  const sisaPakGun = netSebelumGaji - payroll;
+  const sisaInvestor = netSebelumGaji - payroll;
 
   // GP card on top dashboard
   const gpEl = document.getElementById('d-gp');
@@ -4388,7 +4388,7 @@ function updatePnL() {
   setText('pl-net', fmt(netSebelumGaji));
   setLabel('pl-payroll-label', 'Payroll '+empAktif.length+' Org');
   setText('pl-payroll', '−'+fmt(payroll));
-  setText('pl-sisa', (sisaPakGun>=0?'+':'')+fmt(sisaPakGun));
+  setText('pl-sisa', (sisaInvestor>=0?'+':'')+fmt(sisaInvestor));
 
   // Old pnl-section if exists (KPI page)
   const pnlEl = document.getElementById('pnl-section');
@@ -4402,7 +4402,7 @@ function updatePnL() {
   pnlEl.innerHTML =
     row('Total Omzet', fmt(totalOmzet), 'c-teal') +
     row('GP ('+cfg.gp_margin+'%)', fmt(gp), 'c-green') +
-    row('Buffer Pak Gun ('+cfg.buffer_pakgun+'%)', '-'+fmt(buffer), 'c-gold') +
+    row('Buffer Investor ('+cfg.buffer_pakgun+'%)', '-'+fmt(buffer), 'c-gold') +
     row('GP Kerja', fmt(gpKerja), 'c-teal') +
     row('Biaya FP ('+cfg.jumlah_outlet+' outlet)', '-'+fmt(biayaFP), 'c-red') +
     row('Bensin + Buffer', '-'+fmt(bensin), 'c-red') +
@@ -4412,8 +4412,8 @@ function updatePnL() {
     '</div>' +
     row('Payroll ('+empCount+' org)', '-'+fmt(payroll), 'c-red') +
     '<div class="mstat" style="background:rgba(0,229,160,.1);border-radius:6px;padding:6px 8px;margin-top:6px">' +
-      '<span class="mstat-l fw6">Sisa Pak Gun</span>' +
-      '<span class="mstat-v fw6 '+(sisaPakGun>=0?'c-green':'c-red')+'">'+(sisaPakGun>=0?'+':'')+fmt(sisaPakGun)+'</span>' +
+      '<span class="mstat-l fw6">Sisa Investor</span>' +
+      '<span class="mstat-v fw6 '+(sisaInvestor>=0?'c-green':'c-red')+'">'+(sisaInvestor>=0?'+':'')+fmt(sisaInvestor)+'</span>' +
     '</div>' +
     (bonusPool > 0 ?
       '<div class="mstat" style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px">' +
@@ -5776,7 +5776,7 @@ function simPnL() {
   const bensin = cfg.bensin_buffer;
   const netSebelumGaji = gpKerja - biayaFP - bensin;
   const payroll = (cache.employees||[]).filter(e=>e.status==='Aktif').reduce((s,e)=>s+(e.gaji||0),0);
-  const sisaPakGun = netSebelumGaji - payroll;
+  const sisaInvestor = netSebelumGaji - payroll;
 
   // Bonus
   const target = cfg.target_bonus;
@@ -5790,7 +5790,7 @@ function simPnL() {
   resultEl.innerHTML =
     row('Omzet', fmt(omzet), 'c-teal') +
     row(`GP (${cfg.gp_margin}%)`, fmt(gp), 'c-green') +
-    row(`Buffer Pak Gun (${cfg.buffer_pakgun}%)`, '-'+fmt(buffer), 'c-gold') +
+    row(`Buffer Investor (${cfg.buffer_pakgun}%)`, '-'+fmt(buffer), 'c-gold') +
     row('GP Kerja', fmt(gpKerja), 'c-teal') +
     row(`Biaya FP (${cfg.jumlah_outlet} outlet)`, '-'+fmt(biayaFP), 'c-red') +
     row('Bensin + Buffer', '-'+fmt(bensin), 'c-red') +
@@ -5800,8 +5800,8 @@ function simPnL() {
     </div>` +
     row('Payroll ('+empCount+' org)', '-'+fmt(payroll), 'c-red') +
     `<div class="mstat" style="background:rgba(0,229,160,.1);border-radius:6px;padding:6px 8px;margin-top:6px">
-      <span class="mstat-l fw6">Sisa Pak Gun</span>
-      <span class="mstat-v fw6 ${sisaPakGun>=0?'c-green':'c-red'}">${sisaPakGun>=0?'+':''}${fmt(sisaPakGun)}</span>
+      <span class="mstat-l fw6">Sisa Investor</span>
+      <span class="mstat-v fw6 ${sisaInvestor>=0?'c-green':'c-red'}">${sisaInvestor>=0?'+':''}${fmt(sisaInvestor)}</span>
     </div>` +
     (bonusPool > 0 ? `<div class="mstat" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
       <span class="mstat-l">🎉 Bonus/orang</span>
@@ -9675,7 +9675,7 @@ async function doResetTrial() {
 }
 
 // ════════════════════════════════════════════
-// PAK GUN OWNER VIEW
+// INVESTOR OWNER VIEW
 // ════════════════════════════════════════════
 function showOwnerView() {
   const cfg = appConfig;
@@ -9697,7 +9697,7 @@ function showOwnerView() {
   const biayaFP = cfg.biaya_fp_per_outlet * cfg.jumlah_outlet;
   const bensin = cfg.bensin_buffer;
   const payroll = (cache.employees||[]).filter(e=>e.status==='Aktif').reduce((s,e)=>s+(e.gaji||0),0);
-  const sisaPakGun = gpKerja - biayaFP - bensin - payroll;
+  const sisaInvestor = gpKerja - biayaFP - bensin - payroll;
   const bonusPool = omzet > cfg.target_bonus ? Math.round(omzet*cfg.persen_bonus/100) : 0;
 
   const piutang = (cache.invoices||[]).filter(i=>i.status!=='Lunas').reduce((s,i)=>s+(i.total||0),0);
@@ -9711,8 +9711,8 @@ function showOwnerView() {
     '</div>'+
     '<div class="mstat"><span class="mstat-l">Total Omzet Bulan Ini</span><span class="mstat-v c-teal">'+fmt(omzet)+'</span></div>'+
     '<div class="mstat"><span class="mstat-l">Gross Profit ('+cfg.gp_margin+'%)</span><span class="mstat-v c-green">'+fmt(gp)+'</span></div>'+
-    '<div class="mstat"><span class="mstat-l">Buffer Pak Gun ('+cfg.buffer_pakgun+'%)</span><span class="mstat-v c-gold">+'+fmt(buffer)+'</span></div>'+
-    '<div class="mstat" style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px"><span class="mstat-l fw6">Sisa Pak Gun (Net)</span><span class="mstat-v fw6 '+(sisaPakGun>=0?'c-green':'c-red')+'">'+(sisaPakGun>=0?'+':'')+fmt(sisaPakGun)+'</span></div>'+
+    '<div class="mstat"><span class="mstat-l">Buffer Investor ('+cfg.buffer_pakgun+'%)</span><span class="mstat-v c-gold">+'+fmt(buffer)+'</span></div>'+
+    '<div class="mstat" style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px"><span class="mstat-l fw6">Sisa Investor (Net)</span><span class="mstat-v fw6 '+(sisaInvestor>=0?'c-green':'c-red')+'">'+(sisaInvestor>=0?'+':'')+fmt(sisaInvestor)+'</span></div>'+
     (bonusPool>0?'<div class="mstat"><span class="mstat-l">🎉 Bonus Pool Tim</span><span class="mstat-v c-green">'+fmt(bonusPool)+'</span></div>':'')+
     '<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border)">'+
     '<div class="mstat"><span class="mstat-l">Piutang Outstanding</span><span class="mstat-v c-red">'+fmt(piutang)+'</span></div>'+
@@ -13696,7 +13696,7 @@ async function generateLaporanPPT() {
     const buffer = Math.round(gp * (cfg.buffer_pakgun||10) / 100);
     const gpKerja = gp - buffer;
     const netSebelumGaji = gpKerja - biayaFP - bensin;
-    const sisaPakGun = netSebelumGaji - payroll;
+    const sisaInvestor = netSebelumGaji - payroll;
 
     // Top customers
     const custMap = {};
@@ -13746,7 +13746,7 @@ async function generateLaporanPPT() {
     };
 
     try {
-      const dataRingkas = `DATA BISNIS FINDEST SPORT — ${monthName}\nOmzet: ${fmtRp(totalOmzet)} | GP: ${fmtRp(gp)} | Sisa Pak Gun: ${fmtRp(sisaPakGun)}\nKonsinyasi: ${konsiDels.length} DO (${fmtRp(konsiOmzet)}) | Beli Putus: ${putusDels.length} DO (${fmtRp(putusOmzet)})\nTop Customer: ${topCust.slice(0,3).map(c=>c[0]).join(', ')}\nTop Produk: ${topProd.slice(0,3).map(p=>p[0]).join(', ')}\nPiutang Total: ${fmtRp(totalPiutang)} | Karyawan: ${empCount} | Outlet: ${jumlahOutlet}`;
+      const dataRingkas = `DATA BISNIS FINDEST SPORT — ${monthName}\nOmzet: ${fmtRp(totalOmzet)} | GP: ${fmtRp(gp)} | Sisa Investor: ${fmtRp(sisaInvestor)}\nKonsinyasi: ${konsiDels.length} DO (${fmtRp(konsiOmzet)}) | Beli Putus: ${putusDels.length} DO (${fmtRp(putusOmzet)})\nTop Customer: ${topCust.slice(0,3).map(c=>c[0]).join(', ')}\nTop Produk: ${topProd.slice(0,3).map(p=>p[0]).join(', ')}\nPiutang Total: ${fmtRp(totalPiutang)} | Karyawan: ${empCount} | Outlet: ${jumlahOutlet}`;
 
       const ctrl = new AbortController();
       const timeout = setTimeout(()=>ctrl.abort(), 8000); // 8 detik timeout
@@ -13779,7 +13779,7 @@ async function generateLaporanPPT() {
     if (!aiData.ringkasan_eksekutif) {
       const trendOmzet = totalOmzet >= (cfg.target_bulan||1000000000) ? 'melampaui target' : 'di bawah target';
       aiData = {
-        ringkasan_eksekutif: `Findest Sport mencatat omzet ${fmtRp(totalOmzet)} pada ${monthName}, ${trendOmzet} bulanan. GP aktual sebesar ${fmtRp(gp)} dengan sisa Pak Gun ${fmtRp(sisaPakGun)}. Distribusi berjalan melalui ${jumlahOutlet} outlet aktif dengan ${empCount} karyawan.`,
+        ringkasan_eksekutif: `Findest Sport mencatat omzet ${fmtRp(totalOmzet)} pada ${monthName}, ${trendOmzet} bulanan. GP aktual sebesar ${fmtRp(gp)} dengan sisa Investor ${fmtRp(sisaInvestor)}. Distribusi berjalan melalui ${jumlahOutlet} outlet aktif dengan ${empCount} karyawan.`,
         highlight_positif: [
           topCust.length > 0 ? `Top customer ${topCust[0][0]} berkontribusi ${fmtRp(topCust[0][1])}` : 'Distribusi berjalan normal',
           `${konsiDels.length + putusDels.length} delivery order berhasil diproses`,
@@ -13787,7 +13787,7 @@ async function generateLaporanPPT() {
         ],
         perhatian: [
           totalPiutang > 0 ? `Piutang outstanding ${fmtRp(totalPiutang)} perlu dimonitor` : 'Piutang terkendali',
-          sisaPakGun < 0 ? 'Sisa Pak Gun negatif — review biaya operasional' : 'Pastikan cash flow tetap sehat'
+          sisaInvestor < 0 ? 'Sisa Investor negatif — review biaya operasional' : 'Pastikan cash flow tetap sehat'
         ],
         rekomendasi: [
           'Fokus penagihan piutang di atas 30 hari',
@@ -13852,7 +13852,7 @@ async function generateLaporanPPT() {
     const kpis = [
       { label:'Total Omzet', val: (totalOmzet/1e6).toFixed(1)+'Jt', sub:'Bulan ini', color: C.teal },
       { label:'Gross Profit', val: (gp/1e6).toFixed(1)+'Jt', sub: (cfg.gp_margin||22)+'% margin', color: C.green },
-      { label:'Sisa Pak Gun', val: (Math.abs(sisaPakGun)/1e6).toFixed(1)+'Jt', sub: sisaPakGun>=0?'Surplus':'Defisit', color: sisaPakGun>=0 ? C.green : C.red },
+      { label:'Sisa Investor', val: (Math.abs(sisaInvestor)/1e6).toFixed(1)+'Jt', sub: sisaInvestor>=0?'Surplus':'Defisit', color: sisaInvestor>=0 ? C.green : C.red },
     ];
     kpis.forEach((k, i) => {
       const bx = 0.4 + i*4.3;
@@ -13887,14 +13887,14 @@ async function generateLaporanPPT() {
        { text:'NOMINAL', opts:{ bold:true, color:C.white, fill:{ color:C.navy }, align:'right' } }],
       ['Total Omzet', fmtRp(totalOmzet)],
       ['Gross Profit ('+cfg.gp_margin+'%)', fmtRp(gp)],
-      ['Buffer Pak Gun ('+cfg.buffer_pakgun+'%)', '− '+fmtRp(buffer)],
+      ['Buffer Investor ('+cfg.buffer_pakgun+'%)', '− '+fmtRp(buffer)],
       ['GP Kerja', fmtRp(gpKerja)],
       ['Biaya FP ('+jumlahOutlet+' outlet)', '− '+fmtRp(biayaFP)],
       ['Bensin & Buffer Operasional', '− '+fmtRp(bensin)],
       [{ text:'NET Sebelum Gaji', opts:{ bold:true } }, { text:fmtRp(netSebelumGaji), opts:{ bold:true, color: netSebelumGaji>=0?C.green:C.red, align:'right' } }],
       ['Payroll ('+empCount+' karyawan)', '− '+fmtRp(payroll)],
-      [{ text:'SISA PAK GUN', opts:{ bold:true, fill:{ color: sisaPakGun>=0?'E8F5E9':'FFF3F3' } } }, 
-       { text:(sisaPakGun>=0?'+ ':'')+fmtRp(sisaPakGun), opts:{ bold:true, color: sisaPakGun>=0?C.green:C.red, align:'right', fill:{ color: sisaPakGun>=0?'E8F5E9':'FFF3F3' } } }],
+      [{ text:'SISA INVESTOR', opts:{ bold:true, fill:{ color: sisaInvestor>=0?'E8F5E9':'FFF3F3' } } }, 
+       { text:(sisaInvestor>=0?'+ ':'')+fmtRp(sisaInvestor), opts:{ bold:true, color: sisaInvestor>=0?C.green:C.red, align:'right', fill:{ color: sisaInvestor>=0?'E8F5E9':'FFF3F3' } } }],
     ];
     const tableData = plRows.map((row, ri) => {
       if (ri===0) return row.map(c => typeof c==='object' ? { text:c.text, options:{ ...c.opts, fontSize:11, fontFace:'Calibri', bold:true, color:C.white, fill:{ color:C.navy }, margin:[4,8,4,8] } } : c);
