@@ -130,17 +130,17 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   <div class="section-title">📊 Performance Snapshot (Bulan Ini)</div>
   <div class="grid grid-4">
     <div class="kpi-card">
-      <div class="kpi-label">Total Omzet</div>
+      <div class="kpi-label">Omzet Real (Sales + Konsi Terjual)</div>
       <div class="kpi-val c-teal" id="kpi-omzet">Rp 0</div>
       <div class="kpi-sub" id="kpi-omzet-sub">—</div>
     </div>
     <div class="kpi-card bt-green">
-      <div class="kpi-label">Gross Margin</div>
+      <div class="kpi-label">Gross Margin (Real Sales)</div>
       <div class="kpi-val c-green" id="kpi-margin">0%</div>
       <div class="kpi-sub" id="kpi-margin-sub">Blended margin actual</div>
     </div>
     <div class="kpi-card bt-gold">
-      <div class="kpi-label">Total Order</div>
+      <div class="kpi-label">Direct Sale</div>
       <div class="kpi-val c-gold" id="kpi-orders">0</div>
       <div class="kpi-sub" id="kpi-orders-sub">order confirmed</div>
     </div>
@@ -351,18 +351,37 @@ async function loadDashboard(){
   const monthStart=`${tahun}-${bulanStr}-01`;
   const monthEnd=new Date(tahun, bulan, 0).toISOString().slice(0,10);
 
-  // Load orders bulan ini
-  const {data:orders}=await SB.from('orders').select('id,total_nilai,status,produk_json,customer_nama,created_at').gte('created_at',monthStart).lte('created_at',monthEnd+' 23:59:59');
+  // Load orders bulan ini (with channel fields for revenue recognition)
+  const {data:orders}=await SB.from('orders').select('id,total_nilai,status,produk_json,customer_nama,channel_sistem,channel_tipe,created_at').gte('created_at',monthStart).lte('created_at',monthEnd+' 23:59:59');
   const confirmedOrders=(orders||[]).filter(o=>o.status!=='Batal'&&o.status!=='Dibatalkan');
-  const totalOmzet=confirmedOrders.reduce((s,o)=>s+(o.total_nilai||0),0);
-  document.getElementById('kpi-omzet').textContent=fmtShort(totalOmzet);
-  document.getElementById('kpi-omzet-sub').textContent=confirmedOrders.length+' order · MTD';
-  document.getElementById('kpi-orders').textContent=confirmedOrders.length;
-  document.getElementById('kpi-orders-sub').textContent='month-to-date';
 
-  // Gross margin — estimate 18% (bisa refine dari produk_json cost)
+  // ═══ REVENUE RECOGNITION: pisahin real sales vs Konsi titipan ═══
+  // Konsi titipan = inventory transfer, BUKAN omzet. Omzet konsi diakui via qty_terjual.
+  const isKonsiTitipan = o => ((o.channel_sistem||'').toLowerCase().includes('konsinyasi'));
+  const directSales = confirmedOrders.filter(o => !isKonsiTitipan(o));
+  const titipanOrders = confirmedOrders.filter(isKonsiTitipan);
+  const totalOmzet = directSales.reduce((s,o) => s+(o.total_nilai||0), 0);
+  const totalTitipan = titipanOrders.reduce((s,o) => s+(o.total_nilai||0), 0);
+
+  // Load konsi realized sales bulan ini (qty_terjual × harga) — INI baru omzet real konsi
+  const {data:konsiSold}=await SB.from('konsinyasi').select('qty_terjual,harga,tgl_titip').gte('tgl_titip',monthStart).lte('tgl_titip',monthEnd);
+  const konsiRealized = (konsiSold||[]).reduce((s,k)=>s+((k.qty_terjual||0)*(k.harga||0)), 0);
+
+  const omzetGabungan = totalOmzet + konsiRealized;
+  document.getElementById('kpi-omzet').textContent=fmtShort(omzetGabungan);
+  const subOmzet = konsiRealized>0
+    ? `${directSales.length} sale + ${fmtShort(konsiRealized)} konsi realized`
+    : `${directSales.length} sale · MTD`;
+  const subTitip = totalTitipan>0 ? ` · +${fmtShort(totalTitipan)} titipan aktif` : '';
+  document.getElementById('kpi-omzet-sub').textContent = subOmzet + subTitip;
+  document.getElementById('kpi-orders').textContent = directSales.length;
+  document.getElementById('kpi-orders-sub').textContent = titipanOrders.length>0
+    ? `${titipanOrders.length} titipan konsi (inventory)`
+    : 'direct sale · MTD';
+
+  // Gross margin — dihitung dari REAL SALES saja (Konsi titipan bukan revenue realized)
   let totalCost=0,totalRevRealized=0;
-  confirmedOrders.forEach(o=>{
+  directSales.forEach(o=>{
     (o.produk_json||[]).forEach(p=>{
       const rev=(p.harga||0)*(p.qty||0);
       const cost=(p.harga_konsi_asal||p.harga||0)*(p.qty||0)*0.847; // approx 84.7% of catalog = HPP if markup 18%
@@ -372,7 +391,7 @@ async function loadDashboard(){
   });
   const margin=totalRevRealized>0?((totalRevRealized-totalCost)/totalRevRealized*100):0;
   document.getElementById('kpi-margin').textContent=margin.toFixed(1)+'%';
-  document.getElementById('kpi-margin-sub').textContent=margin>15?'✅ Above target':'⚠ Below target 15%';
+  document.getElementById('kpi-margin-sub').textContent=margin>15?'✅ Above target · real sales only':'⚠ Below target 15% · real sales only';
 
   // Customers
   const {data:custs}=await SB.from('customers').select('id,nama,sistem,status').eq('status','Aktif');
@@ -391,19 +410,23 @@ async function loadDashboard(){
   document.getElementById('kpi-netcash').textContent=fmtShort(cashIn-cashOut);
   document.getElementById('kpi-netcash').className='kpi-val '+(cashIn>=cashOut?'c-green':'c-red');
 
-  // Piutang
-  const {data:invs}=await SB.from('invoices').select('total,status,jatuh_tempo');
-  const outstanding=(invs||[]).filter(i=>i.status!=='Lunas'&&i.status!=='Batal');
+  // Piutang — EXCLUDE Konsi titipan invoices (those bukan piutang, tapi titipan stok)
+  const {data:invs}=await SB.from('invoices').select('total,status,jatuh_tempo,customer_sistem');
+  const outstanding=(invs||[]).filter(i=>{
+    if(i.status==='Lunas'||i.status==='Batal') return false;
+    const sis=(i.customer_sistem||'').toLowerCase();
+    return !sis.includes('konsinyasi'); // titipan bukan piutang real
+  });
   const totalPiutang=outstanding.reduce((s,i)=>s+(i.total||0),0);
   const today=new Date().toISOString().slice(0,10);
   const overdue=outstanding.filter(i=>i.jatuh_tempo&&i.jatuh_tempo<today);
   const overdueTotal=overdue.reduce((s,i)=>s+(i.total||0),0);
   document.getElementById('kpi-piutang').textContent=fmtShort(totalPiutang);
-  document.getElementById('kpi-piutang-sub').textContent=`${outstanding.length} invoice · overdue ${fmtShort(overdueTotal)}`;
+  document.getElementById('kpi-piutang-sub').textContent=`${outstanding.length} invoice real · overdue ${fmtShort(overdueTotal)}`;
 
-  // Top 10 produk (bulan ini)
+  // Top 10 produk (REAL SALES + Konsi realized bulan ini) — bukan titipan
   const prodMap={};
-  confirmedOrders.forEach(o=>{
+  directSales.forEach(o=>{
     (o.produk_json||[]).forEach(p=>{
       const key=p.nama||'-';
       if(!prodMap[key])prodMap[key]={nama:key,qty:0,revenue:0};
@@ -412,18 +435,18 @@ async function loadDashboard(){
     });
   });
   const topProds=Object.values(prodMap).sort((a,b)=>b.revenue-a.revenue).slice(0,10);
-  document.getElementById('tb-prod').innerHTML=topProds.length?topProds.map((p,i)=>`<tr><td><span class="rank">${i+1}</span></td><td>${p.nama.substring(0,40)}</td><td class="num">${p.qty}</td><td class="num c-teal">${fmtShort(p.revenue)}</td></tr>`).join(''):'<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:20px">Belum ada penjualan</td></tr>';
+  document.getElementById('tb-prod').innerHTML=topProds.length?topProds.map((p,i)=>`<tr><td><span class="rank">${i+1}</span></td><td>${p.nama.substring(0,40)}</td><td class="num">${p.qty}</td><td class="num c-teal">${fmtShort(p.revenue)}</td></tr>`).join(''):'<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:20px">Belum ada real sales bulan ini</td></tr>';
 
-  // Top customer
+  // Top customer — REAL SALES saja (titipan bukan omzet, ntar bikin FP Uluwatu masuk top #1 palsu)
   const custMap={};
-  confirmedOrders.forEach(o=>{
+  directSales.forEach(o=>{
     const k=o.customer_nama||'-';
     if(!custMap[k])custMap[k]={nama:k,orders:0,revenue:0};
     custMap[k].orders++;
     custMap[k].revenue+=o.total_nilai||0;
   });
   const topCusts=Object.values(custMap).sort((a,b)=>b.revenue-a.revenue).slice(0,10);
-  document.getElementById('tb-cust').innerHTML=topCusts.length?topCusts.map((c,i)=>`<tr><td><span class="rank">${i+1}</span></td><td>${c.nama.substring(0,35)}</td><td class="num">${c.orders}</td><td class="num c-teal">${fmtShort(c.revenue)}</td></tr>`).join(''):'<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:20px">Belum ada</td></tr>';
+  document.getElementById('tb-cust').innerHTML=topCusts.length?topCusts.map((c,i)=>`<tr><td><span class="rank">${i+1}</span></td><td>${c.nama.substring(0,35)}</td><td class="num">${c.orders}</td><td class="num c-teal">${fmtShort(c.revenue)}</td></tr>`).join(''):'<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:20px">Belum ada real sales</td></tr>';
 
   // Inventory value
   const {data:prods}=await SB.from('products').select('nama,harga,stok').eq('status','Aktif');
@@ -445,7 +468,8 @@ async function loadDashboard(){
   document.getElementById('kpi-outlet').textContent=(outs||[]).length;
 
   // ═══ CHANNEL MIX EXECUTION ═══
-  await renderChannelMix(confirmedOrders);
+  // Pass directSales + konsiRealized biar mix pake real revenue, bukan titipan phantom
+  await renderChannelMix(directSales, konsiRealized);
 
   // ═══ ANATOMI MODAL & EKUITAS ═══
   await renderAnatomiModal({
@@ -459,7 +483,7 @@ async function loadDashboard(){
 }
 
 // ═══════ CHANNEL MIX EXECUTION (buat Boss) ═══════
-async function renderChannelMix(orders) {
+async function renderChannelMix(orders, konsiRealized) {
   const el = document.getElementById('inv-channel-mix');
   if(!el) return;
 
@@ -470,12 +494,10 @@ async function renderChannelMix(orders) {
   const tgtKonsi = cMap.target_mix_konsi || 40;
   const tgtPub = cMap.target_mix_public || 10;
 
-  const rev = { fnb:0, konsi:0, public:0 };
+  const rev = { fnb:0, konsi: (konsiRealized||0), public:0 };
   (orders||[]).forEach(o => {
-    const sistem = (o.channel_sistem||'').toLowerCase();
     const tipe = (o.channel_tipe||'').toLowerCase();
-    if(sistem.includes('konsinyasi') || tipe.includes('konsi')) rev.konsi += o.total_nilai||0;
-    else if(tipe.includes('f&b') || tipe.includes('fnb') || tipe.includes('cafe') || tipe.includes('gym')) rev.fnb += o.total_nilai||0;
+    if(tipe.includes('f&b') || tipe.includes('fnb') || tipe.includes('cafe') || tipe.includes('gym')) rev.fnb += o.total_nilai||0;
     else rev.public += o.total_nilai||0;
   });
   const total = rev.fnb + rev.konsi + rev.public;

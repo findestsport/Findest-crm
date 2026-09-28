@@ -748,10 +748,10 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
 
   <div class="kpi-grid" id="dash-kpi">
     <div class="kpi" style="--kc:var(--teal)"><div class="kpi-label">Total Aset</div><div class="kpi-val c-teal" id="d-aset">–</div><div class="kpi-sub" id="d-aset-sub">Gudang + Outlet</div></div>
-    <div class="kpi" style="--kc:var(--green)"><div class="kpi-label">Avg Omzet</div><div class="kpi-val" id="d-avg">–</div><div class="kpi-sub">Per bulan</div></div>
+    <div class="kpi" style="--kc:var(--green)"><div class="kpi-label">Avg Omzet Real</div><div class="kpi-val" id="d-avg">–</div><div class="kpi-sub">Per bulan · tanpa titipan</div></div>
     <div class="kpi" style="--kc:var(--gold)"><div class="kpi-label">Gross Profit</div><div class="kpi-val c-gold" id="d-gp">–</div><div class="kpi-sub" id="d-gp-sub">Margin –</div></div>
     <div class="kpi" style="--kc:var(--purple)"><div class="kpi-label">Customer</div><div class="kpi-val" id="d-cust">–</div><div class="kpi-sub">Aktif</div></div>
-    <div class="kpi" style="--kc:var(--red)"><div class="kpi-label">Piutang</div><div class="kpi-val c-red" id="d-piutang">–</div><div class="kpi-sub">Outstanding</div></div>
+    <div class="kpi" style="--kc:var(--red)"><div class="kpi-label">Piutang Real</div><div class="kpi-val c-red" id="d-piutang">–</div><div class="kpi-sub">Non-titipan</div></div>
     <div class="kpi" style="--kc:var(--orange)"><div class="kpi-label">ED Alert</div><div class="kpi-val c-gold" id="d-ed">–</div><div class="kpi-sub">Unit total</div></div>
   </div>
 
@@ -4059,7 +4059,12 @@ function renderExp() {
 
 function updateDashboard() {
   document.getElementById('d-cust').textContent = cache.customers.length;
-  const totalPiutang = cache.invoices.filter(i=>i.status!=='Lunas').reduce((s,i)=>s+(i.total||0),0);
+  // Piutang = invoice belum lunas, EXCLUDE Konsi titipan (bukan piutang real)
+  const totalPiutang = cache.invoices.filter(i=>{
+    if(i.status==='Lunas'||i.status==='Batal') return false;
+    const sis=(i.customer_sistem||'').toLowerCase();
+    return !sis.includes('konsinyasi');
+  }).reduce((s,i)=>s+(i.total||0),0);
   document.getElementById('d-piutang').textContent = (totalPiutang/1e6).toFixed(1)+'Jt';
   const totalEd = cache.outlets.reduce((s,o)=>s+(o.ed_alert||0),0);
   document.getElementById('d-ed').textContent = totalEd;
@@ -4141,17 +4146,23 @@ async function updateChannelFocus() {
     return o.created_at.slice(0,10) >= monthStart;
   });
 
-  const total = monthOrders.reduce((s,o) => s + (o.total_nilai||0), 0);
+  // Konsi revenue = REALIZED (qty_terjual × harga), bukan titipan
+  // Titipan = inventory move, ntar bikin channel mix palsu
+  const konsiRealized = (typeof allKonsi !== 'undefined' ? allKonsi : []).filter(k=>{
+    return (k.tgl_titip||'').slice(0,7) === monthStart.slice(0,7); // bulan ini
+  }).reduce((s,k)=>s+((k.qty_terjual||0)*(k.harga||0)), 0);
 
-  // Classify per channel
-  const revByChannel = { fnb: 0, konsi: 0, public: 0 };
+  // Classify per channel — EXCLUDE Konsi titipan orders (dihandle via konsiRealized)
+  const revByChannel = { fnb: 0, konsi: konsiRealized, public: 0 };
   monthOrders.forEach(o => {
     const sistem = (o.channel_sistem||'').toLowerCase();
     const tipe = (o.channel_tipe||'').toLowerCase();
-    if(sistem.includes('konsinyasi') || tipe.includes('konsi')) revByChannel.konsi += o.total_nilai||0;
-    else if(tipe.includes('f&b') || tipe.includes('fnb') || tipe.includes('cafe') || tipe.includes('gym')) revByChannel.fnb += o.total_nilai||0;
+    if(sistem.includes('konsinyasi')) return; // titipan skip — konsi pake realized
+    if(tipe.includes('f&b') || tipe.includes('fnb') || tipe.includes('cafe') || tipe.includes('gym')) revByChannel.fnb += o.total_nilai||0;
     else revByChannel.public += o.total_nilai||0;
   });
+
+  const total = revByChannel.fnb + revByChannel.konsi + revByChannel.public;
 
   const pct = (v) => total > 0 ? (v / total * 100) : 0;
   const actualFnb = pct(revByChannel.fnb);
@@ -4308,6 +4319,9 @@ function updateTopProducts() {
   (cache.orders||[]).forEach(o => {
     if(!o.tgl_order || !o.tgl_order.startsWith(thisMonth)) return;
     if(!o.produk) return;
+    // Skip Konsi titipan — bukan real sales, ntar bikin FP Uluwatu top #1 palsu
+    const sis=(o.channel_sistem||'').toLowerCase();
+    if(sis.includes('konsinyasi')) return;
     // Parse "PRODUK A x2, PRODUK B x1"
     o.produk.split(',').forEach(p => {
       const m = p.trim().match(/^(.+?)\s*x(\d+)$/);
@@ -4349,6 +4363,9 @@ function updateTopCustomers() {
   const custTotal = {};
   (cache.invoices||[]).forEach(inv => {
     if(!inv.customer_nama) return;
+    // Skip Konsi titipan invoices — pake konsi qty_terjual utk real konsi revenue
+    const sis=(inv.customer_sistem||'').toLowerCase();
+    if(sis.includes('konsinyasi')) return;
     custTotal[inv.customer_nama] = (custTotal[inv.customer_nama]||0) + (inv.total||0);
   });
   
@@ -4406,11 +4423,13 @@ function updateAgingPiutang() {
 function updateOmzetChart() {
   const START_DATE = '2026-05-01'; // Fresh start
   const bulanNames = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-  
-  // Group invoices by month from May 2026
+
+  // Group invoices by month from May 2026 — EXCLUDE Konsi titipan (bukan omzet real)
   const byMonth = {};
   (cache.invoices || []).forEach(inv => {
     if(!inv.created_at) return;
+    const sis=(inv.customer_sistem||'').toLowerCase();
+    if(sis.includes('konsinyasi')) return; // titipan = inventory, bukan omzet
     const d = new Date(inv.created_at);
     if(d < new Date(START_DATE)) return; // Skip old data
     const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
@@ -4461,6 +4480,8 @@ function updatePnL() {
 
   const monthInvoices = (cache.invoices || []).filter(inv => {
     if(!inv.created_at) return false;
+    const sis=(inv.customer_sistem||'').toLowerCase();
+    if(sis.includes('konsinyasi')) return false; // titipan bukan omzet
     const d = new Date(inv.created_at);
     if(d < new Date(START_DATE)) return false;
     const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
