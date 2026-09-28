@@ -1168,6 +1168,7 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
       </div>
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn btn-success" onclick="openRekapBulanan()" title="Rekap bulanan konsi outlet — 1 form update semua sekaligus + auto invoice">🧾 Rekap Bulanan</button>
       <button class="btn btn-warn" onclick="openOrderFromKonsi()" title="Auto retur multi-partner + buat order + faktur langsung">🚀 Order dari Konsi</button>
       <button class="btn btn-ghost" onclick="openReturHistory()" title="Log semua retur konsi">📜 History Retur</button>
       <button class="btn btn-primary" onclick="openAddKonsi()">+ Catat Konsinyasi</button>
@@ -8264,6 +8265,219 @@ function toggleReturTransferField() {
   if(wrap) wrap.style.display = tujuan === 'customer' ? '' : 'none';
 }
 
+// ═══════════════════════════════════════════════
+// REKAP BULANAN KONSI — batch rekonsiliasi tanggal 25
+// ═══════════════════════════════════════════════
+let rekapKonsiRows = []; // konsi_aktif buat rekap bulan ini
+let rekapExisting = {};  // {konsi_id: {qty_terjual_bulan, qty_retur_bulan}} kalo udah rekap
+
+async function openRekapBulanan() {
+  openMo('mo-rekap-bulanan');
+  // Default bulan = bulan berjalan
+  const now = new Date();
+  const defaultBulan = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const inp = document.getElementById('rekap-bulan-input');
+  if(inp && !inp.value) inp.value = defaultBulan;
+  await loadRekapBulanan();
+}
+
+async function loadRekapBulanan() {
+  const bulanVal = document.getElementById('rekap-bulan-input')?.value;
+  if(!bulanVal) return;
+  document.getElementById('rekap-bulan-label').textContent = bulanVal;
+  document.getElementById('tb-rekap-form').innerHTML = '<tr><td colspan="8"><div class="empty"><div class="spinner"></div></div></td></tr>';
+
+  const bulanStart = bulanVal + '-01';
+
+  // Load konsi Aktif
+  const { data: konsis, error: kErr } = await sb.from('konsinyasi')
+    .select('id,outlet,produk,qty_titip,qty_terjual,qty_retur,harga,tgl_titip,status')
+    .eq('status','Aktif')
+    .order('outlet').order('produk');
+  if(kErr) {
+    document.getElementById('tb-rekap-form').innerHTML = `<tr><td colspan="8"><div class="empty">Error: ${kErr.message}</div></td></tr>`;
+    return;
+  }
+  rekapKonsiRows = konsis || [];
+
+  // Load existing rekap for this month (kalo sales input ulang)
+  const { data: existing } = await sb.from('konsi_rekap_bulanan')
+    .select('konsi_id,qty_terjual_bulan,qty_retur_bulan')
+    .eq('bulan', bulanStart);
+  rekapExisting = {};
+  (existing||[]).forEach(r => { if(r.konsi_id) rekapExisting[r.konsi_id] = r; });
+
+  renderRekapForm();
+}
+
+function renderRekapForm() {
+  const tb = document.getElementById('tb-rekap-form');
+  const filter = (document.getElementById('rekap-filter-outlet')?.value||'').toLowerCase().trim();
+  if(!rekapKonsiRows.length) {
+    tb.innerHTML = '<tr><td colspan="8"><div class="empty">Belum ada konsi aktif</div></td></tr>';
+    document.getElementById('rekap-summary').textContent = '';
+    return;
+  }
+  const rows = filter ? rekapKonsiRows.filter(r => (r.outlet||'').toLowerCase().includes(filter)) : rekapKonsiRows;
+  if(!rows.length) {
+    tb.innerHTML = '<tr><td colspan="8"><div class="empty">Ga ada outlet match filter</div></td></tr>';
+    return;
+  }
+
+  tb.innerHTML = rows.map(r => {
+    const sisa = Math.max(0, (r.qty_titip||0) - (r.qty_terjual||0) - (r.qty_retur||0));
+    const existing = rekapExisting[r.id];
+    const existBadge = existing ? '<span style="color:var(--gold);font-size:10px">📝 SUDAH DI-REKAP · edit di bawah update ulang</span>' : '';
+    const defTerjual = existing?.qty_terjual_bulan || 0;
+    const defRetur = existing?.qty_retur_bulan || 0;
+    return `<tr data-konsi="${r.id}" data-harga="${r.harga||0}" data-sisa="${sisa}">
+      <td>
+        <div><b>${r.outlet||'-'}</b></div>
+        <div style="font-size:11px;color:var(--text-muted)">${r.produk||'-'}</div>
+        ${existBadge}
+      </td>
+      <td class="num">${r.qty_titip||0}</td>
+      <td class="num" style="color:var(--green)">${r.qty_terjual||0}</td>
+      <td class="num" style="color:var(--teal);font-weight:700">${sisa}</td>
+      <td class="num"><input class="fi rekap-terjual" type="number" min="0" max="${sisa}" value="${defTerjual}"
+           oninput="calcRekapRow(this)" style="width:80px;text-align:right;padding:4px 6px"/></td>
+      <td class="num"><input class="fi rekap-retur" type="number" min="0" max="${sisa}" value="${defRetur}"
+           oninput="calcRekapRow(this)" style="width:70px;text-align:right;padding:4px 6px"/></td>
+      <td class="num rekap-nilai" style="color:var(--gold);font-weight:700">${fmt(defTerjual * (r.harga||0))}</td>
+      <td><span class="rekap-status" style="font-size:10px">${sisa === 0 ? '🔴 KOSONG' : '⚪'}</span></td>
+    </tr>`;
+  }).join('');
+
+  updateRekapSummary();
+}
+
+function calcRekapRow(inputEl) {
+  const tr = inputEl.closest('tr');
+  const harga = parseFloat(tr.dataset.harga||0);
+  const sisa = parseInt(tr.dataset.sisa||0);
+  const terjual = parseInt(tr.querySelector('.rekap-terjual').value||0);
+  const retur = parseInt(tr.querySelector('.rekap-retur').value||0);
+  const total = terjual + retur;
+
+  // Validate max
+  if(total > sisa) {
+    inputEl.style.borderColor = 'var(--red)';
+    tr.querySelector('.rekap-status').innerHTML = '<span style="color:var(--red)">❌ MELEBIHI SISA</span>';
+  } else {
+    inputEl.style.borderColor = '';
+    if(terjual > 0) tr.querySelector('.rekap-status').innerHTML = '<span style="color:var(--green)">✅ INPUTED</span>';
+    else if(retur > 0) tr.querySelector('.rekap-status').innerHTML = '<span style="color:var(--gold)">📦 RETUR</span>';
+    else tr.querySelector('.rekap-status').innerHTML = '<span style="color:var(--text-muted)">⚪</span>';
+  }
+
+  tr.querySelector('.rekap-nilai').textContent = fmt(terjual * harga);
+  updateRekapSummary();
+}
+
+function updateRekapSummary() {
+  const rows = document.querySelectorAll('#tb-rekap-form tr[data-konsi]');
+  let totalTerjualQty = 0, totalReturQty = 0, totalNilai = 0, outletSet = new Set(), rowInputed = 0;
+  rows.forEach(tr => {
+    const terjual = parseInt(tr.querySelector('.rekap-terjual')?.value||0);
+    const retur = parseInt(tr.querySelector('.rekap-retur')?.value||0);
+    const harga = parseFloat(tr.dataset.harga||0);
+    if(terjual > 0 || retur > 0) {
+      rowInputed++;
+      const outlet = tr.querySelector('td b')?.textContent;
+      if(outlet) outletSet.add(outlet);
+    }
+    totalTerjualQty += terjual;
+    totalReturQty += retur;
+    totalNilai += terjual * harga;
+  });
+  const el = document.getElementById('rekap-summary');
+  if(el) {
+    el.innerHTML = `📊 <b>${rowInputed}</b> row di-input · <b>${outletSet.size}</b> outlet ·
+      Total terjual: <b class="c-green">${totalTerjualQty} unit</b> ·
+      Retur: <b class="c-gold">${totalReturQty} unit</b> ·
+      💰 Nilai omzet konsi: <b class="c-teal">${fmt(totalNilai)}</b><br>
+      <span style="font-size:11px;color:var(--text-muted)">💡 Save = insert row rekap → trigger auto-generate invoice ke tiap outlet + update konsinyasi cumulative qty_terjual/qty_retur.</span>`;
+  }
+}
+
+async function submitRekapBulanan() {
+  const bulanVal = document.getElementById('rekap-bulan-input')?.value;
+  if(!bulanVal) { alert('Pilih bulan dulu'); return; }
+  const bulanStart = bulanVal + '-01';
+  const rows = document.querySelectorAll('#tb-rekap-form tr[data-konsi]');
+  const inserts = [];
+  const updates = []; // untuk existing rekap yang di-update
+  let errorMsg = null;
+
+  rows.forEach(tr => {
+    const konsi_id = parseInt(tr.dataset.konsi);
+    const harga = parseFloat(tr.dataset.harga||0);
+    const sisa = parseInt(tr.dataset.sisa||0);
+    const terjual = parseInt(tr.querySelector('.rekap-terjual').value||0);
+    const retur = parseInt(tr.querySelector('.rekap-retur').value||0);
+    if(terjual === 0 && retur === 0) return; // skip yg ga di-input
+    if(terjual + retur > sisa) {
+      errorMsg = 'Ada row melebihi sisa titipan. Perbaiki dulu row merah.';
+      return;
+    }
+    const row = rekapKonsiRows.find(x => x.id === konsi_id);
+    if(!row) return;
+    const payload = {
+      konsi_id,
+      outlet: row.outlet,
+      produk: row.produk,
+      bulan: bulanStart,
+      qty_terjual_bulan: terjual,
+      qty_retur_bulan: retur,
+      harga: row.harga||0,
+      nilai_terjual: terjual * (row.harga||0),
+      tgl_rekon: new Date().toISOString().slice(0,10),
+      created_by: currentProfile?.email || 'unknown'
+    };
+    if(rekapExisting[konsi_id]) {
+      updates.push({ konsi_id, bulan: bulanStart, ...payload });
+    } else {
+      inserts.push(payload);
+    }
+  });
+
+  if(errorMsg) { alert(errorMsg); return; }
+  if(!inserts.length && !updates.length) {
+    alert('Belum ada row yang di-input. Isi qty terjual/retur dulu.'); return;
+  }
+
+  const btn = document.getElementById('btn-submit-rekap');
+  btn.disabled = true; btn.textContent = '⏳ Saving...';
+
+  try {
+    // Delete existing rekap dulu — DELETE trigger auto-revert cumulative + cancel old invoice
+    if(updates.length > 0) {
+      for(const u of updates) {
+        const { error: delErr } = await sb.from('konsi_rekap_bulanan')
+          .delete()
+          .eq('konsi_id', u.konsi_id)
+          .eq('bulan', u.bulan);
+        if(delErr) throw delErr;
+      }
+    }
+
+    // Insert semua rekap baru — INSERT trigger auto-update cumulative + generate new invoice
+    const allInserts = [...inserts, ...updates];
+    const { error } = await sb.from('konsi_rekap_bulanan').insert(allInserts);
+    if(error) throw error;
+
+    showToast(`✅ ${allInserts.length} rekap tersimpan · Invoice ke outlet auto-generated · Cek Piutang tab`, 'success');
+    closeMo('mo-rekap-bulanan');
+    await loadKonsi();
+    if(typeof loadInvoices === 'function') await loadInvoices();
+    updateDashboard();
+  } catch(e) {
+    alert('Gagal save: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '💾 Save & Generate Invoice';
+  }
+}
+
 let allReturHistory = [];
 async function openReturHistory() {
   openMo('mo-retur-history');
@@ -12661,6 +12875,50 @@ function dcEditCust() {
     <div class="mo-f">
       <button class="btn btn-ghost" onclick="closeMo('mo-order-from-konsi')">Batal</button>
       <button class="btn btn-warn" id="ofk-submit-btn" onclick="submitOrderFromKonsi()">🚀 Buat Order + Faktur</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ REKAP BULANAN KONSI MODAL ═══════ -->
+<div class="mo" id="mo-rekap-bulanan">
+  <div class="mo-box" style="max-width:1000px">
+    <div class="mo-h">
+      <div class="mo-title">🧾 Rekap Konsi Bulan <span id="rekap-bulan-label">-</span></div>
+      <button class="mo-x" onclick="closeMo('mo-rekap-bulanan')">×</button>
+    </div>
+    <div class="mo-b">
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+        <label style="font-size:12px;color:var(--text-muted)">Bulan Rekap:</label>
+        <input class="fi" type="month" id="rekap-bulan-input" style="max-width:180px" onchange="loadRekapBulanan()"/>
+        <input class="fi" id="rekap-filter-outlet" placeholder="🔍 Filter outlet..." style="max-width:220px" oninput="renderRekapForm()"/>
+        <div style="margin-left:auto;font-size:11px;color:var(--text-muted)">
+          💡 Input qty terjual + retur per row. Save = auto invoice ke outlet + update konsi.
+        </div>
+      </div>
+
+      <div id="rekap-summary" style="padding:10px 14px;background:rgba(13,148,136,.08);border-radius:8px;margin-bottom:12px;font-size:12px;line-height:1.6"></div>
+
+      <div style="max-height:55vh;overflow-y:auto">
+        <table class="tbl" style="width:100%;font-size:12px" id="rekap-table">
+          <thead>
+            <tr style="position:sticky;top:0;background:var(--surface2);z-index:2">
+              <th>Outlet · Produk</th>
+              <th class="num">Titipan</th>
+              <th class="num">Sold Kumulatif</th>
+              <th class="num">Sisa</th>
+              <th class="num" style="min-width:90px">Terjual Bulan</th>
+              <th class="num" style="min-width:80px">Retur</th>
+              <th class="num">Nilai</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tb-rekap-form"><tr><td colspan="8" class="empty">Pilih bulan buat mulai rekap</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="mo-f">
+      <button class="btn btn-ghost" onclick="closeMo('mo-rekap-bulanan')">Batal</button>
+      <button class="btn btn-success" onclick="submitRekapBulanan()" id="btn-submit-rekap">💾 Save & Generate Invoice</button>
     </div>
   </div>
 </div>

@@ -317,6 +317,30 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     <div style="margin-top:10px;padding:10px;background:rgba(255,255,255,0.03);border-radius:6px;font-size:11px;color:var(--text-muted);line-height:1.5" id="turnover-insight"></div>
   </div>
 
+  <!-- Historical Rekap 3 Bulan Terakhir per Outlet -->
+  <div class="card" id="konsi-historical-card">
+    <div class="card-h">
+      <div>
+        <div class="card-title">📈 Historical Rekap Konsi (3 Bulan Terakhir)</div>
+        <div class="card-sub">Actual realized per outlet — dasar forecast expected pipeline</div>
+      </div>
+    </div>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Outlet</th>
+          <th class="num">Bulan Data</th>
+          <th class="num">Avg/Bulan</th>
+          <th class="num">Total 3 Bulan</th>
+          <th class="num">Last Rekap</th>
+          <th>Trend</th>
+        </tr>
+      </thead>
+      <tbody id="tb-historical"><tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr></tbody>
+    </table>
+    <div style="margin-top:10px;padding:10px;background:rgba(255,255,255,0.03);border-radius:6px;font-size:11px;color:var(--text-muted);line-height:1.5" id="historical-insight"></div>
+  </div>
+
   <div class="card" id="channel-mix-card">
     <div class="card-h">
       <div>
@@ -441,15 +465,20 @@ async function loadDashboard(){
   const totalOmzet = directSales.reduce((s,o) => s+(o.total_nilai||0), 0);
   const totalTitipan = titipanOrders.reduce((s,o) => s+(o.total_nilai||0), 0);
 
-  // Load konsi realized sales bulan ini (qty_terjual × harga) — INI baru omzet real konsi
-  const {data:konsiSold}=await SB.from('konsinyasi').select('qty_terjual,harga,tgl_titip').gte('tgl_titip',monthStart).lte('tgl_titip',monthEnd);
-  const konsiRealized = (konsiSold||[]).reduce((s,k)=>s+((k.qty_terjual||0)*(k.harga||0)), 0);
+  // Konsi realized bulan ini = SUM(nilai_terjual) dari konsi_rekap_bulanan bulan ini
+  // Ini beda dari qty_terjual di konsinyasi table (yg cumulative all-time)
+  const {data:konsiRekapBulanIni}=await SB.from('konsi_rekap_bulanan')
+    .select('nilai_terjual,outlet,produk')
+    .eq('bulan', monthStart);
+  const konsiRealized = (konsiRekapBulanIni||[]).reduce((s,k)=>s+(k.nilai_terjual||0), 0);
+  const konsiRekapCount = (konsiRekapBulanIni||[]).length;
+  const konsiSold = konsiRekapBulanIni || []; // alias buat kode existing
 
   const omzetGabungan = totalOmzet + konsiRealized;
 
   // ═══ OPSI A: Cash Revenue vs Konsi Pipeline ═══
   document.getElementById('kpi-cash-rev').textContent = fmtShort(omzetGabungan);
-  document.getElementById('kpi-cash-rev-sub').textContent = `${directSales.length} F&B sale + ${(konsiSold||[]).filter(k=>k.qty_terjual>0).length} konsi realized · MTD`;
+  document.getElementById('kpi-cash-rev-sub').textContent = `${directSales.length} F&B sale + ${konsiRekapCount} rekap konsi · MTD`;
   document.getElementById('cash-fnb').textContent = fmtShort(totalOmzet);
   document.getElementById('cash-konsi').textContent = fmtShort(konsiRealized);
 
@@ -481,12 +510,48 @@ async function loadDashboard(){
     const sisa = (k.qty_titip||0) - (k.qty_terjual||0) - (k.qty_retur||0);
     return s + (Math.max(0,sisa) * (k.harga||0));
   }, 0);
-  const expectedPipeline = pipelineValue * 0.6; // 60% avg turnover assumption
+
+  // ═══ HISTORICAL turnover per outlet (3 bulan terakhir) ═══
+  // Pakai konsi_rekap_bulanan buat cari rata-rata nilai terjual per bulan per outlet
+  let historicalTurnover = {}; // {outlet: avg_nilai_bulan}
+  let avgTurnoverRate = 0.6; // fallback default
+  try {
+    const {data: histRows} = await SB.rpc('get_konsi_turnover_historical', { p_months: 3 });
+    if(histRows && histRows.length > 0) {
+      histRows.forEach(h => { historicalTurnover[h.outlet] = parseFloat(h.avg_nilai_terjual_bulan||0); });
+    }
+  } catch(e) { console.warn('Historical turnover RPC unavailable:', e.message); }
+
+  // Expected = historical avg per outlet SUM. Kalo outlet belum ada history → pake 60% × pipeline outlet
+  let expectedPipeline = 0;
+  const outletPipelineMap = {};
+  konsiActiveRows.forEach(k => {
+    const outlet = k.outlet || '-';
+    const sisa = Math.max(0, (k.qty_titip||0) - (k.qty_terjual||0) - (k.qty_retur||0));
+    const val = sisa * (k.harga||0);
+    outletPipelineMap[outlet] = (outletPipelineMap[outlet]||0) + val;
+  });
+  Object.entries(outletPipelineMap).forEach(([outlet, pipVal]) => {
+    if(historicalTurnover[outlet] && historicalTurnover[outlet] > 0) {
+      // Historical data ada → capped at pipeline value
+      expectedPipeline += Math.min(historicalTurnover[outlet], pipVal);
+    } else {
+      expectedPipeline += pipVal * 0.6; // default 60% fallback
+    }
+  });
+
   const outletSet = new Set(konsiActiveRows.map(k=>k.outlet).filter(Boolean));
   document.getElementById('kpi-pipeline').textContent = fmtShort(pipelineValue);
   document.getElementById('kpi-pipeline-sub').textContent = `${konsiActiveRows.length} row aktif · ${outletSet.size} outlet`;
   document.getElementById('pipe-expected').textContent = fmtShort(expectedPipeline);
   document.getElementById('pipe-outlets').textContent = outletSet.size;
+
+  // Update label "Expected (60%)" → jadi dinamis (historical/fallback)
+  const pipExpLabel = document.querySelector('#pipe-expected')?.parentElement;
+  if(pipExpLabel) {
+    const hasHistory = Object.keys(historicalTurnover).length > 0;
+    pipExpLabel.innerHTML = `Expected (${hasHistory ? 'historical' : '60% fallback'}): <b class="c-green" id="pipe-expected">${fmtShort(expectedPipeline)}</b>`;
+  }
 
   // ═══ OPSI C: Revenue Projection vs Target ═══
   const {data:cfgTarget} = await SB.from('config').select('value').eq('key','target_bulan').maybeSingle();
@@ -514,6 +579,9 @@ async function loadDashboard(){
 
   // ═══ OPSI B: Konsi Turnover per Outlet ═══
   renderKonsiTurnover(konsiActiveRows);
+
+  // ═══ Historical Rekap 3 Bulan Terakhir ═══
+  renderHistoricalRekap(historicalTurnover);
 
   // Customers
   const {data:custs}=await SB.from('customers').select('id,nama,sistem,status').eq('status','Aktif');
@@ -726,6 +794,74 @@ function renderKonsiTurnover(rows) {
   if(fast.length > 0) msg += `🟢 Fast mover: <b>${fast.slice(0,3).map(o=>o.outlet).join(', ')}</b> — restock priority. `;
   if(slow.length > 0) msg += `🔴 Slow/stuck (>30 hari, <30% sold): <b>${slow.slice(0,3).map(o=>o.outlet).join(', ')}</b> — visit + retur cek.`;
   if(ins) ins.innerHTML = msg;
+}
+
+// ═══════ HISTORICAL REKAP 3 BULAN ═══════
+async function renderHistoricalRekap(historicalMap) {
+  const tb = document.getElementById('tb-historical');
+  const ins = document.getElementById('historical-insight');
+  if(!tb) return;
+
+  // Fetch detail rekap 3 bulan buat trend calculation
+  let rekapDetail = [];
+  try {
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth()-3);
+    threeMonthsAgo.setDate(1);
+    const startDate = threeMonthsAgo.toISOString().slice(0,10);
+    const {data} = await SB.from('konsi_rekap_bulanan')
+      .select('outlet,bulan,nilai_terjual,qty_terjual_bulan,qty_retur_bulan')
+      .gte('bulan', startDate)
+      .order('bulan', {ascending: true});
+    rekapDetail = data || [];
+  } catch(e) { console.warn('Historical rekap fetch failed:', e.message); }
+
+  if(rekapDetail.length === 0) {
+    tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">Belum ada rekap historical. Mulai rekap bulanan dulu di CRM → Konsinyasi tab → 🧾 Rekap Bulanan.</td></tr>';
+    if(ins) ins.innerHTML = '💡 Setelah rekap bulanan berjalan 2-3 bulan, dashboard akan kasih forecast expected pipeline berdasarkan historical data (bukan asumsi 60% flat).';
+    return;
+  }
+
+  // Group per outlet
+  const map = {};
+  rekapDetail.forEach(r => {
+    const k = r.outlet || '-';
+    if(!map[k]) map[k] = { outlet:k, bulanSet: new Set(), byBulan: {}, total: 0, lastBulan: '' };
+    map[k].bulanSet.add(r.bulan);
+    map[k].byBulan[r.bulan] = (map[k].byBulan[r.bulan]||0) + (r.nilai_terjual||0);
+    map[k].total += r.nilai_terjual||0;
+    if(!map[k].lastBulan || r.bulan > map[k].lastBulan) map[k].lastBulan = r.bulan;
+  });
+
+  const outlets = Object.values(map).map(o => {
+    o.months = o.bulanSet.size;
+    o.avg = o.total / Math.max(1, o.months);
+    // Trend: bandingin avg 1 bulan terakhir vs avg overall
+    const bulans = Array.from(o.bulanSet).sort();
+    const lastVal = o.byBulan[bulans[bulans.length-1]] || 0;
+    o.trend = o.avg > 0 ? ((lastVal - o.avg) / o.avg * 100) : 0;
+    return o;
+  }).sort((a,b) => b.avg - a.avg);
+
+  tb.innerHTML = outlets.map(o => {
+    let trendIcon = '⚪', trendColor = 'var(--text-muted)', trendText = 'Stabil';
+    if(o.trend > 15) { trendIcon = '📈'; trendColor = 'var(--green)'; trendText = `+${o.trend.toFixed(0)}%`; }
+    else if(o.trend < -15) { trendIcon = '📉'; trendColor = 'var(--red)'; trendText = `${o.trend.toFixed(0)}%`; }
+    return `<tr>
+      <td><b>${o.outlet.substring(0,32)}</b></td>
+      <td class="num">${o.months}</td>
+      <td class="num c-teal">${fmtShort(o.avg)}</td>
+      <td class="num c-green">${fmtShort(o.total)}</td>
+      <td class="num">${o.lastBulan}</td>
+      <td><span style="color:${trendColor};font-weight:700;font-size:11px">${trendIcon} ${trendText}</span></td>
+    </tr>`;
+  }).join('');
+
+  const totalAvg = outlets.reduce((s,o)=>s+o.avg, 0);
+  const topOutlet = outlets[0];
+  if(ins && topOutlet) {
+    ins.innerHTML = `💡 Rata-rata realized konsi bulanan (semua outlet): <b>${fmtShort(totalAvg)}</b>. Champion outlet: <b>${topOutlet.outlet}</b> avg ${fmtShort(topOutlet.avg)}/bulan. Dashboard forecast pipeline pake data ini — makin banyak rekap history, makin akurat prediksi.`;
+  }
 }
 
 // ═══════ ANATOMI MODAL & EKUITAS ═══════
