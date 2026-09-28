@@ -3222,9 +3222,9 @@ function nav(page, btnEl) {
     });
   }
 
-  // Trigger salary simulator on settings page
+  // Init Rp inputs + catalog config on settings page
   if(page === 'settings') {
-    setTimeout(() => { updateSalarySimulator(); loadCatalogConfig(); initAllRpFields(); }, 100);
+    setTimeout(() => { loadCatalogConfig(); initAllRpFields(); }, 100);
   }
   // Clear badge saat masuk Gudang
   if(page === 'gudang') {
