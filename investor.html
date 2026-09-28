@@ -534,9 +534,9 @@ async function loadDashboard(){
   document.getElementById('kpi-cust-sub').textContent=`${fnb} FnB · ${konsi} konsi`;
 
   // Cash flow — payments (kas masuk) + expenses (kas keluar)
-  const {data:pays}=await SB.from('payments').select('nominal,tanggal_bayar').gte('tanggal_bayar',monthStart).lte('tanggal_bayar',monthEnd);
+  const {data:pays}=await SB.from('payments').select('jumlah,tanggal_bayar').gte('tanggal_bayar',monthStart).lte('tanggal_bayar',monthEnd);
   const {data:exps}=await SB.from('expenses').select('nominal,tgl').gte('tgl',monthStart).lte('tgl',monthEnd);
-  const cashIn=(pays||[]).reduce((s,p)=>s+(p.nominal||0),0);
+  const cashIn=(pays||[]).reduce((s,p)=>s+(p.jumlah||0),0);
   const cashOut=(exps||[]).reduce((s,e)=>s+(e.nominal||0),0);
   document.getElementById('kpi-cash-in').textContent=fmtShort(cashIn);
   document.getElementById('kpi-cash-out').textContent=fmtShort(cashOut);
@@ -885,11 +885,11 @@ async function loadCharts(){
     labels.push(d.toLocaleDateString('id-ID',{month:'short',year:'2-digit'}));
     const [{data:o},{data:p},{data:e}]=await Promise.all([
       SB.from('orders').select('total_nilai,status').gte('created_at',start).lte('created_at',end+' 23:59:59'),
-      SB.from('payments').select('nominal').gte('tanggal_bayar',start).lte('tanggal_bayar',end),
+      SB.from('payments').select('jumlah').gte('tanggal_bayar',start).lte('tanggal_bayar',end),
       SB.from('expenses').select('nominal').gte('tgl',start).lte('tgl',end)
     ]);
     omzetData.push((o||[]).filter(x=>x.status!=='Batal'&&x.status!=='Dibatalkan').reduce((s,x)=>s+(x.total_nilai||0),0));
-    cashInData.push((p||[]).reduce((s,x)=>s+(x.nominal||0),0));
+    cashInData.push((p||[]).reduce((s,x)=>s+(x.jumlah||0),0));
     cashOutData.push((e||[]).reduce((s,x)=>s+(x.nominal||0),0));
   }
   const commonOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{font:{family:'Inter',size:11}}}},scales:{y:{ticks:{callback:v=>fmtShort(v),font:{family:'Inter'}}},x:{ticks:{font:{family:'Inter'}}}}};
