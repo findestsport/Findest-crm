@@ -1377,7 +1377,7 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
           <div style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">🏦 Kas Awal Bulan</div>
           <div style="font-size:12px;color:var(--text-muted);line-height:1.4">Saldo kas di awal periode (suntikan dana, sisa bulan lalu, dll). Digunakan buat compute Saldo Akhir.</div>
         </div>
-        <input class="fi" type="number" id="rekap-start-balance" placeholder="0" style="max-width:200px;font-family:monospace;font-size:15px;font-weight:700"/>
+        <input class="fi" type="text" inputmode="numeric" id="rekap-start-balance" placeholder="100.000.000" oninput="formatRupiahInput(this)" style="max-width:200px;font-family:monospace;font-size:15px;font-weight:700;text-align:right"/>
         <button class="btn btn-primary btn-sm" onclick="saveStartingBalance()">💾 Simpan</button>
       </div>
     </div>
@@ -9984,11 +9984,24 @@ setTimeout(() => { if(typeof sb !== 'undefined') loadSnapshotList(); }, 2500);
 // ════════════════════════════════════════════
 // KAS AWAL BULAN — starting balance per bulan (stored in config)
 // ════════════════════════════════════════════
+// Format input rupiah live: strip non-digit, add dot thousand separator
+function formatRupiahInput(el) {
+  const raw = (el.value || '').replace(/\D/g, ''); // digits only
+  if(!raw) { el.value = ''; return; }
+  const num = parseInt(raw, 10);
+  el.value = num.toLocaleString('id-ID'); // "100.000.000"
+}
+// Parse rupiah input back to number
+function parseRupiah(str) {
+  const raw = String(str||'').replace(/\D/g, '');
+  return raw ? parseInt(raw, 10) : 0;
+}
+
 async function saveStartingBalance() {
   const bulan = document.getElementById('rekap-bulan')?.value;
   const tahun = document.getElementById('rekap-tahun')?.value;
   if(!bulan || !tahun) { showToast('Pilih bulan + tahun dulu','error'); return; }
-  const val = parseFloat(document.getElementById('rekap-start-balance')?.value) || 0;
+  const val = parseRupiah(document.getElementById('rekap-start-balance')?.value);
   const key = 'cash_start_' + tahun + '-' + bulan;
   // Upsert to config table
   const { error } = await sb.from('config').upsert({ key, value: String(val) }, { onConflict: 'key' });
@@ -11996,9 +12009,11 @@ async function loadRekapKas() {
     else { saldoCard.style.borderColor='var(--red)'; saldoEl.style.color='var(--red)'; }
   }
 
-  // Populate starting balance input
+  // Populate starting balance input (formatted with dot separator)
   const startInp = document.getElementById('rekap-start-balance');
-  if(startInp && !startInp.matches(':focus')) startInp.value = saldoAwal || '';
+  if(startInp && !startInp.matches(':focus')) {
+    startInp.value = saldoAwal ? saldoAwal.toLocaleString('id-ID') : '';
+  }
 
   // Net card color
   const netCard = document.getElementById('rekap-net-card');
