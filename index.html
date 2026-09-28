@@ -813,8 +813,8 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
         </div>
         <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
           <div class="mstat"><span class="mstat-l">Avg/bulan</span><span class="mstat-v c-teal" id="d-avg-omzet">Rp 0</span></div>
-          <div class="mstat"><span class="mstat-l">Break-even</span><span class="mstat-v">Rp 430.000.000</span></div>
-          <div class="mstat"><span class="mstat-l">Target Bulanan</span><span class="mstat-v c-gold">Rp 1.000.000.000</span></div>
+          <div class="mstat"><span class="mstat-l">Break-even</span><span class="mstat-v" id="d-break-even">Rp 0</span></div>
+          <div class="mstat"><span class="mstat-l">Target Bulanan</span><span class="mstat-v c-gold" id="d-target-bulan">Rp 0</span></div>
         </div>
       </div>
     </div>
@@ -2215,10 +2215,15 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
           <label class="fl">Jumlah Outlet Aktif</label>
           <input class="fi" type="number" id="cfg-jumlah_outlet" placeholder="8" value="8"/>
         </div>
-        <div class="fg">
+        <div class="fg" style="margin-bottom:14px">
           <label class="fl">Bensin + Buffer Bulanan (Rp)</label>
           <input class="fi" type="number" id="cfg-bensin_buffer" placeholder="1500000" value="1500000"/>
           <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Biaya operasional tetap per bulan</div>
+        </div>
+        <div class="fg">
+          <label class="fl">🎯 Target Omzet Bulanan (Rp)</label>
+          <input class="fi" type="text" inputmode="numeric" id="cfg-target_bulan" placeholder="1.000.000.000" oninput="formatRupiahInput(this)"/>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Target jualan/bulan — muncul di Dashboard main + Investor Dashboard</div>
         </div>
       </div>
     </div>
@@ -3014,7 +3019,7 @@ const RP_FIELDS = [
   'exp-nominal',
   'po-produk-harga',
   'emp-gaji','edit-emp-gaji',
-  'cfg-biaya_fp_per_outlet','cfg-bensin_buffer','cfg-target_bonus',
+  'cfg-biaya_fp_per_outlet','cfg-bensin_buffer','cfg-target_bonus','cfg-target_bulan',
   'sim-omzet','sim-omzet-pnl',
   // Simulator Suntikan Dana (Phase 15c)
   'sim-modal','sim-omzet-bulanan','sim-ops',
@@ -4456,10 +4461,27 @@ function updateOmzetChart() {
   const now = new Date();
   if(periodeEl) periodeEl.textContent = now.getFullYear();
   if(avgEl) avgEl.textContent = fmt(avg);
-  
+
   // Update top dashboard Avg Omzet card
   const avgTopEl = document.getElementById('d-avg');
   if(avgTopEl) avgTopEl.textContent = avg > 0 ? (avg/1e6).toFixed(0)+'Jt' : '–';
+
+  // Target Bulanan + Break-even dari config (dynamic)
+  const cfg = appConfig || {};
+  const targetBulan = parseFloat(cfg.target_bulan || 1000000000);
+  const jumlahOutlet = cache.outlets.length || cfg.jumlah_outlet || 8;
+  const biayaFP = (cfg.biaya_fp_per_outlet || 0) * jumlahOutlet;
+  const bensin = cfg.bensin_buffer || 0;
+  const payrollAll = (cache.employees||[]).filter(e=>e.status==='Aktif').reduce((s,e)=>s+(e.gaji||0),0);
+  const bufferPct = (cfg.buffer_pakgun || 10) / 100;
+  const gpMargin = (cfg.gp_margin || 22.27) / 100;
+  // Break-even = fixed cost / (GP margin × (1 - buffer))
+  const fixedCost = biayaFP + bensin + payrollAll;
+  const breakEven = gpMargin > 0 ? Math.round(fixedCost / (gpMargin * (1 - bufferPct))) : 0;
+  const targetEl = document.getElementById('d-target-bulan');
+  const beEl = document.getElementById('d-break-even');
+  if(targetEl) targetEl.textContent = fmt(targetBulan);
+  if(beEl) beEl.textContent = fmt(breakEven);
 
   chartEl.innerHTML = entries.map(([key, val]) => {
     const [yr, mo] = key.split('-');
@@ -5502,7 +5524,8 @@ let appConfig = {
   jumlah_outlet: 8,
   bensin_buffer: 1500000,
   target_bonus: 1000000000,
-  persen_bonus: 5
+  persen_bonus: 5,
+  target_bulan: 1000000000
 };
 
 async function loadConfig() {
@@ -5514,17 +5537,26 @@ async function loadConfig() {
   // Fill settings form if exists
   Object.keys(appConfig).forEach(key => {
     const el = document.getElementById('cfg-'+key);
-    if(el) el.value = appConfig[key];
+    if(!el) return;
+    // Rupiah fields perlu format dgn dot separator
+    if(el.type === 'text' && el.getAttribute('inputmode') === 'numeric') {
+      const num = parseFloat(appConfig[key]);
+      el.value = isNaN(num) ? '' : num.toLocaleString('id-ID');
+    } else {
+      el.value = appConfig[key];
+    }
   });
 }
 
 async function saveConfig() {
-  const keys = ['gp_margin','buffer_pakgun','biaya_fp_per_outlet','jumlah_outlet','bensin_buffer','target_bonus','persen_bonus'];
+  const keys = ['gp_margin','buffer_pakgun','biaya_fp_per_outlet','jumlah_outlet','bensin_buffer','target_bonus','persen_bonus','target_bulan'];
   const updates = keys.map(key => {
     const el = document.getElementById('cfg-'+key);
-    const val = el ? el.value : appConfig[key];
-    appConfig[key] = parseFloat(val);
-    return { key, value: String(val), updated_at: new Date().toISOString() };
+    let val = el ? el.value : appConfig[key];
+    // Kalo input text (Rupiah format), parse dulu strip dot
+    if(el && el.type === 'text') val = String(val).replace(/\D/g, '');
+    appConfig[key] = parseFloat(val) || 0;
+    return { key, value: String(appConfig[key]), updated_at: new Date().toISOString() };
   });
 
   // Tambah catalog settings
