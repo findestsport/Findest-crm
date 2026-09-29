@@ -173,7 +173,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
   <div class="stat revenue">
     <div class="stat-label">Revenue Hari Ini</div>
     <div class="stat-val" id="statRev">Rp 0</div>
-    <div class="stat-sub" id="statRevHint">order confirmed</div>
+    <div class="stat-sub" id="statRevHint">real sale · exclude titipan konsi</div>
   </div>
   <div class="stat termin">
     <div class="stat-label">Termin Outstanding</div>
@@ -376,9 +376,15 @@ function renderStats(){
   const pending=orders.filter(o=>['Pending','Baru'].includes(o.status)).length;
   const active=orders.filter(o=>['Diterima','Proses','Disiapkan','Prep','Dikirim','Antar'].includes(o.status)).length;
   const todayOrders=orders.filter(isToday);
-  const todayRev=todayOrders.filter(o=>['Diterima','Disiapkan','Dikirim','Selesai'].includes(o.status)).reduce((s,o)=>s+(o.total_nilai||0),0);
+  // Revenue = real sales only, EXCLUDE Konsi titipan (bukan omzet, cuma inventory move)
+  const isKonsiTitipan=o=>((o.channel_sistem||'').toLowerCase().includes('konsinyasi'));
+  const todayRev=todayOrders
+    .filter(o=>['Diterima','Disiapkan','Dikirim','Selesai'].includes(o.status))
+    .filter(o=>!isKonsiTitipan(o))
+    .reduce((s,o)=>s+(o.total_nilai||0),0);
   const weekOrders=orders.filter(o=>{const c=o.created_at||o.tanggal;return c>=weekAgo;});
-  const terminOrders=orders.filter(o=>o.pembayaran==='Termin 30 Hari'&&!['Batal','Dibatalkan'].includes(o.status));
+  // Termin outstanding juga exclude Konsi titipan (invoice-nya bukan piutang real)
+  const terminOrders=orders.filter(o=>o.pembayaran==='Termin 30 Hari'&&!['Batal','Dibatalkan'].includes(o.status)&&!isKonsiTitipan(o));
   const terminOutstanding=terminOrders.reduce((s,o)=>s+(o.total_nilai||0),0);
   document.getElementById('statPending').textContent=pending;
   document.getElementById('statToday').textContent=todayOrders.length;
