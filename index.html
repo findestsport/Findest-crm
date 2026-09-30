@@ -6515,31 +6515,41 @@ async function updateOrderStatus(id, status) {
 
 async function autoKurangiStokDariOrder(order) {
   let items = [];
-  const produkRaw = order.produk || '';
-  try {
-    const parsed = JSON.parse(produkRaw);
-    // Pastikan hasil parse adalah array of objects
-    if(Array.isArray(parsed) && parsed.length && typeof parsed[0] === 'object') {
-      items = parsed;
-    } else {
-      // Format lama: plain text "BSN Amino x1, Gold Standard x2"
+  // Prefer produk_json (punya field 'source') biar bisa deteksi item dari konsi.
+  const pj = order.produk_json;
+  if(Array.isArray(pj) && pj.length && typeof pj[0] === 'object') {
+    items = pj;
+  } else if(typeof pj === 'string' && pj.trim().startsWith('[')) {
+    try { const p = JSON.parse(pj); if(Array.isArray(p)) items = p; } catch(e){}
+  }
+  // Fallback: parse dari field produk (text/JSON lama)
+  if(!items.length) {
+    const produkRaw = order.produk || '';
+    try {
+      const parsed = JSON.parse(produkRaw);
+      if(Array.isArray(parsed) && parsed.length && typeof parsed[0] === 'object') {
+        items = parsed;
+      } else {
+        items = produkRaw.split(',').map(s => {
+          const m = s.trim().match(/^(.+?)\s+x(\d+)$/i);
+          return m ? {nama: m[1].trim(), qty: parseInt(m[2])} : null;
+        }).filter(Boolean);
+      }
+    } catch(e) {
       items = produkRaw.split(',').map(s => {
         const m = s.trim().match(/^(.+?)\s+x(\d+)$/i);
         return m ? {nama: m[1].trim(), qty: parseInt(m[2])} : null;
       }).filter(Boolean);
     }
-  } catch(e) {
-    // Bukan JSON, coba parse plain text
-    items = produkRaw.split(',').map(s => {
-      const m = s.trim().match(/^(.+?)\s+x(\d+)$/i);
-      return m ? {nama: m[1].trim(), qty: parseInt(m[2])} : null;
-    }).filter(Boolean);
   }
-  if(!items.length) { console.warn('Tidak ada item produk di order:', produkRaw); return; }
+  if(!items.length) { console.warn('Tidak ada item produk di order:', order.produk); return; }
 
   console.log('[STOK] Items dari order:', items);
   let berkurang = 0;
   for(const item of items) {
+    // GUARD: item dari konsi (Order dari Konsi) → barang dari titipan outlet, BUKAN
+    // gudang. Stok gudang udah dikurangi pas titipan dibuat. Skip biar ga double.
+    if(item.source === 'konsi') { console.log('[STOK] Skip item konsi (dari titipan):', item.nama); continue; }
     const nama = item.nama?.trim();
     const qty = parseInt(item.qty) || 0;
     console.log('[STOK] Processing:', nama, 'qty:', qty);
