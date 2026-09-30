@@ -582,12 +582,13 @@ async function loadDashboard(){
   document.getElementById('kpi-netcash').textContent=fmtShort(cashIn-cashOut);
   document.getElementById('kpi-netcash').className='kpi-val '+(cashIn>=cashOut?'c-green':'c-red');
 
-  // Piutang — EXCLUDE Konsi titipan invoices (those bukan piutang, tapi titipan stok)
+  // Piutang — EXCLUDE cuma TITIPAN (inventory stok). Invoice 'Konsinyasi Rekap
+  // Bulanan' = piutang REAL (outlet udah jual, ngutang ke kita) → tetep dihitung.
   const {data:invs}=await SB.from('invoices').select('total,status,jatuh_tempo,customer_sistem');
   const outstanding=(invs||[]).filter(i=>{
     if(i.status==='Lunas'||i.status==='Batal') return false;
     const sis=(i.customer_sistem||'').toLowerCase();
-    return !sis.includes('konsinyasi'); // titipan bukan piutang real
+    return !sis.includes('titipan');
   });
   const totalPiutang=outstanding.reduce((s,i)=>s+(i.total||0),0);
   const today=new Date().toISOString().slice(0,10);
