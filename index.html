@@ -2828,6 +2828,13 @@ function parseRp(val) {
   return parseInt((val||'').toString().replace(/\./g,'').replace(/,/g,'').replace(/Rp/g,'').trim()) || 0;
 }
 
+// TIMEZONE-SAFE date → 'YYYY-MM-DD' pakai komponen LOKAL (bukan .toISOString yg convert ke UTC).
+// Wajib dipake buat compute monthStart/monthEnd/today yg dibandingin sama data DB.
+function ymdLocal(d) {
+  d = d || new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 function initRpInput(el) {
   if(!el || el.dataset.rpInit) return;
   el.dataset.rpInit = '1';
@@ -3990,7 +3997,7 @@ async function updateChannelFocus() {
 
   // Get bulan ini orders
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  const monthStart = ymdLocal(new Date(now.getFullYear(), now.getMonth(), 1));
   const monthOrders = (cache.orders||[]).filter(o => {
     if(!o.created_at) return false;
     if(o.status === 'Batal' || o.status === 'Dibatalkan') return false;
@@ -5512,7 +5519,7 @@ function previewWAFormat(el) {
 async function fillSimFromCRM() {
   // Auto-fill simulator dgn data real dari CRM
   const now = new Date();
-  const startMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  const startMonth = ymdLocal(new Date(now.getFullYear(), now.getMonth(), 1));
 
   try {
     // Ops actual bulan ini (from expenses)
