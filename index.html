@@ -4309,7 +4309,7 @@ function updateOmzetChart() {
 
   // Update top dashboard Avg Omzet card
   const avgTopEl = document.getElementById('d-avg');
-  if(avgTopEl) avgTopEl.textContent = avg > 0 ? (avg/1e6).toFixed(0)+'Jt' : '–';
+  if(avgTopEl) avgTopEl.textContent = avg > 0 ? (avg/1e6).toFixed(1)+'Jt' : '–';
 
   // Target Bulanan + Break-even dari config (dynamic)
   const cfg = appConfig || {};
@@ -4335,7 +4335,7 @@ function updateOmzetChart() {
     return `<div class="bar-row">
       <div class="bar-label">${bulanNames[parseInt(mo)-1]} ${yr}</div>
       ${svgGrowBar(pct, color, 9)}
-      <div class="bar-val" style="color:${color}">${(val/1e6).toFixed(0)} Jt</div>
+      <div class="bar-val" style="color:${color}">${(val/1e6).toFixed(1)} Jt</div>
     </div>`;
   }).join('');
 }
