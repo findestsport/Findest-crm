@@ -427,7 +427,10 @@ async function loadDashboard(){
   const bulan=now.getMonth()+1, tahun=now.getFullYear();
   const bulanStr=String(bulan).padStart(2,'0');
   const monthStart=`${tahun}-${bulanStr}-01`;
-  const monthEnd=new Date(tahun, bulan, 0).toISOString().slice(0,10);
+  // TIMEZONE-SAFE: pake getDate() dari local Date object, jangan .toISOString()
+  // (kalo pake toISOString di WIB, midnight local jadi UTC hari sebelumnya)
+  const lastDayOfMonth=new Date(tahun, bulan, 0).getDate();
+  const monthEnd=`${tahun}-${bulanStr}-${String(lastDayOfMonth).padStart(2,'0')}`;
 
   // Load orders bulan ini (with channel fields for revenue recognition)
   const {data:orders}=await SB.from('orders').select('id,total_nilai,status,produk_json,customer_nama,channel_sistem,channel_tipe,created_at').gte('created_at',monthStart).lte('created_at',monthEnd+' 23:59:59');
@@ -1061,7 +1064,8 @@ async function loadCharts(){
   for(let i=5;i>=0;i--){
     const d=new Date(now.getFullYear(),now.getMonth()-i,1);
     const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0');
-    const start=`${y}-${m}-01`,end=new Date(y,d.getMonth()+1,0).toISOString().slice(0,10);
+    const lastDay=new Date(y,d.getMonth()+1,0).getDate();
+    const start=`${y}-${m}-01`,end=`${y}-${m}-${String(lastDay).padStart(2,'0')}`;
     labels.push(d.toLocaleDateString('id-ID',{month:'short',year:'2-digit'}));
     const [{data:o},{data:p},{data:e}]=await Promise.all([
       SB.from('orders').select('total_nilai,status').gte('created_at',start).lte('created_at',end+' 23:59:59'),
