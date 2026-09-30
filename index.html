@@ -3921,7 +3921,9 @@ function updateDashboard() {
   const totalPiutang = cache.invoices.filter(i=>{
     if(i.status==='Lunas'||i.status==='Batal') return false;
     const sis=(i.customer_sistem||'').toLowerCase();
-    return !sis.includes('konsinyasi');
+    // Exclude cuma TITIPAN (inventory move). Invoice 'Konsinyasi Rekap Bulanan'
+    // = piutang REAL (outlet udah jual, ngutang ke kita) → tetep dihitung.
+    return !sis.includes('titipan');
   }).reduce((s,i)=>s+(i.total||0),0);
   document.getElementById('d-piutang').textContent = (totalPiutang/1e6).toFixed(1)+'Jt';
   const totalEd = cache.outlets.reduce((s,o)=>s+(o.ed_alert||0),0);
@@ -4221,9 +4223,9 @@ function updateTopCustomers() {
   const custTotal = {};
   (cache.invoices||[]).forEach(inv => {
     if(!inv.customer_nama) return;
-    // Skip Konsi titipan invoices — pake konsi qty_terjual utk real konsi revenue
+    // Skip cuma TITIPAN (inventory). Rekap Bulanan invoice = real konsi sale, dihitung.
     const sis=(inv.customer_sistem||'').toLowerCase();
-    if(sis.includes('konsinyasi')) return;
+    if(sis.includes('titipan')) return;
     custTotal[inv.customer_nama] = (custTotal[inv.customer_nama]||0) + (inv.total||0);
   });
   
@@ -4257,6 +4259,8 @@ function updateAgingPiutang() {
   
   (cache.invoices||[]).forEach(inv => {
     if(inv.status === 'Lunas') return;
+    // Konsisten dgn Piutang KPI: exclude titipan (inventory), include rekap bulanan
+    if((inv.customer_sistem||'').toLowerCase().includes('titipan')) return;
     if(!inv.jatuh_tempo) {
       buckets.current += inv.total||0;
       return;
@@ -4287,7 +4291,7 @@ function updateOmzetChart() {
   (cache.invoices || []).forEach(inv => {
     if(!inv.created_at) return;
     const sis=(inv.customer_sistem||'').toLowerCase();
-    if(sis.includes('konsinyasi')) return; // titipan = inventory, bukan omzet
+    if(sis.includes('titipan')) return; // exclude titipan (inventory), rekap bulanan tetep omzet
     const d = new Date(inv.created_at);
     if(d < new Date(START_DATE)) return; // Skip old data
     const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
@@ -4356,7 +4360,7 @@ function updatePnL() {
   const monthInvoices = (cache.invoices || []).filter(inv => {
     if(!inv.created_at) return false;
     const sis=(inv.customer_sistem||'').toLowerCase();
-    if(sis.includes('konsinyasi')) return false; // titipan bukan omzet
+    if(sis.includes('titipan')) return false; // exclude titipan (inventory), rekap bulanan tetep omzet
     const d = new Date(inv.created_at);
     if(d < new Date(START_DATE)) return false;
     const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
