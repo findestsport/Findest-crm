@@ -606,6 +606,7 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
         <select class="login-fi" id="signup-role">
           <option value="gm">GM (Akses Semua)</option>
           <option value="admin">Admin (Semua kecuali Payroll)</option>
+          <option value="supervisor">Supervisor (Operasional — tanpa HR/Settings)</option>
           <option value="sales">Sales</option>
           <option value="finance">Finance</option>
           <option value="gudang">Gudang</option>
@@ -2299,6 +2300,7 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
           <label class="fl">Role</label>
           <select class="fi" id="inv-role">
             <option value="staff">Staff</option>
+            <option value="supervisor">Supervisor (tanpa HR/Settings)</option>
             <option value="sales">Sales</option>
             <option value="finance">Finance</option>
             <option value="gudang">Gudang</option>
@@ -2915,6 +2917,7 @@ let cache = { customers:[], outlets:[], products:[], orders:[], invoices:[], emp
 const ROLE_ACCESS = {
   gm:      { tabs:['dashboard','sales','finance','gudang','hr','absensi','notice','settings','invite'], write:['customers','orders','invoices','expenses','deliveries','employees','outlets','absensi','notices','batches','visit_logs','payments','leaves'] },
   admin:   { tabs:['dashboard','sales','finance','gudang','hr','absensi','notice','settings'],           write:['customers','orders','invoices','expenses','payments','deliveries','batches','visit_logs'] },
+  supervisor:{ tabs:['dashboard','sales','finance','gudang','absensi','notice'],                         write:['customers','orders','invoices','expenses','payments','deliveries','batches','visit_logs','outlets'] },
   sales:   { tabs:['dashboard','sales','absensi','notice'],                          write:['customers','orders','visit_logs'] },
   finance: { tabs:['dashboard','finance','absensi','notice'],                        write:['invoices','expenses','payments'] },
   gudang:  { tabs:['dashboard','gudang','absensi','notice'],                         write:['outlets','deliveries','batches'] },
