@@ -838,7 +838,7 @@ async function sendOrder(){
     catch(e){alert(msg);}
     return;
   }
-  let insertedOrder=null;
+  let insertedOrder=null,saveErr=null;
   try{
     const produkText=items.map(c=>`${c.product.brand} ${c.product.nama} x${c.qty}`).join(', ');
     const produkJson=items.map(c=>({
@@ -869,11 +869,11 @@ async function sendOrder(){
     const{data,error}=await SB.from('orders').insert([orderRow]).select('id,no_order,status,total_nilai').single();
     if(error)throw error;
     insertedOrder=data;
-  }catch(e){console.log('Order save:',e);}
+  }catch(e){console.log('Order save:',e);saveErr=e;}
   cart={};updateFab();closeOverlay('cartModal');render();
-  showToast('Order berhasil dikirim!');
-  // Open tracking modal kalo order sukses saved
+  // "Berhasil" HANYA kalo order beneran ke-save di DB — jangan sukses palsu
   if(insertedOrder&&insertedOrder.id){
+    showToast('Order berhasil dikirim!');
     // Jaring pengaman: simpen order biar popup tracking bisa dibuka lagi pas user balik
     // ke tab (iOS sering suspend tab pas pindah ke WA → setTimeout di bawah bisa ke-skip).
     try{ sessionStorage.setItem('findest_pending_track',JSON.stringify({id:insertedOrder.id,status:insertedOrder.status,no_order:insertedOrder.no_order,total_nilai:insertedOrder.total_nilai,pembayaran:selPayment})); }catch(e){}
@@ -884,6 +884,9 @@ async function sendOrder(){
       history.replaceState(null,'',url);
     }catch(e){}
     setTimeout(()=>openTracking(insertedOrder.id,{status:insertedOrder.status,no_order:insertedOrder.no_order,total_nilai:insertedOrder.total_nilai,pembayaran:selPayment}),400);
+  } else {
+    // WA udah kekirim tapi save ke DB GAGAL → jangan diem-diem. Kasih tau + tampilin error buat diagnosa.
+    showToast('⚠️ GAGAL simpan ke sistem: '+(saveErr&&(saveErr.message||saveErr.hint||saveErr.code)||'cek koneksi / izin'));
   }
 }
 
