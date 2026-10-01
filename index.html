@@ -7420,6 +7420,14 @@ async function saveKonsi() {
     batch_no: document.getElementById('konsi-batch-no')?.value.trim()||null
   };
 
+  // ════ GUARD: cegah OMZET DOBEL — barang keluar (terjual + retur) gak boleh > titip ════
+  // Kalau terjual + retur > titip, sisa jadi minus = 1 barang kecatet laku 2x = omzet ketembak dobel.
+  const _keluar = (payload.qty_terjual||0) + (payload.qty_retur||0);
+  if(_keluar > (payload.qty_titip||0)) {
+    showToast(`❌ Gak bisa disimpan! Terjual (${payload.qty_terjual}) + Retur (${payload.qty_retur}) = ${_keluar} unit, padahal cuma titip ${payload.qty_titip}. Sisa jadi ${(payload.qty_titip||0) - _keluar} (minus) → omzet kehitung DOBEL. Betulin qty-nya dulu.`, 'error');
+    return;
+  }
+
   let error;
   if(editId) {
     ({ error } = await sb.from('konsinyasi').update(payload).eq('id', editId));
@@ -7769,6 +7777,15 @@ async function submitOrderFromKonsi() {
   const catatan = document.getElementById('ofk-catatan').value.trim();
   const days = bayar==='Termin 3 Hari'?3: bayar==='Termin 7 Hari'?7: bayar==='Termin 30 Hari'?30: 0;
   const dueDate = days > 0 ? new Date(Date.now()+days*86400000).toISOString().slice(0,10) : null;
+
+  // ════ GUARD: qty gak boleh lebih dari sisa titipan tersedia (cegah sisa minus / omzet dobel) ════
+  for(const {konsi:k, qty} of items) {
+    const avail = (k.qty_titip||0) - (k.qty_terjual||0) - (k.qty_retur||0);
+    if(qty > avail) {
+      showToast(`❌ ${k.produk} @ ${k.outlet}: minta ${qty} unit tapi sisa titipan cuma ${avail}. Kurangi qty-nya.`, 'error');
+      return;
+    }
+  }
 
   const btn = document.getElementById('ofk-submit-btn');
   btn.disabled = true; btn.textContent = '⏳ Processing...';
