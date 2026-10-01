@@ -2921,7 +2921,8 @@ const ROLE_ACCESS = {
   sales:   { tabs:['dashboard','sales','absensi','notice'],                          write:['customers','orders','visit_logs'] },
   finance: { tabs:['dashboard','finance','absensi','notice'],                        write:['invoices','expenses','payments'] },
   gudang:  { tabs:['dashboard','gudang','absensi','notice'],                         write:['outlets','deliveries','batches'] },
-  hr:      { tabs:['dashboard','hr','absensi','notice'],                             write:['employees','absensi','leaves'] }
+  hr:      { tabs:['dashboard','hr','absensi','notice'],                             write:['employees','absensi','leaves'] },
+  staff:   { tabs:['absensi','notice'],                                              write:[] }
 };
 
 // Lucide-style SVG icons untuk nav (clean, profesional)
@@ -3049,8 +3050,11 @@ async function doSignup() {
   const nama = document.getElementById('signup-nama').value.trim();
   const email = document.getElementById('signup-email').value.trim();
   const password = document.getElementById('signup-password').value;
-  const role = document.getElementById('signup-role').value;
-  const divisi = role === 'gm' ? 'GM' : role.charAt(0).toUpperCase() + role.slice(1);
+  // Role authoritative dari invite link kalau ada; kalau nggak, dari dropdown.
+  // (GM/admin nggak bisa didaftar sendiri — di-set lewat DB oleh owner.)
+  const inv = window._inviteData;
+  const role = (inv && ROLE_ACCESS[inv.role]) ? inv.role : document.getElementById('signup-role').value;
+  const divisi = (inv && inv.divisi) ? inv.divisi : (role === 'gm' ? 'GM' : role.charAt(0).toUpperCase() + role.slice(1));
 
   if(!nama || !email || !password) { showMsg('Semua field wajib diisi','error'); return; }
   if(password.length < 6) { showMsg('Password minimal 6 karakter','error'); return; }
@@ -3060,7 +3064,7 @@ async function doSignup() {
 
   const { data, error } = await sb.auth.signUp({
     email, password,
-    options: { data: { nama, role, divisi } }
+    options: { data: { nama, role, divisi, via_invite: !!inv } }
   });
 
   btn.disabled = false; btn.textContent = 'Daftar Akun Baru';
@@ -3094,24 +3098,36 @@ async function initApp() {
   let { data: profile, error } = await sb.from('user_profiles').select('*').eq('id', user.id).single();
   
   if(error || !profile) {
-    // Auto-create profile sebagai GM untuk user pertama
+    // Tentuin role aman buat user baru — CEGAH auto-GM buat orang asing:
+    //  • user PERTAMA (tabel user_profiles kosong) = GM (bootstrap owner)
+    //  • lewat invite link (role valid, bukan gm/admin) = sesuai undangan
+    //  • selain itu (walk-in) = 'staff' (akses minimal), nunggu GM naikin akses
+    let isFirstUser = false;
+    try {
+      const { count } = await sb.from('user_profiles').select('id', { count: 'exact', head: true });
+      isFirstUser = (count === 0);
+    } catch(e) { isFirstUser = false; } // fail-safe: anggap bukan user pertama
+    const meta = user.user_metadata || {};
+    const invitedRole = (meta.via_invite && ROLE_ACCESS[meta.role] && !['gm','admin'].includes(meta.role)) ? meta.role : null;
+    const safeRole = isFirstUser ? 'gm' : (invitedRole || 'staff');
+    const safeDivisi = isFirstUser ? 'GM' : (invitedRole ? (meta.divisi || (safeRole.charAt(0).toUpperCase()+safeRole.slice(1))) : 'Staff');
     const namaFromEmail = user.email.split('@')[0];
     const newProfile = {
       id: user.id,
-      nama: user.user_metadata?.nama || namaFromEmail,
+      nama: meta.nama || namaFromEmail,
       email: user.email,
-      role: 'gm',
-      divisi: 'GM',
+      role: safeRole,
+      divisi: safeDivisi,
       status: 'Aktif'
     };
     const { data: created, error: createErr } = await sb.from('user_profiles').insert([newProfile]).select().single();
     if(createErr) {
       // Tabel mungkin belum ada — coba tampil app dengan profile sementara
-      showMsg('⚠️ Profile dibuat sementara (GM). Setup tabel user_profiles di Supabase.', 'info');
-      currentProfile = { ...newProfile, nama: newProfile.nama || 'Admin' };
+      showMsg('⚠️ Profile dibuat sementara ('+safeRole+'). Setup tabel user_profiles di Supabase.', 'info');
+      currentProfile = { ...newProfile, nama: newProfile.nama || 'User' };
     } else {
       currentProfile = created;
-      showMsg('✅ Profile GM dibuat otomatis!', 'info');
+      showMsg(isFirstUser ? '✅ Profile GM dibuat otomatis (owner pertama)!' : '✅ Akun dibuat (akses: '+safeRole+'). Minta GM atur akses kalau perlu.', 'info');
     }
   } else {
     currentProfile = profile;
@@ -3165,8 +3181,9 @@ async function initApp() {
     if(nb) nb.style.display = '';
   }
 
-  // Default page
-  nav('dashboard');
+  // Default page → tab pertama yang boleh diakses role ini (staff gak punya dashboard)
+  const _firstTab = (ROLE_ACCESS[currentProfile.role]?.tabs || ['dashboard'])[0];
+  nav(_firstTab);
   // Init RP fields
   setTimeout(() => initAllRpFields(), 300);
 }
@@ -5886,6 +5903,13 @@ async function checkInviteParam() {
     if(data.exp < Date.now()) { showToast('Link invite sudah expired!','error'); return false; }
     // Store invite data for registration
     window._inviteData = data;
+    // Prefill + lock form signup biar role sesuai undangan (user gak bisa ganti)
+    try {
+      if(typeof switchAuthTab === 'function') switchAuthTab('signup');
+      const nm = document.getElementById('signup-nama'); if(nm && data.nama) nm.value = data.nama;
+      const rl = document.getElementById('signup-role');
+      if(rl && data.role && ROLE_ACCESS[data.role]) { rl.value = data.role; rl.disabled = true; }
+    } catch(e){}
     return true;
   } catch { return false; }
 }
@@ -10953,7 +10977,8 @@ function exportLeaveCSV() {
   if(session) {
     await initApp();
   } else {
-    // Tidak ada sesi → tampilkan login dengan animasi entrance GSAP
+    // Tidak ada sesi → cek invite link (set role dari undangan) + tampilkan login
+    try { await checkInviteParam(); } catch(e){}
     playLoginEntrance();
   }
 })();
