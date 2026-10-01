@@ -657,9 +657,30 @@ function updateFab(){
 function openOverlay(id){document.getElementById(id).classList.add('open');}
 function closeOverlay(id){
   document.getElementById(id).classList.remove('open');
-  if(id==='trackModal'&&trackChannel){SB.removeChannel(trackChannel);trackChannel=null;}
+  if(id==='trackModal'){
+    try{sessionStorage.removeItem('findest_pending_track');}catch(e){} // user udah liat tracker → jangan buka lagi
+    if(trackChannel){SB.removeChannel(trackChannel);trackChannel=null;}
+  }
 }
 function bgClose(e,id){if(e.target.classList.contains('overlay'))closeOverlay(id);}
+
+// ══════ Jaring pengaman popup tracking: buka ulang pas user balik ke tab ══════
+// iOS Safari sering "nidurin" (suspend) tab catalog pas pindah ke WhatsApp, jadi
+// setTimeout openTracking di submitOrder bisa ke-skip → popup gak muncul. Handler ini
+// buka ulang tracker dari state yg disimpen pas order sukses — sekali aja (one-shot).
+function _reopenPendingTracker(){
+  try{
+    const raw=sessionStorage.getItem('findest_pending_track');
+    if(!raw)return;
+    const tm=document.getElementById('trackModal');
+    if(tm&&tm.classList.contains('open')){ sessionStorage.removeItem('findest_pending_track'); return; } // udah kebuka
+    const d=JSON.parse(raw);
+    if(d&&d.id) openTracking(d.id,{status:d.status,no_order:d.no_order,total_nilai:d.total_nilai,pembayaran:d.pembayaran});
+    sessionStorage.removeItem('findest_pending_track');
+  }catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') _reopenPendingTracker(); });
+window.addEventListener('pageshow',_reopenPendingTracker);
 
 function openProd(id){
   const p=products.find(x=>x.id===id);if(!p)return;
@@ -853,6 +874,9 @@ async function sendOrder(){
   showToast('Order berhasil dikirim!');
   // Open tracking modal kalo order sukses saved
   if(insertedOrder&&insertedOrder.id){
+    // Jaring pengaman: simpen order biar popup tracking bisa dibuka lagi pas user balik
+    // ke tab (iOS sering suspend tab pas pindah ke WA → setTimeout di bawah bisa ke-skip).
+    try{ sessionStorage.setItem('findest_pending_track',JSON.stringify({id:insertedOrder.id,status:insertedOrder.status,no_order:insertedOrder.no_order,total_nilai:insertedOrder.total_nilai,pembayaran:selPayment})); }catch(e){}
     // Persist trackable URL biar refresh/share tetap keep tracker
     try{
       const url=new URL(window.location);
