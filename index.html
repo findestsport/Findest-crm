@@ -4026,11 +4026,11 @@ async function updateChannelFocus() {
     return o.created_at.slice(0,10) >= monthStart;
   });
 
-  // Konsi revenue = REALIZED (qty_terjual × harga), bukan titipan
-  // Titipan = inventory move, ntar bikin channel mix palsu
-  const konsiRealized = (typeof allKonsi !== 'undefined' ? allKonsi : []).filter(k=>{
-    return (k.tgl_titip||'').slice(0,7) === monthStart.slice(0,7); // bulan ini
-  }).reduce((s,k)=>s+((k.qty_terjual||0)*(k.harga||0)), 0);
+  // Konsi revenue = REALIZED dari rekap bulanan (SATU sumber, konsisten sama Investor Dashboard)
+  // Diakui pas direkap bulanan (barang beneran laku di outlet), bukan pas titip
+  const konsiRealized = (typeof allKonsiRekap !== 'undefined' ? allKonsiRekap : []).filter(k=>{
+    return (k.bulan||'').slice(0,7) === monthStart.slice(0,7); // bulan ini
+  }).reduce((s,k)=>s+(k.nilai_terjual||0), 0);
 
   // Classify per channel — EXCLUDE Konsi titipan orders (dihandle via konsiRealized)
   const revByChannel = { fnb: 0, konsi: konsiRealized, public: 0 };
@@ -6999,11 +6999,18 @@ async function deleteInv(id) {
 // KONSINYASI TRACKER
 // ════════════════════════════════════════
 let allKonsi = [];
+let allKonsiRekap = []; // rekap bulanan = sumber omzet konsi realized per-bulan (1 sumber, samain sama Investor Dashboard)
 
 async function loadKonsi() {
   const { data, error } = await sb.from('konsinyasi').select('*').order('tgl_titip', { ascending: false });
   if(error) { console.warn('Konsinyasi table:', error.message); allKonsi = []; renderKonsi(); return; }
   allKonsi = data || [];
+
+  // Load rekap bulanan (omzet konsi realized per-bulan) — SATU sumber biar konsisten di semua dashboard
+  try {
+    const { data: rekapData } = await sb.from('konsi_rekap_bulanan').select('bulan,nilai_terjual,qty_terjual_bulan,outlet,produk');
+    allKonsiRekap = rekapData || [];
+  } catch(e) { console.warn('konsi_rekap_bulanan load:', e.message); allKonsiRekap = []; }
 
   // Populate filter outlet
   const outletSel = document.getElementById('konsi-filter-outlet');
@@ -7028,13 +7035,14 @@ async function loadKonsi() {
 
 function updateKonsiSummary() {
   const aktif = allKonsi.filter(k => k.status === 'Aktif');
-  const bulanIni = new Date().toISOString().slice(0,7);
-  const terjualBulan = allKonsi.filter(k => k.tgl_rekon?.startsWith(bulanIni));
+  const _nowKS = new Date();
+  const bulanIni = ymdLocal(new Date(_nowKS.getFullYear(), _nowKS.getMonth(), 1)).slice(0,7); // timezone-safe 'YYYY-MM'
   const pending = allKonsi.filter(k => k.status === 'Aktif');
   const retur = allKonsi.filter(k => k.status === 'Retur');
 
   const totalNilai = aktif.reduce((s,k) => s + ((k.qty_titip||0) - (k.qty_terjual||0) - (k.qty_retur||0)) * (k.harga||0), 0);
-  const totalTerjual = terjualBulan.reduce((s,k) => s + (k.qty_terjual||0) * (k.harga||0), 0);
+  // Terjual Bulan Ini = omzet rekap bulanan (SATU sumber, konsisten sama Investor + Channel Focus)
+  const totalTerjual = (allKonsiRekap||[]).filter(k => (k.bulan||'').slice(0,7) === bulanIni).reduce((s,k) => s + (k.nilai_terjual||0), 0);
   const totalRetur = retur.reduce((s,k) => s + (k.qty_retur||0), 0);
 
   const el = (id, v) => { const e = document.getElementById(id); if(e) e.textContent = v; };
