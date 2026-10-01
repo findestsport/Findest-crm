@@ -606,6 +606,7 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
         <select class="login-fi" id="signup-role">
           <option value="gm">GM (Akses Semua)</option>
           <option value="admin">Admin (Semua kecuali Payroll)</option>
+          <option value="supervisor">Supervisor (Operasional — tanpa HR/Settings)</option>
           <option value="sales">Sales</option>
           <option value="finance">Finance</option>
           <option value="gudang">Gudang</option>
@@ -2198,26 +2199,26 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
       <div class="card-b">
         <div class="fg" style="margin-bottom:14px">
           <label class="fl">Gross Profit Margin (%)</label>
-          <input class="fi" type="number" id="cfg-gp_margin" step="0.01" placeholder="22.27" value="22.27"/>
+          <input class="fi" type="number" id="cfg-gp_margin" step="0.01" placeholder="22.27"/>
           <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Persentase GP dari total omzet</div>
         </div>
         <div class="fg" style="margin-bottom:14px">
           <label class="fl">Buffer Investor (% dari GP)</label>
-          <input class="fi" type="number" id="cfg-buffer_pakgun" step="1" placeholder="10" value="10"/>
+          <input class="fi" type="number" id="cfg-buffer_pakgun" step="1" placeholder="10"/>
           <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Dipotong dari GP sebelum operasional</div>
         </div>
         <div class="fg" style="margin-bottom:14px">
           <label class="fl">Biaya FP per Outlet (Rp)</label>
-          <input class="fi" type="number" id="cfg-biaya_fp_per_outlet" placeholder="2700000" value="2700000"/>
+          <input class="fi" type="number" id="cfg-biaya_fp_per_outlet" placeholder="2700000"/>
           <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Dikali jumlah outlet aktif otomatis</div>
         </div>
         <div class="fg" style="margin-bottom:14px">
           <label class="fl">Jumlah Outlet Aktif</label>
-          <input class="fi" type="number" id="cfg-jumlah_outlet" placeholder="8" value="8"/>
+          <input class="fi" type="number" id="cfg-jumlah_outlet" placeholder="8"/>
         </div>
         <div class="fg" style="margin-bottom:14px">
           <label class="fl">Bensin + Buffer Bulanan (Rp)</label>
-          <input class="fi" type="number" id="cfg-bensin_buffer" placeholder="1500000" value="1500000"/>
+          <input class="fi" type="number" id="cfg-bensin_buffer" placeholder="1500000"/>
           <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Biaya operasional tetap per bulan</div>
         </div>
         <div class="fg">
@@ -2299,6 +2300,7 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
           <label class="fl">Role</label>
           <select class="fi" id="inv-role">
             <option value="staff">Staff</option>
+            <option value="supervisor">Supervisor (tanpa HR/Settings)</option>
             <option value="sales">Sales</option>
             <option value="finance">Finance</option>
             <option value="gudang">Gudang</option>
@@ -2915,10 +2917,12 @@ let cache = { customers:[], outlets:[], products:[], orders:[], invoices:[], emp
 const ROLE_ACCESS = {
   gm:      { tabs:['dashboard','sales','finance','gudang','hr','absensi','notice','settings','invite'], write:['customers','orders','invoices','expenses','deliveries','employees','outlets','absensi','notices','batches','visit_logs','payments','leaves'] },
   admin:   { tabs:['dashboard','sales','finance','gudang','hr','absensi','notice','settings'],           write:['customers','orders','invoices','expenses','payments','deliveries','batches','visit_logs'] },
+  supervisor:{ tabs:['dashboard','sales','finance','gudang','absensi','notice'],                         write:['customers','orders','invoices','expenses','payments','deliveries','batches','visit_logs','outlets'] },
   sales:   { tabs:['dashboard','sales','absensi','notice'],                          write:['customers','orders','visit_logs'] },
   finance: { tabs:['dashboard','finance','absensi','notice'],                        write:['invoices','expenses','payments'] },
   gudang:  { tabs:['dashboard','gudang','absensi','notice'],                         write:['outlets','deliveries','batches'] },
-  hr:      { tabs:['dashboard','hr','absensi','notice'],                             write:['employees','absensi','leaves'] }
+  hr:      { tabs:['dashboard','hr','absensi','notice'],                             write:['employees','absensi','leaves'] },
+  staff:   { tabs:['absensi','notice'],                                              write:[] }
 };
 
 // Lucide-style SVG icons untuk nav (clean, profesional)
@@ -3046,8 +3050,11 @@ async function doSignup() {
   const nama = document.getElementById('signup-nama').value.trim();
   const email = document.getElementById('signup-email').value.trim();
   const password = document.getElementById('signup-password').value;
-  const role = document.getElementById('signup-role').value;
-  const divisi = role === 'gm' ? 'GM' : role.charAt(0).toUpperCase() + role.slice(1);
+  // Role authoritative dari invite link kalau ada; kalau nggak, dari dropdown.
+  // (GM/admin nggak bisa didaftar sendiri — di-set lewat DB oleh owner.)
+  const inv = window._inviteData;
+  const role = (inv && ROLE_ACCESS[inv.role]) ? inv.role : document.getElementById('signup-role').value;
+  const divisi = (inv && inv.divisi) ? inv.divisi : (role === 'gm' ? 'GM' : role.charAt(0).toUpperCase() + role.slice(1));
 
   if(!nama || !email || !password) { showMsg('Semua field wajib diisi','error'); return; }
   if(password.length < 6) { showMsg('Password minimal 6 karakter','error'); return; }
@@ -3057,7 +3064,7 @@ async function doSignup() {
 
   const { data, error } = await sb.auth.signUp({
     email, password,
-    options: { data: { nama, role, divisi } }
+    options: { data: { nama, role, divisi, via_invite: !!inv } }
   });
 
   btn.disabled = false; btn.textContent = 'Daftar Akun Baru';
@@ -3091,24 +3098,36 @@ async function initApp() {
   let { data: profile, error } = await sb.from('user_profiles').select('*').eq('id', user.id).single();
   
   if(error || !profile) {
-    // Auto-create profile sebagai GM untuk user pertama
+    // Tentuin role aman buat user baru — CEGAH auto-GM buat orang asing:
+    //  • user PERTAMA (tabel user_profiles kosong) = GM (bootstrap owner)
+    //  • lewat invite link (role valid, bukan gm/admin) = sesuai undangan
+    //  • selain itu (walk-in) = 'staff' (akses minimal), nunggu GM naikin akses
+    let isFirstUser = false;
+    try {
+      const { count } = await sb.from('user_profiles').select('id', { count: 'exact', head: true });
+      isFirstUser = (count === 0);
+    } catch(e) { isFirstUser = false; } // fail-safe: anggap bukan user pertama
+    const meta = user.user_metadata || {};
+    const invitedRole = (meta.via_invite && ROLE_ACCESS[meta.role] && !['gm','admin'].includes(meta.role)) ? meta.role : null;
+    const safeRole = isFirstUser ? 'gm' : (invitedRole || 'staff');
+    const safeDivisi = isFirstUser ? 'GM' : (invitedRole ? (meta.divisi || (safeRole.charAt(0).toUpperCase()+safeRole.slice(1))) : 'Staff');
     const namaFromEmail = user.email.split('@')[0];
     const newProfile = {
       id: user.id,
-      nama: user.user_metadata?.nama || namaFromEmail,
+      nama: meta.nama || namaFromEmail,
       email: user.email,
-      role: 'gm',
-      divisi: 'GM',
+      role: safeRole,
+      divisi: safeDivisi,
       status: 'Aktif'
     };
     const { data: created, error: createErr } = await sb.from('user_profiles').insert([newProfile]).select().single();
     if(createErr) {
       // Tabel mungkin belum ada — coba tampil app dengan profile sementara
-      showMsg('⚠️ Profile dibuat sementara (GM). Setup tabel user_profiles di Supabase.', 'info');
-      currentProfile = { ...newProfile, nama: newProfile.nama || 'Admin' };
+      showMsg('⚠️ Profile dibuat sementara ('+safeRole+'). Setup tabel user_profiles di Supabase.', 'info');
+      currentProfile = { ...newProfile, nama: newProfile.nama || 'User' };
     } else {
       currentProfile = created;
-      showMsg('✅ Profile GM dibuat otomatis!', 'info');
+      showMsg(isFirstUser ? '✅ Profile GM dibuat otomatis (owner pertama)!' : '✅ Akun dibuat (akses: '+safeRole+'). Minta GM atur akses kalau perlu.', 'info');
     }
   } else {
     currentProfile = profile;
@@ -3162,8 +3181,9 @@ async function initApp() {
     if(nb) nb.style.display = '';
   }
 
-  // Default page
-  nav('dashboard');
+  // Default page → tab pertama yang boleh diakses role ini (staff gak punya dashboard)
+  const _firstTab = (ROLE_ACCESS[currentProfile.role]?.tabs || ['dashboard'])[0];
+  nav(_firstTab);
   // Init RP fields
   setTimeout(() => initAllRpFields(), 300);
 }
@@ -4324,13 +4344,13 @@ function updateOmzetChart() {
 
   // Target Bulanan + Break-even dari config (dynamic)
   const cfg = appConfig || {};
-  const targetBulan = parseFloat(cfg.target_bulan || 1000000000);
-  const jumlahOutlet = cache.outlets.length || cfg.jumlah_outlet || 8;
+  const targetBulan = parseFloat(cfg.target_bulan) || 0;
+  const jumlahOutlet = cache.outlets.length || cfg.jumlah_outlet || 0;
   const biayaFP = (cfg.biaya_fp_per_outlet || 0) * jumlahOutlet;
   const bensin = cfg.bensin_buffer || 0;
   const payrollAll = (cache.employees||[]).filter(e=>e.status==='Aktif').reduce((s,e)=>s+(e.gaji||0),0);
-  const bufferPct = (cfg.buffer_pakgun || 10) / 100;
-  const gpMargin = (cfg.gp_margin || 22.27) / 100;
+  const bufferPct = (cfg.buffer_pakgun || 0) / 100;
+  const gpMargin = (cfg.gp_margin || 0) / 100;
   // Break-even = fixed cost / (GP margin × (1 - buffer))
   const fixedCost = biayaFP + bensin + payrollAll;
   const breakEven = gpMargin > 0 ? Math.round(fixedCost / (gpMargin * (1 - bufferPct))) : 0;
@@ -5374,14 +5394,14 @@ function renderPayrollTable(emps, bonusPerOrang) {
 // CONFIG / SETTINGS
 // ════════════════════════════════════════════
 let appConfig = {
-  gp_margin: 22.27,
-  buffer_pakgun: 10,
-  biaya_fp_per_outlet: 2700000,
-  jumlah_outlet: 8,
-  bensin_buffer: 1500000,
+  gp_margin: 0,
+  buffer_pakgun: 0,
+  biaya_fp_per_outlet: 0,
+  jumlah_outlet: 0,
+  bensin_buffer: 0,
   target_bonus: 1000000000,
   persen_bonus: 5,
-  target_bulan: 1000000000
+  target_bulan: 0
 };
 
 async function loadConfig() {
@@ -5883,6 +5903,13 @@ async function checkInviteParam() {
     if(data.exp < Date.now()) { showToast('Link invite sudah expired!','error'); return false; }
     // Store invite data for registration
     window._inviteData = data;
+    // Prefill + lock form signup biar role sesuai undangan (user gak bisa ganti)
+    try {
+      if(typeof switchAuthTab === 'function') switchAuthTab('signup');
+      const nm = document.getElementById('signup-nama'); if(nm && data.nama) nm.value = data.nama;
+      const rl = document.getElementById('signup-role');
+      if(rl && data.role && ROLE_ACCESS[data.role]) { rl.value = data.role; rl.disabled = true; }
+    } catch(e){}
     return true;
   } catch { return false; }
 }
@@ -10950,7 +10977,8 @@ function exportLeaveCSV() {
   if(session) {
     await initApp();
   } else {
-    // Tidak ada sesi → tampilkan login dengan animasi entrance GSAP
+    // Tidak ada sesi → cek invite link (set role dari undangan) + tampilkan login
+    try { await checkInviteParam(); } catch(e){}
     playLoginEntrance();
   }
 })();
