@@ -2198,26 +2198,26 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
       <div class="card-b">
         <div class="fg" style="margin-bottom:14px">
           <label class="fl">Gross Profit Margin (%)</label>
-          <input class="fi" type="number" id="cfg-gp_margin" step="0.01" placeholder="22.27" value="22.27"/>
+          <input class="fi" type="number" id="cfg-gp_margin" step="0.01" placeholder="22.27"/>
           <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Persentase GP dari total omzet</div>
         </div>
         <div class="fg" style="margin-bottom:14px">
           <label class="fl">Buffer Investor (% dari GP)</label>
-          <input class="fi" type="number" id="cfg-buffer_pakgun" step="1" placeholder="10" value="10"/>
+          <input class="fi" type="number" id="cfg-buffer_pakgun" step="1" placeholder="10"/>
           <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Dipotong dari GP sebelum operasional</div>
         </div>
         <div class="fg" style="margin-bottom:14px">
           <label class="fl">Biaya FP per Outlet (Rp)</label>
-          <input class="fi" type="number" id="cfg-biaya_fp_per_outlet" placeholder="2700000" value="2700000"/>
+          <input class="fi" type="number" id="cfg-biaya_fp_per_outlet" placeholder="2700000"/>
           <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Dikali jumlah outlet aktif otomatis</div>
         </div>
         <div class="fg" style="margin-bottom:14px">
           <label class="fl">Jumlah Outlet Aktif</label>
-          <input class="fi" type="number" id="cfg-jumlah_outlet" placeholder="8" value="8"/>
+          <input class="fi" type="number" id="cfg-jumlah_outlet" placeholder="8"/>
         </div>
         <div class="fg" style="margin-bottom:14px">
           <label class="fl">Bensin + Buffer Bulanan (Rp)</label>
-          <input class="fi" type="number" id="cfg-bensin_buffer" placeholder="1500000" value="1500000"/>
+          <input class="fi" type="number" id="cfg-bensin_buffer" placeholder="1500000"/>
           <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Biaya operasional tetap per bulan</div>
         </div>
         <div class="fg">
@@ -4324,13 +4324,13 @@ function updateOmzetChart() {
 
   // Target Bulanan + Break-even dari config (dynamic)
   const cfg = appConfig || {};
-  const targetBulan = parseFloat(cfg.target_bulan || 1000000000);
-  const jumlahOutlet = cache.outlets.length || cfg.jumlah_outlet || 8;
+  const targetBulan = parseFloat(cfg.target_bulan) || 0;
+  const jumlahOutlet = cache.outlets.length || cfg.jumlah_outlet || 0;
   const biayaFP = (cfg.biaya_fp_per_outlet || 0) * jumlahOutlet;
   const bensin = cfg.bensin_buffer || 0;
   const payrollAll = (cache.employees||[]).filter(e=>e.status==='Aktif').reduce((s,e)=>s+(e.gaji||0),0);
-  const bufferPct = (cfg.buffer_pakgun || 10) / 100;
-  const gpMargin = (cfg.gp_margin || 22.27) / 100;
+  const bufferPct = (cfg.buffer_pakgun || 0) / 100;
+  const gpMargin = (cfg.gp_margin || 0) / 100;
   // Break-even = fixed cost / (GP margin × (1 - buffer))
   const fixedCost = biayaFP + bensin + payrollAll;
   const breakEven = gpMargin > 0 ? Math.round(fixedCost / (gpMargin * (1 - bufferPct))) : 0;
@@ -5374,14 +5374,14 @@ function renderPayrollTable(emps, bonusPerOrang) {
 // CONFIG / SETTINGS
 // ════════════════════════════════════════════
 let appConfig = {
-  gp_margin: 22.27,
-  buffer_pakgun: 10,
-  biaya_fp_per_outlet: 2700000,
-  jumlah_outlet: 8,
-  bensin_buffer: 1500000,
+  gp_margin: 0,
+  buffer_pakgun: 0,
+  biaya_fp_per_outlet: 0,
+  jumlah_outlet: 0,
+  bensin_buffer: 0,
   target_bonus: 1000000000,
   persen_bonus: 5,
-  target_bulan: 1000000000
+  target_bulan: 0
 };
 
 async function loadConfig() {

@@ -534,12 +534,12 @@ async function loadDashboard(){
 
   // ═══ OPSI C: Revenue Projection vs Target ═══
   const {data:cfgTarget} = await SB.from('config').select('value').eq('key','target_bulan').maybeSingle();
-  const targetBulan = parseFloat(cfgTarget?.value || 1000000000); // default 1M
+  const targetBulan = parseFloat(cfgTarget?.value) || 0; // 0 = belum diset (diisi awal bulan)
   const confirmedNow = omzetGabungan; // cash rev sekarang
   const projectedTotal = confirmedNow + expectedPipeline;
   const pctConfirmed = targetBulan>0 ? Math.min(100, (confirmedNow/targetBulan*100)) : 0;
   const pctProjected = targetBulan>0 ? Math.min(100, (projectedTotal/targetBulan*100)) : 0;
-  document.getElementById('proj-target').textContent = fmtShort(targetBulan);
+  document.getElementById('proj-target').textContent = targetBulan > 0 ? fmtShort(targetBulan) : 'Belum diset';
   document.getElementById('proj-confirmed').textContent = fmtShort(confirmedNow);
   document.getElementById('proj-confirmed-pct').textContent = pctConfirmed.toFixed(0)+'%';
   document.getElementById('proj-total').textContent = fmtShort(projectedTotal);
@@ -547,13 +547,16 @@ async function loadDashboard(){
   document.getElementById('proj-bar-confirmed').style.width = pctConfirmed+'%';
   document.getElementById('proj-bar-projected').style.width = pctProjected+'%';
   const verdict = document.getElementById('proj-verdict');
-  if(pctProjected >= 100) { verdict.textContent = '✅ ON TRACK'; verdict.style.color = 'var(--green)'; }
+  if(targetBulan <= 0) { verdict.textContent = '🎯 Target belum diset'; verdict.style.color = 'var(--text-muted)'; }
+  else if(pctProjected >= 100) { verdict.textContent = '✅ ON TRACK'; verdict.style.color = 'var(--green)'; }
   else if(pctProjected >= 80) { verdict.textContent = '🟡 Close ('+pctProjected.toFixed(0)+'%)'; verdict.style.color = 'var(--gold)'; }
   else { verdict.textContent = '🔴 Below ('+pctProjected.toFixed(0)+'%)'; verdict.style.color = 'var(--red)'; }
   const gap = targetBulan - projectedTotal;
-  const narrative = gap > 0
+  const narrative = targetBulan <= 0
+    ? `Confirmed ${fmtShort(confirmedNow)} + expected konsi ${fmtShort(expectedPipeline)} = ${fmtShort(projectedTotal)}. Target bulanan belum diset — isi di Settings biar progress kebandingin.`
+    : (gap > 0
     ? `Confirmed ${fmtShort(confirmedNow)} + expected konsi ${fmtShort(expectedPipeline)} = ${fmtShort(projectedTotal)}. Gap ${fmtShort(gap)} ke target — push channel yg lagi below.`
-    : `Confirmed ${fmtShort(confirmedNow)} + expected konsi ${fmtShort(expectedPipeline)} = ${fmtShort(projectedTotal)}. Target sudah aman, fokus retention + closing pipeline.`;
+    : `Confirmed ${fmtShort(confirmedNow)} + expected konsi ${fmtShort(expectedPipeline)} = ${fmtShort(projectedTotal)}. Target sudah aman, fokus retention + closing pipeline.`);
   document.getElementById('proj-narrative').textContent = narrative;
 
   // ═══ OPSI B: Konsi Turnover per Outlet ═══
