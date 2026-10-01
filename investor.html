@@ -444,13 +444,13 @@ async function loadDashboard(){
   const totalOmzet = directSales.reduce((s,o) => s+(o.total_nilai||0), 0);
   const totalTitipan = titipanOrders.reduce((s,o) => s+(o.total_nilai||0), 0);
 
-  // Konsi realized bulan ini = SUM(nilai_terjual) dari konsi_rekap_bulanan bulan ini
-  // Ini beda dari qty_terjual di konsinyasi table (yg cumulative all-time)
-  const {data:konsiRekapBulanIni}=await SB.from('konsi_rekap_bulanan')
-    .select('nilai_terjual,outlet,produk')
-    .eq('bulan', monthStart);
-  const konsiRealized = (konsiRekapBulanIni||[]).reduce((s,k)=>s+(k.nilai_terjual||0), 0);
-  const konsiRekapCount = (konsiRekapBulanIni||[]).length;
+  // Konsi realized bulan ini = qty_terjual × harga dari konsi yg DIREKON bulan ini.
+  // Baca qty_terjual langsung → konsisten dgn CRM (rekonsiliasi via Edit maupun Rekap Bulanan).
+  const {data:konsiRekapBulanIni}=await SB.from('konsinyasi')
+    .select('qty_terjual,harga,tgl_rekon')
+    .gte('tgl_rekon', monthStart).lte('tgl_rekon', monthEnd);
+  const konsiRealized = (konsiRekapBulanIni||[]).reduce((s,k)=>s+((k.qty_terjual||0)*(k.harga||0)), 0);
+  const konsiRekapCount = (konsiRekapBulanIni||[]).filter(k=>(k.qty_terjual||0)>0).length;
   const konsiSold = konsiRekapBulanIni || []; // alias buat kode existing
 
   const omzetGabungan = totalOmzet + konsiRealized;
