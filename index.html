@@ -7413,14 +7413,26 @@ async function saveKonsi() {
   const editId = document.getElementById('konsi-edit-id')?.value;
   const prevKonsi = editId ? allKonsi.find(k => String(k.id) === String(editId)) : null;
 
+  // Harga: strip titik (biar "456.000" → 456000, bukan 456). Field udah type=text
+  // biar titik gak diartiin desimal sama browser (dulu type=number bikin harga ÷1000).
+  const _qtyTitip = parseInt(document.getElementById('konsi-qty-titip')?.value)||0;
+  let _harga = parseInt((document.getElementById('konsi-harga')?.value||'').replace(/\./g,''))||0;
+  // SAFETY NET anti-korup: kalau edit & harga baru anjlok drastis (≈ ÷1000) dari harga
+  // tersimpan padahal qty titip gak berubah → kemungkinan korup, pakai harga lama.
+  if(editId && prevKonsi && prevKonsi.harga > 0 && _harga > 0 && _harga < prevKonsi.harga
+     && Math.round(prevKonsi.harga / _harga) >= 100
+     && (prevKonsi.qty_titip||0) === _qtyTitip) {
+    _harga = Number(prevKonsi.harga);
+  }
+
   const payload = {
     outlet, produk,
     tgl_titip: document.getElementById('konsi-tgl-titip')?.value||null,
-    qty_titip: parseInt(document.getElementById('konsi-qty-titip')?.value)||0,
+    qty_titip: _qtyTitip,
     qty_terjual: parseInt(document.getElementById('konsi-qty-terjual')?.value)||0,
     qty_retur: parseInt(document.getElementById('konsi-qty-retur')?.value)||0,
-    harga: parseInt((document.getElementById('konsi-harga')?.value||'').replace(/\./g,''))||0,
-    nilai: parseInt((document.getElementById('konsi-nilai')?.value||'').replace(/\./g,''))||0,
+    harga: _harga,
+    nilai: _harga * _qtyTitip,
     tgl_rekon: document.getElementById('konsi-tgl-rekon')?.value||null,
     status: document.getElementById('konsi-status')?.value||'Aktif',
     catatan: document.getElementById('konsi-catatan')?.value.trim()||null,
@@ -12376,7 +12388,7 @@ function dcEditCust() {
       <div class="frow">
         <div class="fg">
           <label class="fl">Harga Jual/Unit (Rp)</label>
-          <input class="fi" type="number" id="konsi-harga" placeholder="0" oninput="hitungKonsiNilai()"/>
+          <input class="fi" type="text" inputmode="numeric" id="konsi-harga" placeholder="0" oninput="hitungKonsiNilai()"/>
           <div id="konsi-harga-preview" style="font-size:11px;color:var(--text-muted);margin-top:4px"></div>
         </div>
         <div class="fg">
