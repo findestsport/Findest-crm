@@ -604,14 +604,14 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
       <div class="login-fg">
         <label class="login-fl">Role / Divisi</label>
         <select class="login-fi" id="signup-role">
-          <option value="gm">GM (Akses Semua)</option>
-          <option value="admin">Admin (Semua kecuali Payroll)</option>
+          <option value="staff">Staff (akses minimal — role diatur GM)</option>
           <option value="supervisor">Supervisor (Operasional — tanpa HR/Settings)</option>
           <option value="sales">Sales</option>
           <option value="finance">Finance</option>
           <option value="gudang">Gudang</option>
           <option value="hr">HR</option>
         </select>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Akses GM/Admin cuma bisa diatur owner lewat sistem, bukan daftar sendiri.</div>
       </div>
       <button class="login-btn" id="btn-signup" onclick="doSignup()">Daftar Akun Baru</button>
     </div>
@@ -3139,11 +3139,11 @@ async function initApp() {
 
   // Setup user UI
   document.getElementById('user-nama').textContent = currentProfile.nama || 'User';
-  document.getElementById('user-role').textContent = (currentProfile.role||'gm') + ' · ' + (currentProfile.divisi||'GM');
+  document.getElementById('user-role').textContent = (currentProfile.role||'staff') + ' · ' + (currentProfile.divisi||'Staff');
   document.getElementById('user-avatar').textContent = (currentProfile.nama||'U').charAt(0).toUpperCase();
 
   // Build navigation based on role
-  buildNav(currentProfile.role || 'gm');
+  buildNav(currentProfile.role || 'staff');
   // Delay SI section update to ensure profile is fully set
   setTimeout(() => {
     const siSection = document.getElementById('sales-intel-section');
@@ -3157,7 +3157,7 @@ async function initApp() {
   }, 800);
 
   // Setup write permissions on buttons
-  setupWritePermissions(currentProfile.role || 'gm');
+  setupWritePermissions(currentProfile.role || 'staff');
 
   // Load initial data
   await loadAllData();
