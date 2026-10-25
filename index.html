@@ -6527,14 +6527,52 @@ async function editOrd(id) {
   openMo('mo-ord');
 }
 async function updateOrderStatus(id, status) {
+  const order = cache.orders.find(o => o.id === id);
+
+  // ═══ RETUR / BATAL (F&B): konfirmasi + auto refund cash kalau udah dibayar ═══
+  // Status Batal nge-trigger stok balik (orders_stok_sync) + faktur void
+  // (orders_cancel_invoice). Tambahan: kalau faktur udah Lunas → catat refund
+  // sbg pengeluaran kas (sesuai keputusan: retur full + refund cash).
+  if(status === 'Batal' && order) {
+    const isKonsi = (order.channel_sistem||'').toLowerCase().includes('konsinyasi');
+    const inv = (cache.invoices||[]).find(i => i.order_id === id);
+    const wasPaid = inv && inv.status === 'Lunas';
+    const total = order.total_nilai || 0;
+    const msg = `Retur / batalin order ${order.no_order||('#'+id)}?\n\n`
+      + `• Barang otomatis balik ke stok gudang\n`
+      + `• Faktur dibatalin (gak keitung omzet)\n`
+      + (wasPaid && !isKonsi
+          ? `• Customer UDAH BAYAR → refund cash Rp ${fmt(total)} dicatat sbg pengeluaran`
+          : `• Gak ada refund (faktur belum dibayar)`);
+    if(!confirm(msg)) { await loadOrders(); return; } // reload biar dropdown balik ke semula
+
+    const { error } = await sb.from('orders').update({status:'Batal'}).eq('id', id);
+    if(error) { showToast(error.message,'error'); return; }
+
+    if(wasPaid && !isKonsi && total > 0) {
+      const { error: rErr } = await sb.from('expenses').insert({
+        tgl: ymdLocal(),
+        keterangan: `Refund retur — ${order.customer_nama||'Customer'} (${order.no_order||('#'+id)})`,
+        kategori: 'Refund',
+        nominal: total,
+        approved_by: (typeof currentProfile!=='undefined' && currentProfile?.nama) || 'System',
+        status: 'Approved'
+      });
+      if(rErr) showToast('⚠️ Order diretur tapi refund GAGAL dicatat: '+rErr.message, 'error');
+      else showToast(`✅ Order diretur · stok balik · faktur batal · refund Rp ${fmt(total)} dicatat`);
+    } else {
+      showToast('✅ Order diretur · stok balik · faktur dibatalin');
+    }
+    await Promise.all([loadOrders(), loadInvoices(), loadProducts(), loadExpenses()]);
+    updateDashboard?.();
+    return;
+  }
+
   const { error } = await sb.from('orders').update({status}).eq('id', id);
   if(error) { showToast(error.message,'error'); return; }
 
   // INTEGRASI: Saat order Selesai → kurangi stok produk
-  if(status === 'Selesai') {
-    const order = cache.orders.find(o => o.id === id);
-    if(order) await autoKurangiStokDariOrder(order);
-  }
+  if(status === 'Selesai' && order) await autoKurangiStokDariOrder(order);
 
   showToast('Status diupdate: ' + status);
   await loadOrders();
