@@ -2870,7 +2870,7 @@ const RP_FIELDS = [
   'cust-omzet',
   'ord-total',
   'inv-total',
-  'exp-nominal',
+  'exp-nominal','edit-exp-nominal',
   'po-produk-harga',
   'emp-gaji','edit-emp-gaji',
   'cfg-biaya_fp_per_outlet','cfg-bensin_buffer','cfg-target_bulan',
@@ -3323,7 +3323,7 @@ function openMo(id) {
     orderItems = [];
     renderOrderItems();
     const tgl = document.getElementById('ord-tgl');
-    if(tgl && !tgl.value) tgl.value = new Date().toISOString().split('T')[0];
+    if(tgl && !tgl.value) tgl.value = ymdLocal();
     loadProducts();
   }
   // mo-del: reset items & populate products
@@ -3338,7 +3338,7 @@ function openMo(id) {
     if(!cache.products?.length) loadProducts();
     if(!cache.customers?.length) loadCustomers();
     const tgl = document.getElementById('del-tgl');
-    if(tgl && !tgl.value) tgl.value = new Date().toISOString().split('T')[0];
+    if(tgl && !tgl.value) tgl.value = ymdLocal();
     // Populate customer dropdown
     const custInput = document.getElementById('del-cust');
     // Populate products - force reload if cache empty
@@ -3359,7 +3359,7 @@ function openMo(id) {
   }
   // mo-add-visit: populate outlet dropdown & date
   if(id === 'mo-add-visit') {
-    const today = new Date().toISOString().split('T')[0];
+    const today = ymdLocal();
     const tgl = document.getElementById('vis-tanggal');
     if(tgl && !tgl.value) tgl.value = today;
     populateVisitOutlets();
@@ -3393,7 +3393,7 @@ function openMo(id) {
       poItems = [];
       renderPOItems();
       const tgl = document.getElementById('po-tgl');
-      if(tgl) tgl.value = new Date().toISOString().split('T')[0];
+      if(tgl) tgl.value = ymdLocal();
       const totalEl = document.getElementById('po-total');
       if(totalEl) totalEl.value = 0;
       // Reset field supplier, status, ket
@@ -3403,14 +3403,14 @@ function openMo(id) {
     }
   }
   if(id === 'mo-add-batch') {
-    const today = new Date().toISOString().split('T')[0];
+    const today = ymdLocal();
     const tgl = document.getElementById('bat-tgl-masuk');
     if(tgl && !tgl.value) tgl.value = today;
     loadBatchProducts();
   }
   // mo-add-payment: populate dropdowns & date
   if(id === 'mo-add-payment') {
-    const today = new Date().toISOString().split('T')[0];
+    const today = ymdLocal();
     const tgl = document.getElementById('pay-tanggal');
     if(tgl && !tgl.value) tgl.value = today;
     const custSel = document.getElementById('pay-customer');
@@ -3772,7 +3772,7 @@ function renderInv() {
   const fromDate = document.getElementById('inv-filter-from')?.value || '';
   const toDate = document.getElementById('inv-filter-to')?.value || '';
   const status = document.getElementById('inv-filter-status')?.value || '';
-  const today = new Date().toISOString().split('T')[0];
+  const today = ymdLocal();
 
   // Deteksi apakah search itu nominal (angka setelah strip separator)
   const searchAsNum = parseInt((searchRaw||'').replace(/[^\d]/g,''), 10);
@@ -4491,7 +4491,7 @@ async function addOrd() {
   const newOrd = {
     no_order: 'ORD-' + Date.now(),
     customer_nama: cust,
-    tgl_order: document.getElementById('ord-tgl').value || new Date().toISOString().slice(0,10),
+    tgl_order: document.getElementById('ord-tgl').value || ymdLocal(),
     produk: document.getElementById('ord-produk').value,
     total_nilai: parseRp(document.getElementById('ord-total').value)||0,
     pembayaran: document.getElementById('ord-bayar').value,
@@ -4522,7 +4522,7 @@ async function addInv() {
     customer_tipe: custData?.tipe||null,
     customer_sistem: custData?.sistem||null,
     no_do: document.getElementById('inv-do').value,
-    tgl_invoice: document.getElementById('inv-tgl').value || new Date().toISOString().slice(0,10),
+    tgl_invoice: document.getElementById('inv-tgl').value || ymdLocal(),
     jatuh_tempo: document.getElementById('inv-jt').value,
     total: parseRp(document.getElementById('inv-total').value)||0,
     status: document.getElementById('inv-status')?.value || 'Pending',
@@ -4550,7 +4550,7 @@ async function addExp() {
   if(!ket) { alert('Keterangan wajib diisi!'); return; }
 
   const newExp = {
-    tgl: document.getElementById('exp-tgl').value || new Date().toISOString().slice(0,10),
+    tgl: document.getElementById('exp-tgl').value || ymdLocal(),
     keterangan: ket,
     kategori: document.getElementById('exp-kat').value,
     nominal: parseRp(document.getElementById('exp-nominal').value)||0,
@@ -4579,7 +4579,7 @@ function resetDelModal() {
   document.getElementById('del-alamat').value = '';
   document.getElementById('del-catatan').value = '';
   document.getElementById('del-channel-info').style.display = 'none';
-  const tgl = new Date().toISOString().slice(0,10);
+  const tgl = ymdLocal();
   document.getElementById('del-tgl').value = tgl;
   deliveryItems = [];
   renderDeliveryItems();
@@ -4599,7 +4599,7 @@ function editDel(id) {
   // Fill fields
   document.getElementById('del-cust-search').value = d.customer_nama || '';
   document.getElementById('del-cust').value = d.customer_nama || '';
-  document.getElementById('del-tgl').value = d.tgl_kirim || new Date().toISOString().slice(0,10);
+  document.getElementById('del-tgl').value = d.tgl_kirim || ymdLocal();
   document.getElementById('del-driver').value = d.driver || '';
   document.getElementById('del-alamat').value = d.alamat || '';
   document.getElementById('del-catatan').value = d.catatan || '';
@@ -4651,7 +4651,7 @@ async function saveDel() {
   } catch(e) {}
   const payload = {
     customer_nama: cust,
-    tgl_kirim: document.getElementById('del-tgl').value || new Date().toISOString().slice(0,10),
+    tgl_kirim: document.getElementById('del-tgl').value || ymdLocal(),
     produk: produkFinal,
     driver: document.getElementById('del-driver').value,
     alamat: document.getElementById('del-alamat').value,
@@ -4692,7 +4692,7 @@ async function addEmp() {
     divisi: document.getElementById('emp-divisi').value,
     grade: document.getElementById('emp-grade').value,
     gaji: parseRp(document.getElementById('emp-gaji').value)||0,
-    tgl_mulai: document.getElementById('emp-mulai').value || new Date().toISOString().slice(0,10),
+    tgl_mulai: document.getElementById('emp-mulai').value || ymdLocal(),
     status: 'Aktif'
   };
 
@@ -4720,7 +4720,7 @@ function abTab(id, btn) {
 
 async function initAbsensi() {
   const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
+  const todayStr = ymdLocal(today);
   const label = today.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
   const el = document.getElementById('abs-today-label');
@@ -4867,7 +4867,7 @@ function _getGPS() {
 }
 
 async function selfCheckIn(status) {
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = ymdLocal();
   const keterangan = document.getElementById('abs-keterangan')?.value || '';
 
   const emp = await findMyEmployee();
@@ -4919,7 +4919,7 @@ async function selfCheckIn(status) {
 
 // ── ABSEN PULANG (clock-out) ──
 async function absenPulang() {
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = ymdLocal();
   const emp = await findMyEmployee();
   if(!emp) { showToast('Data karyawan tidak ditemukan.', 'error'); return; }
 
@@ -4966,7 +4966,7 @@ function _toJamDate(val, tanggal) {
   try {
     if (typeof val === 'string' && /^\d{1,2}:\d{2}/.test(val) && !val.includes('T')) {
       // time-only → gabung dengan tanggal
-      const base = tanggal || new Date().toISOString().split('T')[0];
+      const base = tanggal || ymdLocal();
       const d = new Date(base + 'T' + val);
       return isNaN(d) ? null : d;
     }
@@ -4989,7 +4989,7 @@ function _fmtDurasi(masuk, pulang, tanggal) {
 }
 
 async function loadTodayAll() {
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = ymdLocal();
   const tblEl = document.getElementById('abs-today-table');
   if(!tblEl) return;
 
@@ -5092,7 +5092,7 @@ async function loadRekap() {
   tblEl.innerHTML = '<div class="empty"><div class="spinner"></div></div>';
 
   const start = `${tahun}-${bulan}-01`;
-  const end = new Date(tahun, parseInt(bulan), 0).toISOString().split('T')[0];
+  const end = ymdLocal(new Date(tahun, parseInt(bulan), 0));
   let q = sb.from('absensi').select('*').gte('tanggal',start).lte('tanggal',end);
   if(divisi) q = q.eq('divisi',divisi);
   const { data, error } = await q.order('employee_nama').order('tanggal');
@@ -6420,7 +6420,7 @@ async function editGajiInline(empId, currentGaji) {
 async function getAbsensiSummaryForPayroll(periode) {
   const [yr, mo] = periode.split('-');
   const start = `${yr}-${mo}-01`;
-  const end = new Date(yr, parseInt(mo), 0).toISOString().split('T')[0];
+  const end = ymdLocal(new Date(yr, parseInt(mo), 0));
 
   const { data } = await sb.from('absensi')
     .select('employee_id, employee_nama, status')
@@ -6527,14 +6527,52 @@ async function editOrd(id) {
   openMo('mo-ord');
 }
 async function updateOrderStatus(id, status) {
+  const order = cache.orders.find(o => o.id === id);
+
+  // ═══ RETUR / BATAL (F&B): konfirmasi + auto refund cash kalau udah dibayar ═══
+  // Status Batal nge-trigger stok balik (orders_stok_sync) + faktur void
+  // (orders_cancel_invoice). Tambahan: kalau faktur udah Lunas → catat refund
+  // sbg pengeluaran kas (sesuai keputusan: retur full + refund cash).
+  if(status === 'Batal' && order) {
+    const isKonsi = (order.channel_sistem||'').toLowerCase().includes('konsinyasi');
+    const inv = (cache.invoices||[]).find(i => i.order_id === id);
+    const wasPaid = inv && inv.status === 'Lunas';
+    const total = order.total_nilai || 0;
+    const msg = `Retur / batalin order ${order.no_order||('#'+id)}?\n\n`
+      + `• Barang otomatis balik ke stok gudang\n`
+      + `• Faktur dibatalin (gak keitung omzet)\n`
+      + (wasPaid && !isKonsi
+          ? `• Customer UDAH BAYAR → refund cash Rp ${fmt(total)} dicatat sbg pengeluaran`
+          : `• Gak ada refund (faktur belum dibayar)`);
+    if(!confirm(msg)) { await loadOrders(); return; } // reload biar dropdown balik ke semula
+
+    const { error } = await sb.from('orders').update({status:'Batal'}).eq('id', id);
+    if(error) { showToast(error.message,'error'); return; }
+
+    if(wasPaid && !isKonsi && total > 0) {
+      const { error: rErr } = await sb.from('expenses').insert({
+        tgl: ymdLocal(),
+        keterangan: `Refund retur — ${order.customer_nama||'Customer'} (${order.no_order||('#'+id)})`,
+        kategori: 'Refund',
+        nominal: total,
+        approved_by: (typeof currentProfile!=='undefined' && currentProfile?.nama) || 'System',
+        status: 'Approved'
+      });
+      if(rErr) showToast('⚠️ Order diretur tapi refund GAGAL dicatat: '+rErr.message, 'error');
+      else showToast(`✅ Order diretur · stok balik · faktur batal · refund Rp ${fmt(total)} dicatat`);
+    } else {
+      showToast('✅ Order diretur · stok balik · faktur dibatalin');
+    }
+    await Promise.all([loadOrders(), loadInvoices(), loadProducts(), loadExpenses()]);
+    updateDashboard?.();
+    return;
+  }
+
   const { error } = await sb.from('orders').update({status}).eq('id', id);
   if(error) { showToast(error.message,'error'); return; }
 
   // INTEGRASI: Saat order Selesai → kurangi stok produk
-  if(status === 'Selesai') {
-    const order = cache.orders.find(o => o.id === id);
-    if(order) await autoKurangiStokDariOrder(order);
-  }
+  if(status === 'Selesai' && order) await autoKurangiStokDariOrder(order);
 
   showToast('Status diupdate: ' + status);
   await loadOrders();
@@ -6588,9 +6626,14 @@ async function autoKurangiStokDariOrder(order) {
     if(!prodList || !prodList.length) { console.warn('[STOK] Produk tidak ditemukan:', nama); showToast('⚠️ Produk '+nama+' tidak ditemukan di catalog!', 'warn'); continue; }
 
     const prod = prodList[0];
-    const stokBaru = Math.max((prod.stok || 0) - qty, 0);
-    const { error } = await sb.from('products').update({ stok: stokBaru }).eq('id', prod.id);
-    if(error) { console.error('Gagal update stok:', error); continue; }
+    // ⚠️ products.stok dikurangi DB trigger `orders_stok_sync` (by product_id) biar
+    // konsisten di semua jalur (dropdown/delivery/direct). Client CUMA handle fallback
+    // buat item TANPA product_id (yg di-skip trigger) — cegah stok kebagi 2x (dobel).
+    if(!item.product_id) {
+      const stokBaru = Math.max((prod.stok || 0) - qty, 0);
+      const { error } = await sb.from('products').update({ stok: stokBaru }).eq('id', prod.id);
+      if(error) { console.error('Gagal update stok:', error); continue; }
+    }
 
     // Kurangi batch FIFO (batch terlama duluan)
     let sisaKurang = qty;
@@ -6958,7 +7001,7 @@ async function printFaktur(invoiceId) {
 
 async function markInvLunas(id) {
   if(!confirm('Tandai invoice ini sebagai LUNAS?\n\nOtomatis buat catatan pembayaran ke Rekap Kas.')) return;
-  const { error } = await sb.from('invoices').update({status:'Lunas', tgl_lunas: new Date().toISOString().split('T')[0]}).eq('id', id);
+  const { error } = await sb.from('invoices').update({status:'Lunas', tgl_lunas: ymdLocal()}).eq('id', id);
   if(error) { showToast(error.message,'error'); return; }
   showToast('✅ Invoice Lunas! Payment auto-sync ke Rekap Kas.');
   await loadInvoices();
@@ -7308,7 +7351,7 @@ function openAddKonsi() {
   document.getElementById('konsi-edit-id').value = '';
   document.getElementById('mo-konsi-title').textContent = '🔄 Catat Konsinyasi';
   document.getElementById('konsi-del-btn').style.display = 'none';
-  document.getElementById('konsi-tgl-titip').value = new Date().toISOString().split('T')[0];
+  document.getElementById('konsi-tgl-titip').value = ymdLocal();
   document.getElementById('konsi-qty-titip').value = '';
   document.getElementById('konsi-qty-terjual').value = '';
   document.getElementById('konsi-qty-retur').value = '';
@@ -7532,7 +7575,7 @@ async function integrasiKonsiStok(payload, prevKonsi) {
           jumlah_masuk: selisihRetur,
           jumlah_sisa: selisihRetur,
           harga_beli: payload.harga || 0,
-          tanggal_masuk: new Date().toISOString().split('T')[0],
+          tanggal_masuk: ymdLocal(),
           status: 'Aktif',
           keterangan: 'Retur konsinyasi dari ' + payload.outlet
         }]);
@@ -7563,7 +7606,7 @@ async function integrasiKonsiFinance(payload, prevKonsi, outlet) {
   if(status === 'Lunas' && prevStatus !== 'Lunas') {
     const nilaiTerjual = qty_terjual * harga;
     if(nilaiTerjual > 0) {
-      const tgl = tgl_rekon || new Date().toISOString().split('T')[0];
+      const tgl = tgl_rekon || ymdLocal();
       const ket = `Konsinyasi Lunas: ${produk} x${qty_terjual} — ${outlet}`;
       const { error: rErr } = await sb.from('rekap_kas').insert([{
         tgl,
@@ -7796,7 +7839,7 @@ async function submitOrderFromKonsi() {
   const bayar = document.getElementById('ofk-payment').value;
   const catatan = document.getElementById('ofk-catatan').value.trim();
   const days = bayar==='Termin 3 Hari'?3: bayar==='Termin 7 Hari'?7: bayar==='Termin 30 Hari'?30: 0;
-  const dueDate = days > 0 ? new Date(Date.now()+days*86400000).toISOString().slice(0,10) : null;
+  const dueDate = days > 0 ? ymdLocal(new Date(Date.now()+days*86400000)) : null;
 
   // ════ GUARD: qty gak boleh lebih dari sisa titipan tersedia (cegah sisa minus / omzet dobel) ════
   for(const {konsi:k, qty} of items) {
@@ -7823,7 +7866,7 @@ async function submitOrderFromKonsi() {
         p_transfer_ke_customer: cust.nama,
         p_order_id: null,
         p_created_by: (typeof currentUser !== 'undefined' && currentUser?.email) || null,
-        p_tgl_retur: new Date().toISOString().slice(0,10)
+        p_tgl_retur: ymdLocal()
       });
       if(error) throw error;
       const row = Array.isArray(data) ? data[0] : data;
@@ -7911,7 +7954,7 @@ function openReturKonsi(id) {
   document.getElementById('retur-info-sisa').textContent = `Sisa titipan: ${sisa} unit`;
   document.getElementById('retur-qty').value = '';
   document.getElementById('retur-qty').max = sisa;
-  document.getElementById('retur-tgl').value = new Date().toISOString().slice(0,10);
+  document.getElementById('retur-tgl').value = ymdLocal();
   document.getElementById('retur-tujuan').value = 'gudang_fp';
   document.getElementById('retur-transfer-ke').value = '';
   document.getElementById('retur-alasan').value = '';
@@ -8091,7 +8134,7 @@ async function submitRekapBulanan() {
       qty_retur_bulan: retur,
       harga: row.harga||0,
       nilai_terjual: terjual * (row.harga||0),
-      tgl_rekon: new Date().toISOString().slice(0,10),
+      tgl_rekon: ymdLocal(),
       created_by: currentProfile?.email || 'unknown'
     };
     if(rekapExisting[konsi_id]) {
@@ -8393,7 +8436,7 @@ function exportHistoricalDetail() {
   const ws = XLSX.utils.json_to_sheet(hdRows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, hdActiveTab);
-  const ts = new Date().toISOString().slice(0,10);
+  const ts = ymdLocal();
   XLSX.writeFile(wb, `findest-historis-${hdActiveTab}-${ts}.xlsx`);
   showToast(`✅ Exported ${hdRows.length} row ke Excel`);
 }
@@ -8458,7 +8501,7 @@ async function kembalikanStokKonsi(konsi) {
     jumlah_masuk: sisaDiOutlet,
     jumlah_sisa: sisaDiOutlet,
     harga_beli: konsi.harga || 0,
-    tanggal_masuk: new Date().toISOString().split('T')[0],
+    tanggal_masuk: ymdLocal(),
     status: 'Aktif',
     keterangan: 'Retur otomatis hapus konsinyasi — ' + konsi.outlet
   }]);
@@ -8986,7 +9029,7 @@ function editExp(id) {
   document.getElementById('edit-exp-tgl').value = e.tgl||'';
   document.getElementById('edit-exp-kat').value = e.kategori||'Operasional';
   document.getElementById('edit-exp-ket').value = e.keterangan||'';
-  document.getElementById('edit-exp-nominal').value = e.nominal||0;
+  document.getElementById('edit-exp-nominal').value = (e.nominal||0).toLocaleString('id-ID');
   openMo('mo-edit-exp');
 }
 
@@ -8995,7 +9038,7 @@ async function saveEditExp() {
   const tgl = document.getElementById('edit-exp-tgl').value;
   const kategori = document.getElementById('edit-exp-kat').value;
   const keterangan = document.getElementById('edit-exp-ket').value.trim();
-  const nominal = parseFloat(document.getElementById('edit-exp-nominal').value)||0;
+  const nominal = parseRp(document.getElementById('edit-exp-nominal').value);
   if(!keterangan) { showToast('Keterangan wajib diisi!','error'); return; }
   const { error } = await sb.from('expenses').update({ tgl, kategori, keterangan, nominal }).eq('id', id);
   if(error) { showToast(error.message,'error'); return; }
@@ -9062,8 +9105,16 @@ async function updateDeliveryStatus(id, status) {
     // Integration: if Selesai, update related order
     if(status === 'Selesai') {
       const d = cache.deliveries.find(x=>x.id===id);
-      if(d?.customer_nama) {
-        await sb.from('orders').update({status:'Selesai'}).eq('customer_nama', d.customer_nama).eq('status','Dikirim');
+      // FIX: cuma selesaiin SATU order yg ketaut, bukan SEMUA order 'Dikirim' customer itu
+      // (dulu eq('customer_nama') bikin order yg belum dikirim ikut ke-flip → faktur/stok/omzet premature).
+      if(d?.order_id) {
+        await sb.from('orders').update({status:'Selesai'}).eq('id', d.order_id).eq('status','Dikirim');
+      } else if(d?.customer_nama) {
+        // order_id gak keisi (delivery dibuat manual) → selesaiin 1 order TERTUA yg 'Dikirim' (FIFO)
+        const { data: ords } = await sb.from('orders').select('id')
+          .eq('customer_nama', d.customer_nama).eq('status','Dikirim')
+          .order('created_at',{ascending:true}).limit(1);
+        if(ords?.length) await sb.from('orders').update({status:'Selesai'}).eq('id', ords[0].id);
       }
     }
   } else showToast(error.message,'error');
@@ -9084,11 +9135,11 @@ async function createInvoiceFromOrder(orderId) {
   const order = cache.orders.find(o=>o.id===orderId);
   if(!order) return;
   const noInv = 'INV-'+Date.now();
-  const jatuhTempo = new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0];
+  const jatuhTempo = ymdLocal(new Date(Date.now() + 30*24*60*60*1000));
   const { error } = await sb.from('invoices').insert([{
     no_invoice: noInv,
     customer_nama: order.customer_nama,
-    tgl_invoice: new Date().toISOString().split('T')[0],
+    tgl_invoice: ymdLocal(),
     jatuh_tempo: jatuhTempo,
     total: order.total_nilai,
     status: 'Pending'
@@ -9102,7 +9153,7 @@ async function createInvoiceFromOrder(orderId) {
 
 // Check overdue invoices
 async function checkOverdueInvoices() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = ymdLocal();
   const overdue = cache.invoices.filter(inv =>
     inv.status === 'Pending' && inv.jatuh_tempo && inv.jatuh_tempo < today
   );
@@ -9254,7 +9305,7 @@ async function saveOutletStok() {
     batch_no: document.getElementById('os-batch-no')?.value.trim() || null,
     catatan: document.getElementById('os-catatan')?.value.trim() || null,
     harga_beli: prod?.harga || 0,
-    last_updated: new Date().toISOString().slice(0,10),
+    last_updated: ymdLocal(),
     created_by: currentProfile?.nama || null
   };
   const { error } = await sb.from('outlet_inventory').insert([payload]);
@@ -9273,7 +9324,7 @@ async function editStokRow(id) {
   if(newQty === null) return;
   const qty = parseInt(newQty);
   if(isNaN(qty) || qty < 0) { showToast('Qty invalid','error'); return; }
-  const { error } = await sb.from('outlet_inventory').update({ qty, last_updated: new Date().toISOString().slice(0,10) }).eq('id', id);
+  const { error } = await sb.from('outlet_inventory').update({ qty, last_updated: ymdLocal() }).eq('id', id);
   if(error) { showToast(error.message,'error'); return; }
   showToast('✅ Qty diupdate');
   await loadOutletStok(currentOutletId);
@@ -10327,7 +10378,7 @@ function exportTableToCSV(tableId, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = filename + '_' + new Date().toISOString().split('T')[0] + '.csv';
+  a.download = filename + '_' + ymdLocal() + '.csv';
   a.click();
   URL.revokeObjectURL(url);
   showToast('✅ File CSV berhasil didownload!');
@@ -10707,7 +10758,7 @@ function renderPayments(payments) {
 // ════════════════════════════════════════
 async function onInvoiceLunas(inv) {
   // Otomatis masuk Rekap Kas sebagai pemasukan
-  const tgl = new Date().toISOString().split('T')[0];
+  const tgl = ymdLocal();
   const ket = 'Pembayaran Invoice ' + inv.no_invoice + ' - ' + inv.customer_nama;
   // Insert ke rekap_kas (field channel & ref_invoice opsional, ignore error jika kolom belum ada)
   const rekapPayload = {
@@ -10776,8 +10827,8 @@ function showRestockBanner(items) {
 // ════════════════════════════════════════
 async function checkEDBanner() {
   const today = new Date();
-  const in30 = new Date(today.getTime() + 30*24*60*60*1000).toISOString().split('T')[0];
-  const todayStr = today.toISOString().split('T')[0];
+  const in30 = ymdLocal(new Date(today.getTime() + 30*24*60*60*1000));
+  const todayStr = ymdLocal(today);
   const { data: batches } = await sb.from('batches').select('produk_nama,expired_date,jumlah_sisa').eq('status','Aktif').lte('expired_date', in30).gt('jumlah_sisa',0);
   if(!batches || !batches.length) return;
   const kritis = batches.filter(b => b.expired_date <= todayStr);
@@ -10837,7 +10888,7 @@ async function checkEDBanner() {
 // INTEGRASI: Invoice Overdue Banner  
 // ════════════════════════════════════════
 async function checkOverdueBanner() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = ymdLocal();
   const overdue = (cache.invoices||[]).filter(inv => inv.status==='Overdue' || (inv.status==='Pending' && inv.jatuh_tempo && inv.jatuh_tempo < today));
   if(!overdue.length) return;
   showToast('💰 ' + overdue.length + ' invoice overdue! Cek tab Finance.', 'warn');
@@ -11167,7 +11218,7 @@ function downloadCSV(headers, rows, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = filename + '_' + new Date().toISOString().split('T')[0] + '.csv';
+  a.download = filename + '_' + ymdLocal() + '.csv';
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -11181,7 +11232,7 @@ async function exportAbsensiCSV() {
   if(!bulan || !tahun) { showToast('Pilih periode dulu!','error'); return; }
 
   const start = `${tahun}-${bulan}-01`;
-  const end = new Date(tahun, parseInt(bulan), 0).toISOString().split('T')[0];
+  const end = ymdLocal(new Date(tahun, parseInt(bulan), 0));
   const divisi = document.getElementById('rek-divisi')?.value || '';
 
   let q = sb.from('absensi').select('*').gte('tanggal',start).lte('tanggal',end);
@@ -11521,7 +11572,7 @@ async function autoStokMasukDariPO(po) {
   try { items = JSON.parse(po.produk||'[]'); } catch(e) { return; }
   if(!items.length) return;
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = ymdLocal();
   let added = 0;
 
   for(const item of items) {
@@ -12107,7 +12158,7 @@ async function loadDrawerData(cust) {
   // Alerts
   const alertsEl = document.getElementById('dc-alerts');
   let alerts = '';
-  const today = new Date().toISOString().split('T')[0];
+  const today = ymdLocal();
   const overdueInv = custInvoices.filter(i => i.status !== 'Lunas' && i.jatuh_tempo && i.jatuh_tempo < today);
   if(overdueInv.length > 0) {
     const totalOverdue = overdueInv.reduce((s,i) => s+(i.total||0), 0);
@@ -12233,7 +12284,7 @@ async function loadDrawerData(cust) {
   // Invoice terakhir
   const last5inv = custInvoices.slice(0,5);
   if(last5inv.length > 0) {
-    const today2 = new Date().toISOString().split('T')[0];
+    const today2 = ymdLocal();
     document.getElementById('dc-invoices').innerHTML = '<table style="width:100%;border-collapse:collapse">' +
       '<thead><tr><th style="padding:6px 8px;font-size:10px;color:var(--text-muted);text-align:left">No Invoice</th><th style="padding:6px 8px;font-size:10px;color:var(--text-muted);text-align:left">Tgl</th><th style="padding:6px 8px;font-size:10px;color:var(--text-muted);text-align:right">Total</th><th style="padding:6px 8px;font-size:10px;color:var(--text-muted);text-align:left">Status</th></tr></thead>' +
       '<tbody>' + last5inv.map(inv => {
@@ -12256,10 +12307,10 @@ function dcBuatInvoice() {
   closeDrawerCust();
   // Buka modal invoice dengan customer terisi
   document.getElementById('inv-cust').value = _dcCustomer.nama;
-  const today = new Date().toISOString().split('T')[0];
+  const today = ymdLocal();
   document.getElementById('inv-tgl').value = today;
   const jt = new Date(); jt.setDate(jt.getDate()+30);
-  document.getElementById('inv-jt').value = jt.toISOString().split('T')[0];
+  document.getElementById('inv-jt').value = ymdLocal(jt);
   nav('finance');
   setTimeout(() => {
     ftab('f-inv', document.querySelector('#page-finance .ptab'));
