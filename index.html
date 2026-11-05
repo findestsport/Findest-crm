@@ -3228,7 +3228,7 @@ async function initApp() {
 
   // Default page → tab pertama yang boleh diakses role ini (staff gak punya dashboard)
   const _firstTab = (ROLE_ACCESS[currentProfile.role]?.tabs || ['dashboard'])[0];
-  nav(_firstTab);
+  nav(_firstTab, null, {noRefresh:true}); // skip auto-refresh — loadAllData() baru jalan
   // Init RP fields
   setTimeout(() => initAllRpFields(), 300);
 }
@@ -3277,7 +3277,7 @@ function setupWritePermissions(role) {
 // ════════════════════════════════════════════
 // NAVIGATION
 // ════════════════════════════════════════════
-function nav(page, btnEl) {
+function nav(page, btnEl, opts) {
   // Redirect merged pages to their parent panel
   const redirect = {visit:'sales', payment:'finance', batch:'gudang', leave:'hr', kpi:'hr'};
   if(redirect[page]) page = redirect[page];
@@ -3306,7 +3306,80 @@ function nav(page, btnEl) {
       if(edBadge) edBadge.remove();
     }, 500);
   }
+
+  // Auto-refresh data halaman yang baru dibuka (biar gak perlu reload browser manual)
+  if(!opts || !opts.noRefresh) refreshActivePage();
 }
+
+// ════════════════════════════════════════════
+// AUTO-REFRESH — biar GAK perlu reload browser manual.
+// SPA ini load data sekali pas login & simpan di memory; pindah tab cuma
+// show/hide. Ini nge-refresh data view AKTIF otomatis pas:
+//   (1) pindah tab di dalam CRM   (2) balik ke tab/window browser (fokus)
+// Guard: skip kalau ada modal kebuka / lagi ngetik → form gak kereset.
+// ════════════════════════════════════════════
+const PAGE_REFRESHERS = {
+  dashboard: async () => {
+    await Promise.all([
+      loadCustomers(), loadOrders(), loadInvoices(),
+      loadOutlets(), loadEmployees(), loadProducts(), loadExpenses()
+    ]);
+    updateDashboard();
+  },
+  sales: async () => {
+    await Promise.all([loadCustomers(), loadOrders()]);
+    if(typeof loadKonsi === 'function') { try { await loadKonsi(); } catch(e){} }
+  },
+  finance: async () => {
+    await Promise.all([loadInvoices(), loadExpenses(), loadPurchaseOrders(), loadPayments()]);
+  },
+  gudang: async () => {
+    await Promise.all([loadProducts(), loadBatches(), loadDeliveries(), loadOutlets()]);
+  },
+  hr: async () => {
+    await loadEmployees();
+    if(typeof loadLeaves === 'function') { try { await loadLeaves(); } catch(e){} }
+  },
+  notice: async () => { if(typeof loadNotices === 'function') await loadNotices(); },
+  invite: async () => { if(typeof loadInvites === 'function') await loadInvites(); }
+};
+
+const _lastRefreshAt = {};
+let _refreshBusy = false;
+
+// Jangan refresh kalau user lagi interaksi (modal/drawer kebuka / fokus di input)
+function _refreshBlocked() {
+  if(document.querySelector('.mo.open, .drawer.open, .modal.active')) return true;
+  const ae = document.activeElement;
+  if(ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return true;
+  return false;
+}
+
+async function refreshActivePage(opts) {
+  opts = opts || {};
+  const force = !!opts.force;
+  const respectForms = opts.respectForms !== false; // default true
+  if(_refreshBusy) return;
+  if(!currentProfile) return;               // belum login
+  if(respectForms && _refreshBlocked()) return;
+  const pageEl = document.querySelector('.page.active');
+  if(!pageEl) return;
+  const page = pageEl.id.replace(/^page-/, '');
+  const fn = PAGE_REFRESHERS[page];
+  if(!fn) return;
+  const now = Date.now();
+  if(!force && (now - (_lastRefreshAt[page] || 0) < 2500)) return; // throttle 2.5s
+  _lastRefreshAt[page] = now;
+  _refreshBusy = true;
+  try { await fn(); } catch(e) { console.warn('[auto-refresh]', page, e); }
+  finally { _refreshBusy = false; }
+}
+
+// Balik ke tab/window → refresh (mis. abis buka dashboard investor di tab lain)
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible') refreshActivePage();
+});
+window.addEventListener('focus', () => refreshActivePage());
 
 function stab(id, btn) {
   ['s-cust','s-ord','s-visit','s-kpi','s-konsi'].forEach(t => { const el=document.getElementById(t); if(el) el.style.display=t===id?'block':'none'; });
@@ -11539,6 +11612,7 @@ async function savePO() {
   const total = poItems.reduce((s,i)=>s+i.subtotal,0);
   const produk_detail = JSON.stringify(poItems);
   const editId = document.getElementById('po-edit-id')?.value;
+  let stokBerubah = false; // true kalau PO ini nambah stok (Received) → refresh gudang+dashboard
 
   if(editId) {
     // MODE EDIT — cek status sebelumnya untuk trigger stok
@@ -11555,6 +11629,7 @@ async function savePO() {
     if(status === 'Received' && !wasReceived) {
       const poData = { ...prevPO, produk: produk_detail, supplier };
       await autoStokMasukDariPO(poData);
+      stokBerubah = true;
     }
     showToast('✅ Purchase Order berhasil diupdate!');
   } else {
@@ -11568,6 +11643,7 @@ async function savePO() {
     // Kalau langsung dibuat dengan status Received → trigger stok sekarang
     if(status === 'Received') {
       await autoStokMasukDariPO({ supplier, produk: produk_detail });
+      stokBerubah = true;
     } else {
       showToast('✅ Purchase Order berhasil disimpan!');
     }
@@ -11576,6 +11652,8 @@ async function savePO() {
   poItems = [];
   renderPOItems();
   await loadPurchaseOrders();
+  // Stok nambah → refresh cache produk + dashboard biar Gudang & Posisi Modal langsung keupdate
+  if(stokBerubah) { try { await loadProducts(); updateDashboard(); } catch(e){} }
 }
 
 async function loadPurchaseOrders() {
@@ -11660,6 +11738,11 @@ async function updatePOStatus(id, status) {
 
   showToast('✅ Status PO diupdate!');
   await loadPurchaseOrders();
+  // Stok nambah pas Received → refresh cache produk + dashboard biar Gudang &
+  // Posisi Modal langsung keupdate (gak perlu reload browser).
+  if(status === 'Received' && !wasReceived) {
+    try { await loadProducts(); updateDashboard(); } catch(e){}
+  }
 }
 
 async function autoStokMasukDariPO(po) {

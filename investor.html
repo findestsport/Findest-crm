@@ -1081,12 +1081,35 @@ async function loadCharts(){
     cashOutData.push((e||[]).reduce((s,x)=>s+(x.nominal||0),0));
   }
   const commonOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{font:{family:'Inter',size:11}}}},scales:{y:{ticks:{callback:v=>fmtShort(v),font:{family:'Inter'}}},x:{ticks:{font:{family:'Inter'}}}}};
+  // Destroy chart lama dulu biar aman di-render ulang (auto-refresh / reload) — cegah "Canvas already in use"
+  if(chartOmzetInst){ chartOmzetInst.destroy(); chartOmzetInst=null; }
+  if(chartCashInst){ chartCashInst.destroy(); chartCashInst=null; }
   chartOmzetInst = new Chart(document.getElementById('chartOmzet'),{type:'bar',data:{labels,datasets:[{label:'Omzet',data:omzetData,backgroundColor:'rgba(13,148,136,.85)',borderRadius:8}]},options:commonOpts});
   chartCashInst = new Chart(document.getElementById('chartCash'),{type:'line',data:{labels,datasets:[
     {label:'Kas Masuk',data:cashInData,borderColor:'#059669',backgroundColor:'rgba(5,150,105,.1)',borderWidth:3,tension:.35,fill:true},
     {label:'Kas Keluar',data:cashOutData,borderColor:'#DC2626',backgroundColor:'rgba(220,38,38,.1)',borderWidth:3,tension:.35,fill:true}
   ]},options:commonOpts});
 }
+
+// ════════════════════════════════════════════
+// AUTO-REFRESH — biar dashboard investor selalu live tanpa reload manual.
+// Refresh pas: balik ke tab/window (fokus) + poll tiap 60 detik.
+// Cuma jalan kalau konten keliatan (udah lewat PIN gate).
+// ════════════════════════════════════════════
+(function(){
+  let _busy=false, _last=0;
+  function _visible(){ return document.getElementById('content')?.style.display !== 'none'; }
+  async function _refresh(){
+    if(!_visible() || _busy) return;
+    if(Date.now()-_last < 5000) return;      // throttle 5s
+    _last=Date.now(); _busy=true;
+    try{ await loadDashboard(); }catch(e){}
+    finally{ _busy=false; }
+  }
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') _refresh(); });
+  window.addEventListener('focus', _refresh);
+  setInterval(()=>{ if(document.visibilityState==='visible') _refresh(); }, 60000);
+})();
 </script>
 </body>
 </html>
