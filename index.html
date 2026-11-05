@@ -756,6 +756,48 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
     <div class="kpi" style="--kc:var(--orange)"><div class="kpi-label">ED Alert</div><div class="kpi-val c-gold" id="d-ed">–</div><div class="kpi-sub">Unit total</div></div>
   </div>
 
+  <!-- ═══════ POSISI MODAL — tampilan simpel modal kerja ═══════ -->
+  <div class="card" id="modal-position-card" style="margin-bottom:14px">
+    <div class="card-h">
+      <div>
+        <div class="card-title">💼 Posisi Modal Kerja</div>
+        <div class="card-sub">Modal gak ilang — sebagian jadi barang, sebagian kas, sebagian di customer.</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:10px;color:var(--text-muted);letter-spacing:.5px">TOTAL MODAL KERJA</div>
+        <div id="mp-total" style="font-size:22px;font-weight:800;color:var(--teal)">Rp 0</div>
+      </div>
+    </div>
+    <div style="padding:4px 16px 16px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:12px">
+        <div style="background:var(--surface-2);border-radius:10px;padding:12px;border-left:3px solid var(--teal)">
+          <div style="font-size:12px;color:var(--text-muted)">📦 Jadi Barang</div>
+          <div id="mp-barang" style="font-size:18px;font-weight:700;color:var(--teal);margin:2px 0">Rp 0</div>
+          <div id="mp-barang-pct" style="font-size:11px;color:var(--text-muted)">Aset Gudang · –</div>
+        </div>
+        <div style="background:var(--surface-2);border-radius:10px;padding:12px;border-left:3px solid var(--green)">
+          <div style="font-size:12px;color:var(--text-muted)">💵 Jadi Kas</div>
+          <div id="mp-kas" style="font-size:18px;font-weight:700;color:var(--green);margin:2px 0">Rp 0</div>
+          <div id="mp-kas-pct" style="font-size:11px;color:var(--text-muted)">Cair · –</div>
+        </div>
+        <div style="background:var(--surface-2);border-radius:10px;padding:12px;border-left:3px solid var(--gold)">
+          <div style="font-size:12px;color:var(--text-muted)">📄 Di Customer</div>
+          <div id="mp-piutang" style="font-size:18px;font-weight:700;color:var(--gold);margin:2px 0">Rp 0</div>
+          <div id="mp-piutang-pct" style="font-size:11px;color:var(--text-muted)">Piutang · –</div>
+        </div>
+      </div>
+      <div style="display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--surface-3)" title="Komposisi modal kerja">
+        <div id="mp-bar-barang" style="background:var(--teal);width:0%;transition:width .4s"></div>
+        <div id="mp-bar-kas" style="background:var(--green);width:0%;transition:width .4s"></div>
+        <div id="mp-bar-piutang" style="background:var(--gold);width:0%;transition:width .4s"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.6">
+        🔄 <b>Modal muter:</b> barang laku → balik jadi kas + untung → beli barang lagi. Makin cepet muter, makin gede profit.<br>
+        💡 Angka <b>Kas</b> ngikut <b>Saldo Awal</b> yg lu isi di tab Finance — isi sesuai saldo bank asli (di luar nilai barang) biar pas.
+      </div>
+    </div>
+  </div>
+
   <!-- ═══════ CHANNEL FOCUS DASHBOARD ═══════ -->
   <div class="card" id="channel-focus-card" style="margin-bottom:14px">
     <div class="card-h">
@@ -3935,6 +3977,36 @@ function renderExp() {
   `).join('');
 }
 
+// 💼 Posisi Modal Kerja — tampilan simpel: modal jadi barang vs kas vs piutang
+async function updateModalPosition() {
+  const card = document.getElementById('modal-position-card');
+  if(!card) return;
+  // 📦 Barang = nilai stok di gudang (stok × HPP)
+  const barang = (cache.products||[]).reduce((s,p)=>s+((p.stok||0)*(p.hpp||0)), 0);
+  // 📄 Piutang = invoice belum lunas, exclude titipan (konsisten dgn KPI Piutang Real)
+  const piutang = (cache.invoices||[]).filter(i=>{
+    if(i.status==='Lunas'||i.status==='Batal') return false;
+    return !((i.customer_sistem||'').toLowerCase().includes('titipan'));
+  }).reduce((s,i)=>s+(i.total||0), 0);
+  // 💵 Kas = saldo akhir bulan ini (saldo awal + masuk − keluar), sama rumus tab Finance
+  const now = new Date();
+  const prefix = ymdLocal(now).slice(0,7);
+  const masuk = (cache.payments||[]).filter(p=>(p.tanggal_bayar||'').startsWith(prefix)).reduce((s,p)=>s+(p.jumlah||0),0);
+  const keluar = (cache.expenses||[]).filter(e=>(e.tgl||'').startsWith(prefix)).reduce((s,e)=>s+(e.nominal||0),0);
+  let saldoAwal = 0;
+  try { const { data: cfg } = await sb.from('config').select('value').eq('key','cash_start_'+prefix).maybeSingle(); if(cfg?.value) saldoAwal = parseFloat(cfg.value)||0; } catch(e){}
+  const kas = Math.max(0, saldoAwal + masuk - keluar);
+  const total = barang + kas + piutang;
+  const pct = v => total>0 ? Math.round(v/total*100) : 0;
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  set('mp-total', fmt(total));
+  set('mp-barang', fmt(barang));   set('mp-barang-pct', 'Aset Gudang · '+pct(barang)+'%');
+  set('mp-kas', fmt(kas));         set('mp-kas-pct', 'Cair · '+pct(kas)+'%');
+  set('mp-piutang', fmt(piutang)); set('mp-piutang-pct', 'Piutang · '+pct(piutang)+'%');
+  const setW=(id,v)=>{const el=document.getElementById(id);if(el)el.style.width=pct(v)+'%';};
+  setW('mp-bar-barang',barang); setW('mp-bar-kas',kas); setW('mp-bar-piutang',piutang);
+}
+
 function updateDashboard() {
   document.getElementById('d-cust').textContent = cache.customers.length;
   // Piutang = invoice belum lunas, EXCLUDE Konsi titipan (bukan piutang real)
@@ -3966,6 +4038,7 @@ function updateDashboard() {
   updateTopCustomers();
   updateAgingPiutang();
   updateChannelFocus(); // Channel Focus recommendation
+  updateModalPosition(); // Posisi Modal (barang/kas/piutang)
   // Sales Intelligence — GM only
   const siSection = document.getElementById('sales-intel-section');
   if(siSection) {
