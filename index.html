@@ -776,7 +776,10 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
           <div id="mp-barang-pct" style="font-size:11px;color:var(--text-muted)">Aset Gudang · –</div>
         </div>
         <div style="background:var(--surface-2);border-radius:10px;padding:12px;border-left:3px solid var(--green)">
-          <div style="font-size:12px;color:var(--text-muted)">💵 Jadi Kas</div>
+          <div style="font-size:12px;color:var(--text-muted);display:flex;justify-content:space-between;align-items:center;gap:6px">
+            <span>💵 Jadi Kas</span>
+            <button onclick="setKasManual()" title="Set saldo kas/bank asli" style="background:none;border:1px solid var(--green);color:var(--green);font-size:10px;font-weight:600;cursor:pointer;padding:2px 7px;border-radius:6px;white-space:nowrap">✏️ set</button>
+          </div>
           <div id="mp-kas" style="font-size:18px;font-weight:700;color:var(--green);margin:2px 0">Rp 0</div>
           <div id="mp-kas-pct" style="font-size:11px;color:var(--text-muted)">Cair · –</div>
         </div>
@@ -3975,6 +3978,25 @@ function renderExp() {
       `:'–'}</td>
     </tr>
   `).join('');
+}
+
+// Set saldo kas/bank asli — update saldo awal bulan ini biar card Kas akurat
+async function setKasManual() {
+  const now = new Date();
+  const prefix = ymdLocal(now).slice(0,7);
+  const masuk = (cache.payments||[]).filter(p=>(p.tanggal_bayar||'').startsWith(prefix)).reduce((s,p)=>s+(p.jumlah||0),0);
+  const keluar = (cache.expenses||[]).filter(e=>(e.tgl||'').startsWith(prefix)).reduce((s,e)=>s+(e.nominal||0),0);
+  const input = prompt('💵 Saldo KAS / bank lu sekarang berapa? (angka aja)\n\nContoh: 104454000\n\nIni kas CAIR aja ya — di luar nilai barang di gudang.');
+  if(input === null) return;
+  const kasNow = parseRp(input);
+  if(kasNow < 0) { showToast('Angka gak valid','error'); return; }
+  // Back-compute saldo awal biar kas yg tampil (saldoAwal + masuk − keluar) = kasNow
+  const saldoAwal = kasNow - masuk + keluar;
+  const { error } = await sb.from('config').upsert({ key:'cash_start_'+prefix, value:String(saldoAwal) }, { onConflict:'key' });
+  if(error) { showToast('Gagal simpan: '+error.message,'error'); return; }
+  showToast('✅ Kas diupdate: '+fmt(kasNow));
+  updateModalPosition();
+  if(typeof loadRekapKas==='function') loadRekapKas();
 }
 
 // 💼 Posisi Modal Kerja — tampilan simpel: modal jadi barang vs kas vs piutang
