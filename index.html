@@ -777,11 +777,19 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
         </div>
         <div style="background:var(--surface-2);border-radius:10px;padding:12px;border-left:3px solid var(--green)">
           <div style="font-size:12px;color:var(--text-muted);display:flex;justify-content:space-between;align-items:center;gap:6px">
-            <span>💵 Jadi Kas</span>
-            <button onclick="setKasManual()" title="Set saldo kas/bank asli" style="background:none;border:1px solid var(--green);color:var(--green);font-size:10px;font-weight:600;cursor:pointer;padding:2px 7px;border-radius:6px;white-space:nowrap">✏️ set</button>
+            <span>🏦 Rekening</span>
+            <button onclick="setKasBank()" title="Set saldo rekening/bank asli" style="background:none;border:1px solid var(--green);color:var(--green);font-size:10px;font-weight:600;cursor:pointer;padding:2px 7px;border-radius:6px;white-space:nowrap">✏️ set</button>
           </div>
-          <div id="mp-kas" style="font-size:18px;font-weight:700;color:var(--green);margin:2px 0">Rp 0</div>
-          <div id="mp-kas-pct" style="font-size:11px;color:var(--text-muted)">Cair · –</div>
+          <div id="mp-bank" style="font-size:18px;font-weight:700;color:var(--green);margin:2px 0">Rp 0</div>
+          <div id="mp-bank-pct" style="font-size:11px;color:var(--text-muted)">Bank · –</div>
+        </div>
+        <div style="background:var(--surface-2);border-radius:10px;padding:12px;border-left:3px solid var(--green)">
+          <div style="font-size:12px;color:var(--text-muted);display:flex;justify-content:space-between;align-items:center;gap:6px">
+            <span>💵 Cash Fisik</span>
+            <button onclick="setKasCash()" title="Set uang cash di laci/tangan" style="background:none;border:1px solid var(--green);color:var(--green);font-size:10px;font-weight:600;cursor:pointer;padding:2px 7px;border-radius:6px;white-space:nowrap">✏️ set</button>
+          </div>
+          <div id="mp-cash" style="font-size:18px;font-weight:700;color:var(--green);margin:2px 0">Rp 0</div>
+          <div id="mp-cash-pct" style="font-size:11px;color:var(--text-muted)">Laci · –</div>
         </div>
         <div style="background:var(--surface-2);border-radius:10px;padding:12px;border-left:3px solid var(--gold)">
           <div style="font-size:12px;color:var(--text-muted)">📄 Di Customer</div>
@@ -796,7 +804,7 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
       </div>
       <div style="font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.6">
         🔄 <b>Modal muter:</b> barang laku → balik jadi kas + untung → beli barang lagi. Makin cepet muter, makin gede profit.<br>
-        💡 Angka <b>Kas</b> ngikut <b>Saldo Awal</b> yg lu isi di tab Finance — isi sesuai saldo bank asli (di luar nilai barang) biar pas.
+        💡 <b>Rekening</b> &amp; <b>Cash Fisik</b> lu isi manual (klik ✏️ set) sesuai saldo bank asli + uang cash di laci. <b>Barang</b> &amp; <b>Di Customer</b> auto dari data.
       </div>
     </div>
   </div>
@@ -4053,23 +4061,28 @@ function renderExp() {
   `).join('');
 }
 
-// Set saldo kas/bank asli — update saldo awal bulan ini biar card Kas akurat
-async function setKasManual() {
-  const now = new Date();
-  const prefix = ymdLocal(now).slice(0,7);
-  const masuk = (cache.payments||[]).filter(p=>(p.tanggal_bayar||'').startsWith(prefix)).reduce((s,p)=>s+(p.jumlah||0),0);
-  const keluar = (cache.expenses||[]).filter(e=>(e.tgl||'').startsWith(prefix)).reduce((s,e)=>s+(e.nominal||0),0);
-  const input = prompt('💵 Saldo KAS / bank lu sekarang berapa? (angka aja)\n\nContoh: 104454000\n\nIni kas CAIR aja ya — di luar nilai barang di gudang.');
+// Set saldo REKENING (bank) asli — manual, biar card Posisi Modal akurat
+async function setKasBank() {
+  const input = prompt('🏦 Saldo REKENING / bank lu sekarang berapa? (angka aja)\n\nContoh: 90000000\n\nLiat di app bank lu. Ini di luar cash fisik & nilai barang.');
   if(input === null) return;
-  const kasNow = parseRp(input);
-  if(kasNow < 0) { showToast('Angka gak valid','error'); return; }
-  // Back-compute saldo awal biar kas yg tampil (saldoAwal + masuk − keluar) = kasNow
-  const saldoAwal = kasNow - masuk + keluar;
-  const { error } = await sb.from('config').upsert({ key:'cash_start_'+prefix, value:String(saldoAwal) }, { onConflict:'key' });
+  const val = parseRp(input);
+  if(val < 0) { showToast('Angka gak valid','error'); return; }
+  const { error } = await sb.from('config').upsert({ key:'modal_kas_bank', value:String(val) }, { onConflict:'key' });
   if(error) { showToast('Gagal simpan: '+error.message,'error'); return; }
-  showToast('✅ Kas diupdate: '+fmt(kasNow));
+  showToast('✅ Rekening diupdate: '+fmt(val));
   updateModalPosition();
-  if(typeof loadRekapKas==='function') loadRekapKas();
+}
+
+// Set CASH FISIK (uang di laci/tangan) — manual
+async function setKasCash() {
+  const input = prompt('💵 Uang CASH fisik lu sekarang berapa? (angka aja)\n\nContoh: 14000000\n\nHitung uang di laci/tangan. Di luar saldo bank & nilai barang.');
+  if(input === null) return;
+  const val = parseRp(input);
+  if(val < 0) { showToast('Angka gak valid','error'); return; }
+  const { error } = await sb.from('config').upsert({ key:'modal_kas_cash', value:String(val) }, { onConflict:'key' });
+  if(error) { showToast('Gagal simpan: '+error.message,'error'); return; }
+  showToast('✅ Cash fisik diupdate: '+fmt(val));
+  updateModalPosition();
 }
 
 // 💼 Posisi Modal Kerja — tampilan simpel: modal jadi barang vs kas vs piutang
@@ -4083,20 +4096,30 @@ async function updateModalPosition() {
     if(i.status==='Lunas'||i.status==='Batal') return false;
     return !((i.customer_sistem||'').toLowerCase().includes('titipan'));
   }).reduce((s,i)=>s+(i.total||0), 0);
-  // 💵 Kas = saldo akhir bulan ini (saldo awal + masuk − keluar), sama rumus tab Finance
+  // 💵 Kas cair = 🏦 Rekening (bank) + 💵 Cash fisik — di-set MANUAL biar akurat sesuai saldo asli.
+  // Legacy fallback: kalo belum pernah set bank, pake angka Kas lama (saldo awal + masuk − keluar) sbg Rekening
+  // biar Total Modal gak tiba-tiba ilang pas pertama kali abis update.
   const now = new Date();
   const prefix = ymdLocal(now).slice(0,7);
   const masuk = (cache.payments||[]).filter(p=>(p.tanggal_bayar||'').startsWith(prefix)).reduce((s,p)=>s+(p.jumlah||0),0);
   const keluar = (cache.expenses||[]).filter(e=>(e.tgl||'').startsWith(prefix)).reduce((s,e)=>s+(e.nominal||0),0);
-  let saldoAwal = 0;
-  try { const { data: cfg } = await sb.from('config').select('value').eq('key','cash_start_'+prefix).maybeSingle(); if(cfg?.value) saldoAwal = parseFloat(cfg.value)||0; } catch(e){}
-  const kas = Math.max(0, saldoAwal + masuk - keluar);
+  let legacyKas = 0;
+  try { const { data: cfg } = await sb.from('config').select('value').eq('key','cash_start_'+prefix).maybeSingle(); if(cfg?.value) legacyKas = Math.max(0,(parseFloat(cfg.value)||0) + masuk - keluar); } catch(e){}
+  let bank = null, cash = null;
+  try {
+    const { data: rows } = await sb.from('config').select('key,value').in('key',['modal_kas_bank','modal_kas_cash']);
+    (rows||[]).forEach(r=>{ if(r.key==='modal_kas_bank') bank=parseFloat(r.value)||0; if(r.key==='modal_kas_cash') cash=parseFloat(r.value)||0; });
+  } catch(e){}
+  if(bank === null) bank = legacyKas;  // belum di-set → jembatan pake angka lama
+  if(cash === null) cash = 0;
+  const kas = bank + cash;             // total cair buat bar & persentase
   const total = barang + kas + piutang;
   const pct = v => total>0 ? Math.round(v/total*100) : 0;
   const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
   set('mp-total', fmt(total));
   set('mp-barang', fmt(barang));   set('mp-barang-pct', 'Aset Gudang · '+pct(barang)+'%');
-  set('mp-kas', fmt(kas));         set('mp-kas-pct', 'Cair · '+pct(kas)+'%');
+  set('mp-bank', fmt(bank));       set('mp-bank-pct', 'Bank · '+pct(bank)+'%');
+  set('mp-cash', fmt(cash));       set('mp-cash-pct', 'Laci · '+pct(cash)+'%');
   set('mp-piutang', fmt(piutang)); set('mp-piutang-pct', 'Piutang · '+pct(piutang)+'%');
   const setW=(id,v)=>{const el=document.getElementById(id);if(el)el.style.width=pct(v)+'%';};
   setW('mp-bar-barang',barang); setW('mp-bar-kas',kas); setW('mp-bar-piutang',piutang);
