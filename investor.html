@@ -1143,6 +1143,32 @@ async function loadCharts(){
   window.addEventListener('focus', ()=>_refresh(true));
   setInterval(()=>{ if(document.visibilityState==='visible') _refresh(false); }, 30000);
 })();
+
+// ════════════════════════════════════════════
+// AUTO-UPDATE — deteksi versi deploy terbaru. Kalo device nyangkut di kode
+// lama (cache Safari), begitu ada deploy baru → auto reload sekali. Jadi
+// dashboard selalu pake versi terbaru tanpa hard-refresh manual.
+// ════════════════════════════════════════════
+const APP_BUILD = 'findest-v75'; // WAJIB samain sama CACHE_VERSION di service-worker.js tiap deploy
+async function checkAppVersion(){
+  try{
+    const res = await fetch('service-worker.js?_=' + Date.now(), { cache:'no-store' });
+    if(!res.ok) return;
+    const txt = await res.text();
+    const m = txt.match(/CACHE_VERSION\s*=\s*['"]([^'"]+)['"]/);
+    const live = m && m[1];
+    if(live && live !== APP_BUILD){
+      // Guard anti reload-loop (kalo APP_BUILD lupa dibump)
+      let already=null; try{ already = sessionStorage.getItem('fs_reload_for'); }catch(e){}
+      if(already === live) return;
+      try{ sessionStorage.setItem('fs_reload_for', live); }catch(e){}
+      location.reload();
+    }
+  }catch(e){}
+}
+setInterval(checkAppVersion, 90000);
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') checkAppVersion(); });
+checkAppVersion();
 </script>
 </body>
 </html>
