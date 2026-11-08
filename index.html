@@ -4547,6 +4547,7 @@ function updateOmzetChart() {
   const byMonth = {};
   (cache.invoices || []).forEach(inv => {
     if(!inv.created_at) return;
+    if(inv.status !== 'Lunas') return; // CASH BASIS: cuma invoice LUNAS (udah dibayar) yg diakui omzet
     const sis=(inv.customer_sistem||'').toLowerCase();
     if(sis.includes('titipan')) return; // exclude titipan (inventory), rekap bulanan tetep omzet
     const d = new Date(inv.created_at);
@@ -4616,6 +4617,7 @@ function updatePnL() {
 
   const monthInvoices = (cache.invoices || []).filter(inv => {
     if(!inv.created_at) return false;
+    if(inv.status !== 'Lunas') return false; // CASH BASIS: cuma invoice LUNAS yg diakui omzet/GP
     const sis=(inv.customer_sistem||'').toLowerCase();
     if(sis.includes('titipan')) return false; // exclude titipan (inventory), rekap bulanan tetep omzet
     const d = new Date(inv.created_at);

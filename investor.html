@@ -443,12 +443,22 @@ async function loadDashboard(){
   const {data:orders}=await SB.from('orders').select('id,total_nilai,status,produk_json,customer_nama,channel_sistem,channel_tipe,created_at').gte('created_at',monthStart).lte('created_at',monthEnd+' 23:59:59');
   const confirmedOrders=(orders||[]).filter(o=>o.status!=='Batal'&&o.status!=='Dibatalkan');
 
+  // ═══ CASH BASIS: cuma order yg UDAH BAYAR (invoice Lunas) diakui jadi Cash Revenue.
+  // Order belum bayar (blm kirim bukti TF) = PIUTANG, bukan revenue. ═══
+  const _ordIds=(orders||[]).map(o=>o.id).filter(x=>x!=null);
+  const paidOrderIds=new Set();
+  if(_ordIds.length){
+    const {data:_pInv}=await SB.from('invoices').select('order_id,status').in('order_id',_ordIds);
+    (_pInv||[]).forEach(iv=>{ if(iv.order_id!=null && iv.status==='Lunas') paidOrderIds.add(iv.order_id); });
+  }
+
   // ═══ REVENUE RECOGNITION: pisahin real sales vs Konsi titipan ═══
   // Konsi titipan = inventory transfer, BUKAN omzet. Omzet konsi diakui via qty_terjual.
   const isKonsiTitipan = o => ((o.channel_sistem||'').toLowerCase().includes('konsinyasi'));
   const directSales = confirmedOrders.filter(o => !isKonsiTitipan(o));
+  const paidDirectSales = directSales.filter(o => paidOrderIds.has(o.id)); // cash basis — cuma yg LUNAS
   const titipanOrders = confirmedOrders.filter(isKonsiTitipan);
-  const totalOmzet = directSales.reduce((s,o) => s+(o.total_nilai||0), 0);
+  const totalOmzet = paidDirectSales.reduce((s,o) => s+(o.total_nilai||0), 0); // Cash Revenue = PAID only
   const totalTitipan = titipanOrders.reduce((s,o) => s+(o.total_nilai||0), 0);
 
   // Konsi realized bulan ini = qty_terjual × harga dari konsi yg DIREKON bulan ini.
@@ -464,19 +474,19 @@ async function loadDashboard(){
 
   // ═══ OPSI A: Cash Revenue vs Konsi Pipeline ═══
   document.getElementById('kpi-cash-rev').textContent = fmtShort(omzetGabungan);
-  document.getElementById('kpi-cash-rev-sub').textContent = `${directSales.length} F&B sale + ${konsiRekapCount} rekap konsi · MTD`;
+  document.getElementById('kpi-cash-rev-sub').textContent = `${paidDirectSales.length} F&B sale + ${konsiRekapCount} rekap konsi · MTD`;
   document.getElementById('cash-fnb').textContent = fmtShort(totalOmzet);
   document.getElementById('cash-konsi').textContent = fmtShort(konsiRealized);
 
   // Legacy KPI (hidden but populated for backward-compat)
   document.getElementById('kpi-omzet').textContent = fmtShort(omzetGabungan);
-  document.getElementById('kpi-omzet-sub').textContent = `${directSales.length} sale + ${fmtShort(konsiRealized)} konsi realized`;
-  document.getElementById('kpi-orders').textContent = directSales.length;
+  document.getElementById('kpi-omzet-sub').textContent = `${paidDirectSales.length} sale + ${fmtShort(konsiRealized)} konsi realized`;
+  document.getElementById('kpi-orders').textContent = paidDirectSales.length;
   document.getElementById('kpi-orders-sub').textContent = 'direct sale · MTD';
 
   // Gross margin — dihitung dari REAL SALES saja (Konsi titipan bukan revenue realized)
   let totalCost=0,totalRevRealized=0;
-  directSales.forEach(o=>{
+  paidDirectSales.forEach(o=>{
     (o.produk_json||[]).forEach(p=>{
       const rev=(p.harga||0)*(p.qty||0);
       const cost=(p.harga_konsi_asal||p.harga||0)*(p.qty||0)*0.847; // approx 84.7% of catalog = HPP if markup 18%
