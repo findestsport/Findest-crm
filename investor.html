@@ -125,7 +125,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     </div>
     <div class="hero-title">Fuel Our Growth.</div>
     <div class="hero-sub">Distributor sport nutrition premium — Bali. Real-time performance, transparency for our stakeholders.</div>
-    <div style="position:relative;z-index:3;margin-top:18px">
+    <div style="position:relative;z-index:3;margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
+      <button id="btn-refresh" onclick="manualRefresh()" style="background:rgba(255,255,255,.22);backdrop-filter:blur(10px);color:#fff;border:1px solid rgba(255,255,255,.35);padding:8px 16px;border-radius:100px;font-size:12px;font-weight:700;cursor:pointer">🔄 Refresh</button>
       <button onclick="investorLogout()" style="background:rgba(255,255,255,.15);backdrop-filter:blur(10px);color:#fff;border:1px solid rgba(255,255,255,.3);padding:8px 16px;border-radius:100px;font-size:12px;font-weight:700;cursor:pointer">🚪 Keluar</button>
     </div>
   </div>
@@ -425,6 +426,16 @@ function checkPin(){
 function investorLogout(){
   try{ sessionStorage.removeItem('findest_investor'); }catch(e){}
   location.reload();
+}
+// Refresh manual — reconnect realtime + reload data (buat force-sync kapan aja)
+async function manualRefresh(){
+  const btn = document.getElementById('btn-refresh');
+  if(btn){ btn.disabled = true; btn.textContent = '⏳ Sync...'; }
+  try{
+    if(typeof setupRealtime === 'function'){ try{ setupRealtime(); }catch(e){} }
+    await loadDashboard();
+  }catch(e){}
+  finally{ if(btn){ btn.disabled = false; btn.textContent = '🔄 Refresh'; } }
 }
 try{if(sessionStorage.getItem('findest_investor')==='1'){document.getElementById('gate').style.display='none';document.getElementById('content').style.display='';loadDashboard();}}catch(e){}
 
@@ -1130,7 +1141,7 @@ async function loadCharts(){
   }
   document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') _refresh(true); });
   window.addEventListener('focus', ()=>_refresh(true));
-  setInterval(()=>{ if(document.visibilityState==='visible') _refresh(false); }, 60000);
+  setInterval(()=>{ if(document.visibilityState==='visible') _refresh(false); }, 30000);
 })();
 </script>
 </body>
