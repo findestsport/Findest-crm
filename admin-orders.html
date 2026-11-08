@@ -137,7 +137,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
     <div class="gate-sub">Admin sales dashboard · Findest Sport</div>
     <input class="gate-input" id="pinInput" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="PIN admin" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" onkeydown="if(event.key==='Enter')checkPin()">
     <button class="gate-btn" onclick="checkPin()">Masuk</button>
-    <div class="gate-hint">PIN default: <b>241026</b> (bisa diubah di config.admin_pin)</div>
+    <div class="gate-hint">Akses khusus tim Findest.<br>PIN diberikan oleh manajemen.</div>
   </div>
 </div>
 
@@ -155,6 +155,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
       <button class="btn-icon" id="soundBtn" onclick="toggleSound()" title="Toggle sound">🔊</button>
       <button class="btn-icon" id="notifBtn" onclick="requestNotif()" title="Enable browser notifications">🔔</button>
       <button class="btn-icon" onclick="loadAll()" title="Refresh">↻</button>
+      <button class="btn-icon" onclick="logoutAdmin()" title="Logout / Keluar">🚪</button>
     </div>
   </div>
 </nav>
@@ -214,14 +215,14 @@ function checkPin(){
   if(!v){showToast('PIN wajib diisi');return;}
   SB.from('config').select('value').eq('key','admin_pin').maybeSingle().then(({data})=>{
     const configPin=(data?.value||'').trim();
-    const validPins=[adminPin];
-    if(configPin) validPins.push(configPin);
+    // Kalo PIN udah di-set di config → CUMA itu yang valid. Default cuma buat bootstrap (blm di-set).
+    const validPins = configPin ? [configPin] : [adminPin];
     if(validPins.includes(v)){
       sessionStorage.setItem('findest_admin_ok','1');
       document.getElementById('gate').classList.add('hidden');
       init();
     }else{
-      showToast('PIN salah — coba '+adminPin+' atau '+(configPin||'—'));
+      showToast('PIN salah. Coba lagi.');
     }
   }).catch(()=>{
     if(v===adminPin){
@@ -229,9 +230,13 @@ function checkPin(){
       document.getElementById('gate').classList.add('hidden');
       init();
     }else{
-      showToast('PIN salah — DB unreachable, coba: '+adminPin);
+      showToast('PIN salah. Coba lagi.');
     }
   });
+}
+function logoutAdmin(){
+  try{ sessionStorage.removeItem('findest_admin_ok'); }catch(e){}
+  location.reload();
 }
 // Skip gate kalo baru login (session)
 if(sessionStorage.getItem('findest_admin_ok')==='1'){
