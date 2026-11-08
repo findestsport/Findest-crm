@@ -1116,16 +1116,21 @@ async function loadCharts(){
 (function(){
   let _busy=false, _last=0;
   function _visible(){ return document.getElementById('content')?.style.display !== 'none'; }
-  async function _refresh(){
+  // reconnect=true → re-subscribe realtime dulu (buat recover WS yg putus pas tab di-background),
+  // baru reload data. Jadi begitu lu balik ke tab, dashboard pasti nyambung + fresh lagi.
+  async function _refresh(reconnect){
     if(!_visible() || _busy) return;
-    if(Date.now()-_last < 5000) return;      // throttle 5s
+    if(Date.now()-_last < 4000) return;      // throttle 4s
     _last=Date.now(); _busy=true;
-    try{ await loadDashboard(); }catch(e){}
+    try{
+      if(reconnect && typeof setupRealtime==='function'){ try{ setupRealtime(); }catch(e){} }
+      await loadDashboard();
+    }catch(e){}
     finally{ _busy=false; }
   }
-  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') _refresh(); });
-  window.addEventListener('focus', _refresh);
-  setInterval(()=>{ if(document.visibilityState==='visible') _refresh(); }, 60000);
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') _refresh(true); });
+  window.addEventListener('focus', ()=>_refresh(true));
+  setInterval(()=>{ if(document.visibilityState==='visible') _refresh(false); }, 60000);
 })();
 </script>
 </body>
