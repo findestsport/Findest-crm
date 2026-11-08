@@ -2193,6 +2193,17 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
             </div>
           </div>
         </div>
+        <div class="fg" style="margin-bottom:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <label class="fl">🛒 Order Monitor PIN <span style="font-size:10px;color:var(--text-muted);text-transform:none;letter-spacing:0">(buat tim sales akses dashboard order masuk)</span></label>
+          <input class="fi" type="text" id="cfg-admin_pin" placeholder="241026" maxlength="20" autocapitalize="off" autocorrect="off" spellcheck="false"/>
+          <div style="margin-top:8px;padding:10px;background:var(--surface2);border-radius:8px;font-size:11px;color:var(--text-muted)">
+            <div style="font-weight:600;color:var(--teal);margin-bottom:4px">🔗 Link Order Monitor:</div>
+            <div style="word-break:break-all;color:var(--text)">findestsport.github.io/Findest-crm/admin-orders.html</div>
+            <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+              <button class="btn btn-primary btn-sm" onclick="window.open('admin-orders.html','_blank')">👀 Preview Order Monitor</button>
+            </div>
+          </div>
+        </div>
         <div style="padding:10px;background:var(--surface2);border-radius:8px;font-size:11px;color:var(--text-muted)">
           <div style="font-weight:600;color:var(--teal);margin-bottom:4px">🔗 Link Catalog Customer:</div>
           <div id="catalog-link-display" style="word-break:break-all;color:var(--text)">findestsport.github.io/Findest-crm/catalog.html</div>
@@ -5671,6 +5682,8 @@ async function saveConfig() {
   if(defMarkup !== undefined) updates.push({ key:'catalog_default_markup', value:String(defMarkup||'0'), updated_at:new Date().toISOString() });
   const invPin = document.getElementById('cfg-investor_pin')?.value.trim();
   if(invPin) updates.push({ key:'investor_pin', value:invPin, updated_at:new Date().toISOString() });
+  const adminPin = document.getElementById('cfg-admin_pin')?.value.trim();
+  if(adminPin) updates.push({ key:'admin_pin', value:adminPin, updated_at:new Date().toISOString() });
 
   // Info pembayaran
   const bankNama = document.getElementById('cfg-bank_nama')?.value.trim()||'';
@@ -5721,7 +5734,7 @@ function copyInvestorLink() {
 // Load catalog config into form on settings open
 async function loadCatalogConfig() {
   try {
-    const keys = ['catalog_wa','catalog_sales_name','catalog_default_markup','investor_pin','bank_nama','bank_rekening','bank_atas_nama','qris_url'];
+    const keys = ['catalog_wa','catalog_sales_name','catalog_default_markup','investor_pin','admin_pin','bank_nama','bank_rekening','bank_atas_nama','qris_url'];
     const { data } = await sb.from('config').select('key,value').in('key', keys);
     if(data) data.forEach(r=>{
       const el = document.getElementById('cfg-'+r.key);

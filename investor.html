@@ -125,6 +125,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     </div>
     <div class="hero-title">Fuel Our Growth.</div>
     <div class="hero-sub">Distributor sport nutrition premium — Bali. Real-time performance, transparency for our stakeholders.</div>
+    <div style="position:relative;z-index:3;margin-top:18px">
+      <button onclick="investorLogout()" style="background:rgba(255,255,255,.15);backdrop-filter:blur(10px);color:#fff;border:1px solid rgba(255,255,255,.3);padding:8px 16px;border-radius:100px;font-size:12px;font-weight:700;cursor:pointer">🚪 Keluar</button>
+    </div>
   </div>
 
   <div class="section-title">📊 Performance Snapshot (Bulan Ini)</div>
@@ -418,6 +421,10 @@ function checkPin(){
   }else{
     document.getElementById('gateMsg').textContent='PIN salah. Coba lagi.';
   }
+}
+function investorLogout(){
+  try{ sessionStorage.removeItem('findest_investor'); }catch(e){}
+  location.reload();
 }
 try{if(sessionStorage.getItem('findest_investor')==='1'){document.getElementById('gate').style.display='none';document.getElementById('content').style.display='';loadDashboard();}}catch(e){}
 
