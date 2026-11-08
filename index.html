@@ -2570,6 +2570,26 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
   </div>
 </div>
 
+<div class="mo" id="mo-lunas">
+  <div class="mo-box">
+    <div class="mo-h"><div class="mo-title">💳 Konfirmasi Pembayaran</div><button class="mo-x" onclick="closeMo('mo-lunas')">×</button></div>
+    <div class="mo-b">
+      <input type="hidden" id="lunas-inv-id">
+      <div id="lunas-inv-info" style="font-size:13px;color:var(--text-muted);margin-bottom:14px;padding:10px;background:var(--surface2);border-radius:8px">–</div>
+      <div class="fg">
+        <label class="fl">📎 Bukti TF <span style="font-size:10px;color:var(--text-muted);text-transform:none;letter-spacing:0">(opsional — foto/screenshot transfer)</span></label>
+        <input class="fi" type="file" id="lunas-bukti-file" accept="image/*" onchange="previewBuktiTf(this)">
+        <div id="lunas-bukti-preview" style="margin-top:10px"></div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:6px">💡 Gambar otomatis di-compress biar hemat storage. Kalo bayar cash/tanpa bukti, langsung Tandai Lunas aja.</div>
+      </div>
+    </div>
+    <div class="mo-f">
+      <button class="btn btn-ghost" onclick="closeMo('mo-lunas')">Batal</button>
+      <button class="btn btn-primary" id="lunas-confirm-btn" onclick="confirmLunas()">✅ Tandai Lunas</button>
+    </div>
+  </div>
+</div>
+
 <div class="mo" id="mo-ord">
   <div class="mo-box">
     <div class="mo-h"><div class="mo-title">+ Order Baru</div><button class="mo-x" onclick="closeMo('mo-ord')">×</button></div>
@@ -3990,7 +4010,8 @@ function renderInv() {
       <td><span class="s s-${isOverdue?'bad':inv.status==='Lunas'?'ok':'warn'}">${isOverdue?'Overdue':inv.status}</span></td>
       <td style="display:flex;gap:4px;flex-wrap:wrap">
         <button class="btn btn-sm btn-ghost" onclick="printFaktur(${inv.id})" title="Cetak Faktur">🖨️</button>
-        ${inv.status!=='Lunas'?'<button class="btn btn-sm btn-ghost" style="color:var(--green);font-size:10px" onclick="markInvLunas('+inv.id+')">✅Lunas</button>':''}
+        ${inv.status!=='Lunas'?'<button class="btn btn-sm btn-ghost" style="color:var(--green);font-size:10px" onclick="openLunasModal('+inv.id+')">✅Lunas</button>':''}
+        ${inv.bukti_tf_url?'<button class="btn btn-sm btn-ghost" style="color:var(--teal);font-size:10px" onclick="lihatBuktiTf(\''+inv.bukti_tf_url+'\')" title="Lihat bukti transfer">🧾Bukti</button>':''}
         ${isOverdue?'<button class="btn btn-sm btn-ghost" style="color:var(--gold);font-size:10px" onclick="sendManualReminder('+inv.id+')" title="Kirim WA Reminder ke customer">🔔Ingatkan</button>':''}
         <button class="btn btn-sm btn-ghost" onclick="editInv(${inv.id})">✏️</button>
         <button class="btn btn-sm btn-danger" onclick="deleteInv(${inv.id})">🗑️</button>
@@ -7248,6 +7269,87 @@ async function markInvLunas(id) {
   await loadInvoices();
   if(typeof loadPayments === 'function') await loadPayments();
   updateDashboard();
+}
+
+// ════════════════════════════════════════════
+// BUKTI TF — upload bukti transfer pas tandai Lunas (opsional, auto-compress)
+// ════════════════════════════════════════════
+function openLunasModal(id) {
+  const inv = (cache.invoices||[]).find(i => i.id === id);
+  if(!inv) { showToast('Invoice ga ketemu','error'); return; }
+  document.getElementById('lunas-inv-id').value = id;
+  document.getElementById('lunas-inv-info').innerHTML = `<b>${inv.no_invoice||'-'}</b> · ${inv.customer_nama||'-'} · <b class="c-gold">${fmt(inv.total||0)}</b>`;
+  const fileEl = document.getElementById('lunas-bukti-file'); if(fileEl) fileEl.value = '';
+  const prevEl = document.getElementById('lunas-bukti-preview'); if(prevEl) prevEl.innerHTML = '';
+  openMo('mo-lunas');
+}
+
+function previewBuktiTf(input) {
+  const prev = document.getElementById('lunas-bukti-preview');
+  const f = input.files && input.files[0];
+  if(!f) { prev.innerHTML = ''; return; }
+  const url = URL.createObjectURL(f);
+  prev.innerHTML = `<img src="${url}" style="max-width:100%;max-height:240px;border-radius:8px;border:1px solid var(--border)"><div style="font-size:11px;color:var(--text-muted);margin-top:4px">${f.name} · ${(f.size/1024/1024).toFixed(2)} MB (bakal di-compress)</div>`;
+}
+
+// Compress gambar client-side (resize + JPEG) biar hemat storage
+function compressImage(file, maxW, quality) {
+  maxW = maxW || 1400; quality = quality || 0.72;
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if(w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => resolve(blob || file), 'image/jpeg', quality);
+    };
+    img.onerror = () => resolve(file);
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+async function confirmLunas() {
+  const id = parseInt(document.getElementById('lunas-inv-id').value);
+  if(!id) return;
+  const btn = document.getElementById('lunas-confirm-btn');
+  btn.disabled = true; const origTxt = btn.textContent; btn.textContent = '⏳ Menyimpan...';
+  try {
+    const fileInput = document.getElementById('lunas-bukti-file');
+    const file = fileInput && fileInput.files && fileInput.files[0];
+    let buktiPath = null;
+    if(file) {
+      btn.textContent = '⏳ Upload bukti...';
+      const blob = await compressImage(file);
+      buktiPath = `inv-${id}/${Date.now()}.jpg`;
+      const { error: upErr } = await sb.storage.from('bukti-tf').upload(buktiPath, blob, { contentType:'image/jpeg', upsert:true });
+      if(upErr) { showToast('Upload bukti gagal: '+upErr.message,'error'); btn.disabled=false; btn.textContent=origTxt; return; }
+    }
+    const upd = { status:'Lunas', tgl_lunas: ymdLocal() };
+    if(buktiPath) upd.bukti_tf_url = buktiPath;
+    const { error } = await sb.from('invoices').update(upd).eq('id', id);
+    if(error) { showToast(error.message,'error'); btn.disabled=false; btn.textContent=origTxt; return; }
+    showToast('✅ Invoice Lunas'+(buktiPath?' + bukti tersimpan':'')+'!');
+    closeMo('mo-lunas');
+    await loadInvoices();
+    if(typeof loadPayments === 'function') await loadPayments();
+    updateDashboard();
+  } catch(e) {
+    showToast('Error: '+(e.message||e),'error');
+  } finally {
+    btn.disabled = false; btn.textContent = origTxt;
+  }
+}
+
+// Lihat bukti TF — bucket private, pakai signed URL (temporary, aman)
+async function lihatBuktiTf(path) {
+  if(!path) return;
+  try {
+    const { data, error } = await sb.storage.from('bukti-tf').createSignedUrl(path, 3600);
+    if(error || !data || !data.signedUrl) { showToast('Gagal buka bukti: '+((error&&error.message)||'?'),'error'); return; }
+    window.open(data.signedUrl, '_blank');
+  } catch(e) { showToast('Error: '+(e.message||e),'error'); }
 }
 
 async function sendManualReminder(id) {
