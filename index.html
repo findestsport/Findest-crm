@@ -3416,11 +3416,19 @@ async function refreshActivePage(opts) {
   finally { _refreshBusy = false; }
 }
 
-// Balik ke tab/window → refresh (mis. abis buka dashboard investor di tab lain)
+// Balik ke tab/window → reconnect realtime (recover WS yg putus pas tab di-background) + refresh.
+// Tab yg lama di-background suka diputus koneksi live-nya sama browser → ini nyambungin lagi.
+let _lastRtReconnect = 0;
+function _reconnectRealtimeIfStale() {
+  const now = Date.now();
+  if(now - _lastRtReconnect < 4000) return; // throttle biar gak churn
+  _lastRtReconnect = now;
+  try { if(typeof setupRealtimeCRM === 'function') setupRealtimeCRM(); } catch(e){}
+}
 document.addEventListener('visibilitychange', () => {
-  if(document.visibilityState === 'visible') refreshActivePage();
+  if(document.visibilityState === 'visible') { _reconnectRealtimeIfStale(); refreshActivePage(); }
 });
-window.addEventListener('focus', () => refreshActivePage());
+window.addEventListener('focus', () => { _reconnectRealtimeIfStale(); refreshActivePage(); });
 
 // ════════════════════════════════════════════
 // REALTIME — live push dari Supabase. Begitu ada perubahan (insert/update/
