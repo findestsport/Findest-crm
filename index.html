@@ -3239,6 +3239,8 @@ async function initApp() {
   nav(_firstTab, null, {noRefresh:true}); // skip auto-refresh — loadAllData() baru jalan
   // Init RP fields
   setTimeout(() => initAllRpFields(), 300);
+  // Realtime live push — view aktif keupdate otomatis pas ada perubahan data (dari device/user manapun)
+  setupRealtimeCRM();
 }
 
 function buildNav(role) {
@@ -3388,6 +3390,37 @@ document.addEventListener('visibilitychange', () => {
   if(document.visibilityState === 'visible') refreshActivePage();
 });
 window.addEventListener('focus', () => refreshActivePage());
+
+// ════════════════════════════════════════════
+// REALTIME — live push dari Supabase. Begitu ada perubahan (insert/update/
+// delete) di tabel penting dari device/user MANAPUN → view aktif langsung
+// keupdate TANPA nunggu pindah tab / refresh. Debounce 700ms biar hemat.
+// ════════════════════════════════════════════
+let _crmRtChannels = [];
+let _crmRtTimer = null;
+function scheduleRealtimeRefresh() {
+  clearTimeout(_crmRtTimer);
+  _crmRtTimer = setTimeout(() => { refreshActivePage({ force:true }); }, 700);
+}
+function setupRealtimeCRM() {
+  if(typeof sb === 'undefined' || !sb || !currentProfile) return;
+  // Cleanup dulu biar gak dobel subscribe (mis. pas re-login)
+  _crmRtChannels.forEach(ch => { try { sb.removeChannel(ch); } catch(e){} });
+  _crmRtChannels = [];
+  const tables = ['orders','invoices','payments','expenses','products','customers','konsinyasi','deliveries','purchase_orders','batches','outlets'];
+  tables.forEach(t => {
+    try {
+      const ch = sb.channel('crm-rt-'+t)
+        .on('postgres_changes', { event:'*', schema:'public', table:t }, () => scheduleRealtimeRefresh())
+        .subscribe();
+      _crmRtChannels.push(ch);
+    } catch(e) { console.warn('[realtime] gagal subscribe', t, e); }
+  });
+  console.log('[realtime] CRM live — subscribe', _crmRtChannels.length, 'tabel');
+}
+window.addEventListener('beforeunload', () => {
+  _crmRtChannels.forEach(ch => { try { sb.removeChannel(ch); } catch(e){} });
+});
 
 function stab(id, btn) {
   ['s-cust','s-ord','s-visit','s-kpi','s-konsi'].forEach(t => { const el=document.getElementById(t); if(el) el.style.display=t===id?'block':'none'; });
