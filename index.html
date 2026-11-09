@@ -1539,6 +1539,7 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
   <div class="ptabs">
     <button class="ptab active" onclick="gtab('g-out',this)">🏪 Outlets</button>
     <button class="ptab" onclick="gtab('g-catalog',this);loadCatalog()">📦 Catalog</button>
+    <button class="ptab" onclick="gtab('g-margin',this);loadMargin()">💰 Margin</button>
     <button class="ptab" onclick="gtab('g-batch',this);loadBatches()">🧪 Batch</button>
   </div>
   <div id="g-out">
@@ -1576,6 +1577,66 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
       <div class="tbl-wrap">
         <table id="tbl-catalog"><thead><tr><th class="th-sort">⠿ #</th><th data-tbl="catalog" data-col="brand" class="th-sort">Brand ↕</th><th data-tbl="catalog" data-col="nama" class="th-sort">Nama Produk ↕</th><th data-tbl="catalog" data-col="harga" class="th-sort">HPP ↕</th><th data-tbl="catalog" data-col="kategori" class="th-sort">Kategori ↕</th><th data-tbl="catalog" data-col="stok" class="th-sort">Stok ↕</th><th data-tbl="catalog" data-col="status" class="th-sort">Status ↕</th><th>Aksi</th></tr></thead>
         <tbody id="tb-catalog"><tr><td colspan="7"><div class="empty"><div class="spinner"></div></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- MARGIN TAB -->
+  <div id="g-margin" style="display:none">
+    <!-- Setelan margin per channel -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-h">
+        <div>
+          <div class="card-title">⚙️ Setelan Margin per Channel</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Atur markup (% dari HPP) tiap channel di 1 tempat. <b>Terapkan</b> = set markup semua customer channel itu sekaligus.</div>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Channel</th><th>Markup %</th><th>Customer</th><th>Aksi</th></tr></thead>
+          <tbody id="tb-margin-channels"><tr><td colspan="4"><div class="empty"><div class="spinner"></div></div></td></tr></tbody>
+        </table>
+      </div>
+      <div style="padding:10px 14px">
+        <button class="btn btn-primary" onclick="saveMarginPresets()">💾 Simpan Setelan</button>
+        <span style="font-size:11px;color:var(--text-muted);margin-left:8px">Simpan = angka acuan tersimpan · Terapkan = ubah markup customer</span>
+      </div>
+    </div>
+
+    <!-- Ringkasan -->
+    <div class="g3" style="margin-bottom:14px">
+      <div class="kpi" style="--kc:var(--teal)"><div class="kpi-label">Nilai Stok (HPP)</div><div class="kpi-val c-teal" id="margin-stok-val">—</div><div class="kpi-sub">Modal barang di gudang</div></div>
+      <div class="kpi" style="--kc:var(--gold)"><div class="kpi-label">Potensi Untung</div><div class="kpi-val c-gold" id="margin-profit-val">—</div><div class="kpi-sub" id="margin-profit-sub">kalau laku semua</div></div>
+      <div class="kpi" style="--kc:var(--red)"><div class="kpi-label">Produk Tanpa HPP</div><div class="kpi-val c-red" id="margin-nohpp-val">—</div><div class="kpi-sub">margin gak keitung</div></div>
+    </div>
+
+    <!-- Tabel margin barang -->
+    <div class="card">
+      <div class="card-h">
+        <div>
+          <div class="card-title">💰 Margin per Barang</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Harga jual &amp; untung Rp otomatis dari HPP × markup. Klik HPP buat edit cepat.</div>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted)" id="margin-count"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin:0 0 10px;flex-wrap:wrap;align-items:center;padding:0 14px">
+        <input class="search" id="margin-search" placeholder="🔍 Cari produk..." oninput="renderMarginTable()" style="flex:1;min-width:160px"/>
+        <select class="filt" id="margin-hpp-filter" onchange="renderMarginTable()">
+          <option value="">Semua Produk</option>
+          <option value="aktif">Aktif aja</option>
+          <option value="nohpp">⚠️ Tanpa HPP</option>
+        </select>
+      </div>
+      <div class="tbl-wrap">
+        <table id="tbl-margin">
+          <thead><tr>
+            <th>Brand</th><th>Nama Produk</th><th>HPP</th>
+            <th id="mth-bp">Beli Putus</th>
+            <th id="mth-k">Konsinyasi</th>
+            <th id="mth-d">Default</th>
+          </tr></thead>
+          <tbody id="tb-margin"><tr><td colspan="6"><div class="empty"><div class="spinner"></div></div></td></tr></tbody>
         </table>
       </div>
     </div>
@@ -3482,7 +3543,7 @@ function ftab(id, btn) {
   const addPay=document.getElementById('btn-add-payment'); if(addPay) addPay.style.display=id==='f-pay'?'':'none';
 }
 function gtab(id, btn) {
-  ['g-out','g-del','g-catalog','g-batch','g-kpi'].forEach(t => { const el=document.getElementById(t); if(el) el.style.display=t===id?'block':'none'; });
+  ['g-out','g-del','g-catalog','g-batch','g-kpi','g-margin'].forEach(t => { const el=document.getElementById(t); if(el) el.style.display=t===id?'block':'none'; });
   document.querySelectorAll('#page-gudang .ptab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
   const addDel=document.getElementById('btn-add-del'); if(addDel) addDel.style.display=id==='g-del'?'':'none';
@@ -12370,6 +12431,147 @@ function renderCatalog(products) {
   _attachCatalogDrag();
 }
 
+// ══════════════════════════════════════
+// MARGIN MANAGER — atur margin per channel + overview per barang
+// ══════════════════════════════════════
+let marginPresets = { default: 20, beli_putus: 13, konsinyasi: 20 };
+let marginProducts = [];
+
+async function loadMargin() {
+  // Presets dari config (kalo ada)
+  try {
+    const { data } = await sb.from('config').select('key,value').in('key', ['catalog_default_markup','margin_beli_putus','margin_konsinyasi']);
+    if(data) data.forEach(r => {
+      const v = parseFloat(r.value);
+      if(isNaN(v)) return;
+      if(r.key === 'catalog_default_markup') marginPresets.default = v;
+      if(r.key === 'margin_beli_putus') marginPresets.beli_putus = v;
+      if(r.key === 'margin_konsinyasi') marginPresets.konsinyasi = v;
+    });
+  } catch(e) { console.warn('[margin] presets:', e.message); }
+  // Produk
+  const { data: prods, error } = await sb.from('products').select('*').order('brand').order('nama');
+  if(error) { showToast('Gagal load margin: '+error.message, 'error'); return; }
+  marginProducts = prods || [];
+  allCatalogProducts = marginProducts; // biar klik HPP (openEditProduct) jalan dari tab ini
+  // Pastiin customers keload (buat hitungan per channel)
+  if(!(cache.customers || []).length) {
+    try { const { data } = await sb.from('customers').select('*').order('id'); if(data) cache.customers = data; } catch(e) {}
+  }
+  renderMarginChannels();
+  renderMarginTable();
+}
+
+function renderMarginChannels() {
+  const tbody = document.getElementById('tb-margin-channels');
+  if(!tbody) return;
+  const custs = (cache.customers || []);
+  const nBP = custs.filter(c => c.sistem === 'Beli Putus').length;
+  const nK = custs.filter(c => c.sistem === 'Konsinyasi').length;
+  const rows = [
+    { key:'beli_putus', label:'🛒 Beli Putus', sistem:'Beli Putus', n:nBP },
+    { key:'konsinyasi', label:'🔄 Konsinyasi', sistem:'Konsinyasi', n:nK },
+    { key:'default', label:'🌐 Default (catalog publik)', sistem:null, n:0 }
+  ];
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td style="font-weight:600">${r.label}</td>
+      <td><input type="number" step="0.5" min="0" id="mpset-${r.key}" value="${marginPresets[r.key]}" style="width:84px;padding:5px 7px;border:1px solid var(--border);border-radius:6px;font-weight:700;background:var(--surface)" oninput="onMarginPresetInput()"/> <span style="color:var(--text-muted)">%</span></td>
+      <td style="font-size:12px">${r.sistem ? r.n + ' customer' : '<span style="color:var(--text-muted)">publik</span>'}</td>
+      <td>${r.sistem
+          ? `<button class="btn btn-ghost btn-sm" onclick="applyMarginToChannel('${r.sistem}','${r.key}')" title="Set markup semua customer ${r.sistem}">🎯 Terapkan ke ${r.n} customer</button>`
+          : '<span style="font-size:11px;color:var(--text-muted)">auto di catalog</span>'}</td>
+    </tr>`).join('');
+}
+
+function onMarginPresetInput() {
+  ['default','beli_putus','konsinyasi'].forEach(k => {
+    const el = document.getElementById('mpset-'+k);
+    if(el) { const v = parseFloat(el.value); if(!isNaN(v) && v >= 0) marginPresets[k] = v; }
+  });
+  renderMarginTable();
+}
+
+async function saveMarginPresets() {
+  onMarginPresetInput();
+  const now = new Date().toISOString();
+  const updates = [
+    { key:'catalog_default_markup', value:String(marginPresets.default), updated_at:now },
+    { key:'margin_beli_putus', value:String(marginPresets.beli_putus), updated_at:now },
+    { key:'margin_konsinyasi', value:String(marginPresets.konsinyasi), updated_at:now }
+  ];
+  const { error } = await sb.from('config').upsert(updates, { onConflict:'key' });
+  if(error) { showToast('Gagal simpan: '+error.message, 'error'); return; }
+  showToast('✅ Setelan margin tersimpan!');
+}
+
+async function applyMarginToChannel(sistem, key) {
+  const pct = marginPresets[key];
+  if(isNaN(pct) || pct < 0) { showToast('Markup gak valid', 'error'); return; }
+  const custs = (cache.customers || []).filter(c => c.sistem === sistem);
+  if(!custs.length) { showToast('Belum ada customer di channel '+sistem, 'warn'); return; }
+  if(!confirm(`Set markup SEMUA customer "${sistem}" (${custs.length} customer) jadi ${pct}%?\n\nIni nimpa markup lama tiap customer di channel ini.`)) return;
+  const { error } = await sb.from('customers').update({ markup_pct: pct }).eq('sistem', sistem);
+  if(error) { showToast('Gagal: '+error.message, 'error'); return; }
+  try { const { data } = await sb.from('customers').select('*').order('id'); if(data) cache.customers = data; } catch(e) {}
+  showToast(`✅ ${custs.length} customer ${sistem} → markup ${pct}%`);
+  renderMarginChannels();
+}
+
+function renderMarginTable() {
+  const tbody = document.getElementById('tb-margin');
+  if(!tbody) return;
+  const countEl = document.getElementById('margin-count');
+  const q = (document.getElementById('margin-search')?.value || '').toLowerCase();
+  const filt = document.getElementById('margin-hpp-filter')?.value || '';
+  const setTh = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
+  setTh('mth-bp', `Beli Putus (${marginPresets.beli_putus}%)`);
+  setTh('mth-k', `Konsi (${marginPresets.konsinyasi}%)`);
+  setTh('mth-d', `Default (${marginPresets.default}%)`);
+
+  let list = marginProducts.slice();
+  if(q) list = list.filter(p => (p.nama||'').toLowerCase().includes(q) || (p.brand||'').toLowerCase().includes(q));
+  if(filt === 'nohpp') list = list.filter(p => !(p.hpp > 0));
+  if(filt === 'aktif') list = list.filter(p => (p.status||'Aktif') === 'Aktif');
+
+  const mBP = marginPresets.beli_putus/100, mK = marginPresets.konsinyasi/100, mD = marginPresets.default/100;
+  const cell = (hpp, m) => {
+    if(!(hpp > 0)) return '<span style="color:var(--text-muted)">—</span>';
+    const jual = Math.round(hpp * (1 + m));
+    const untung = Math.round(hpp * m);
+    return `<div style="font-weight:700;color:var(--teal)">${fmt(jual)}</div><div style="font-size:10px;color:var(--gold)">+${fmt(untung)}</div>`;
+  };
+
+  if(!list.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">💰</div><div class="empty-txt">Tidak ada produk</div></div></td></tr>';
+  } else {
+    tbody.innerHTML = list.map(p => {
+      const hpp = p.hpp || 0;
+      const nonaktif = (p.status||'Aktif') !== 'Aktif';
+      const hppCell = hpp > 0 ? fmt(hpp) : '<span style="color:var(--red);font-weight:600">⚠️ kosong</span>';
+      return `<tr${hpp>0?'':' style="background:rgba(255,99,99,.06)"'}>
+        <td><span style="font-size:10px;font-weight:700;color:var(--text-muted)">${p.brand||'-'}</span></td>
+        <td style="font-size:12px;font-weight:500">${p.nama||'-'}${nonaktif?' <span style="font-size:9px;color:var(--text-muted)">(nonaktif)</span>':''}</td>
+        <td class="mono" style="cursor:pointer;white-space:nowrap" onclick="openEditProduct(${p.id})" title="Klik buat edit HPP">${hppCell} ✏️</td>
+        <td>${cell(hpp, mBP)}</td>
+        <td>${cell(hpp, mK)}</td>
+        <td>${cell(hpp, mD)}</td>
+      </tr>`;
+    }).join('');
+  }
+  if(countEl) countEl.textContent = list.length + ' produk';
+
+  // KPI (basis produk aktif)
+  const aktif = marginProducts.filter(p => (p.status||'Aktif') === 'Aktif');
+  const stokVal = aktif.reduce((s,p) => s + (p.hpp||0) * (p.stok||0), 0);
+  const profitBP = aktif.reduce((s,p) => s + (p.hpp||0) * mBP * (p.stok||0), 0);
+  const noHpp = aktif.filter(p => !(p.hpp > 0)).length;
+  const sv = document.getElementById('margin-stok-val'); if(sv) sv.textContent = fmt(stokVal);
+  const pv = document.getElementById('margin-profit-val'); if(pv) pv.textContent = fmt(profitBP);
+  const ps = document.getElementById('margin-profit-sub'); if(ps) ps.textContent = `kalau laku semua @ ${marginPresets.beli_putus}%`;
+  const nv = document.getElementById('margin-nohpp-val'); if(nv) nv.textContent = noHpp;
+}
+
 function openEditProduct(id) {
   const p = allCatalogProducts.find(x => x.id === id);
   if(!p) return;
@@ -12489,6 +12691,7 @@ async function saveEditProduct() {
   showToast('✅ Produk diupdate! Harga delivery diperbarui otomatis.');
   closeMo('mo-edit-product');
   await loadCatalog();
+  if(typeof loadMargin === 'function' && document.getElementById('g-margin')?.style.display === 'block') await loadMargin();
   await loadProducts();
   if (typeof renderDel === 'function' && cache.deliveries?.length) renderDel();
 }
