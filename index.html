@@ -12458,30 +12458,58 @@ async function loadMargin() {
   if(!(cache.customers || []).length) {
     try { const { data } = await sb.from('customers').select('*').order('id'); if(data) cache.customers = data; } catch(e) {}
   }
+  // Prefill input channel dgn markup ASLI customer sekarang (biar gak nimpa gak sengaja)
+  const _bp = _channelInfo('Beli Putus'); if(_bp.current != null) marginPresets.beli_putus = _bp.current;
+  const _k = _channelInfo('Konsinyasi'); if(_k.current != null) marginPresets.konsinyasi = _k.current;
   renderMarginChannels();
   renderMarginTable();
+}
+
+// Ngitung markup ASLI customer per channel (current rate + apakah campur)
+function _channelInfo(sistem) {
+  const list = (cache.customers || []).filter(c => c.sistem === sistem);
+  const nums = []; let nNull = 0;
+  list.forEach(c => {
+    const v = (c.markup_pct == null || c.markup_pct === '') ? null : parseFloat(c.markup_pct);
+    if(v == null || isNaN(v)) nNull++; else nums.push(v);
+  });
+  const uniq = [...new Set(nums)];
+  let current = null, note = '', mixed = false;
+  if(!list.length) { note = 'belum ada customer'; }
+  else if(!nums.length) { current = marginPresets.default; note = `semua kosong → ikut Default ${marginPresets.default}%`; }
+  else if(uniq.length === 1 && nNull === 0) { current = uniq[0]; note = `✅ seragam ${current}%`; }
+  else {
+    mixed = true;
+    const freq = {}; nums.forEach(v => freq[v] = (freq[v]||0)+1);
+    current = Number(Object.keys(freq).sort((a,b)=>freq[b]-freq[a])[0]);
+    const parts = uniq.slice().sort((a,b)=>a-b).map(u => `${u}%(${freq[u]})`);
+    if(nNull) parts.push(`kosong(${nNull})`);
+    note = '⚠️ campur: ' + parts.join(', ');
+  }
+  return { n: list.length, current, note, mixed };
 }
 
 function renderMarginChannels() {
   const tbody = document.getElementById('tb-margin-channels');
   if(!tbody) return;
-  const custs = (cache.customers || []);
-  const nBP = custs.filter(c => c.sistem === 'Beli Putus').length;
-  const nK = custs.filter(c => c.sistem === 'Konsinyasi').length;
   const rows = [
-    { key:'beli_putus', label:'🛒 Beli Putus', sistem:'Beli Putus', n:nBP },
-    { key:'konsinyasi', label:'🔄 Konsinyasi', sistem:'Konsinyasi', n:nK },
-    { key:'default', label:'🌐 Default (catalog publik)', sistem:null, n:0 }
+    { key:'beli_putus', label:'🛒 Beli Putus', sistem:'Beli Putus' },
+    { key:'konsinyasi', label:'🔄 Konsinyasi', sistem:'Konsinyasi' },
+    { key:'default', label:'🌐 Default (catalog publik)', sistem:null }
   ];
-  tbody.innerHTML = rows.map(r => `
+  tbody.innerHTML = rows.map(r => {
+    const info = r.sistem ? _channelInfo(r.sistem) : null;
+    const noteHtml = info ? `<div style="font-size:10px;color:${info.mixed?'var(--gold)':'var(--text-muted)'};margin-top:3px">${info.note}</div>` : '';
+    return `
     <tr>
-      <td style="font-weight:600">${r.label}</td>
+      <td style="font-weight:600">${r.label}${noteHtml}</td>
       <td><input type="number" step="0.5" min="0" id="mpset-${r.key}" value="${marginPresets[r.key]}" style="width:84px;padding:5px 7px;border:1px solid var(--border);border-radius:6px;font-weight:700;background:var(--surface)" oninput="onMarginPresetInput()"/> <span style="color:var(--text-muted)">%</span></td>
-      <td style="font-size:12px">${r.sistem ? r.n + ' customer' : '<span style="color:var(--text-muted)">publik</span>'}</td>
+      <td style="font-size:12px">${r.sistem ? info.n + ' customer' : '<span style="color:var(--text-muted)">publik</span>'}</td>
       <td>${r.sistem
-          ? `<button class="btn btn-ghost btn-sm" onclick="applyMarginToChannel('${r.sistem}','${r.key}')" title="Set markup semua customer ${r.sistem}">🎯 Terapkan ke ${r.n} customer</button>`
+          ? `<button class="btn btn-ghost btn-sm" onclick="applyMarginToChannel('${r.sistem}','${r.key}')" title="Set markup semua customer ${r.sistem}">🎯 Terapkan ke ${info.n} customer</button>`
           : '<span style="font-size:11px;color:var(--text-muted)">auto di catalog</span>'}</td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 function onMarginPresetInput() {
