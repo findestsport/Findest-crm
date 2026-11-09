@@ -1149,7 +1149,7 @@ async function loadCharts(){
 // lama (cache Safari), begitu ada deploy baru → auto reload sekali. Jadi
 // dashboard selalu pake versi terbaru tanpa hard-refresh manual.
 // ════════════════════════════════════════════
-const APP_BUILD = 'findest-v77'; // WAJIB samain sama CACHE_VERSION di service-worker.js tiap deploy
+const APP_BUILD = 'findest-v78'; // WAJIB samain sama CACHE_VERSION di service-worker.js tiap deploy
 async function checkAppVersion(){
   try{
     const res = await fetch('service-worker.js?_=' + Date.now(), { cache:'no-store' });
