@@ -1712,8 +1712,13 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
         <textarea class="fi" id="ep-deskripsi" rows="3" style="resize:vertical" placeholder="Deskripsi singkat produk, manfaat, kandungan..."></textarea>
       </div>
       <div class="fg">
-        <label class="fl">URL Foto (foto_url)</label>
-        <input class="fi" id="ep-foto-url" placeholder="https://..." type="url"/>
+        <label class="fl">Foto Produk</label>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+          <input type="file" id="ep-foto-file" accept="image/*" style="display:none" onchange="previewFotoProduk(this)"/>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('ep-foto-file').click()">📷 Upload Foto</button>
+          <span id="ep-foto-status" style="font-size:11px;color:var(--text-muted)"></span>
+        </div>
+        <input class="fi" id="ep-foto-url" placeholder="atau tempel URL https://..." type="url"/>
         <div id="ep-foto-preview" style="margin-top:6px;display:none">
           <img id="ep-foto-img" src="" style="max-width:100%;max-height:120px;border-radius:6px;border:1px solid var(--border);object-fit:contain;background:var(--surface2)" onerror="this.parentElement.style.display='none'"/>
         </div>
@@ -12392,6 +12397,9 @@ function openEditProduct(id) {
     fotoPreview.style.display = 'none';
     fotoImg.src = '';
   }
+  // Reset uploader foto (biar file pilihan sebelumnya gak kebawa)
+  const epFotoFile = document.getElementById('ep-foto-file'); if(epFotoFile) epFotoFile.value = '';
+  const epFotoStatus = document.getElementById('ep-foto-status'); if(epFotoStatus) epFotoStatus.textContent = '';
   // Preview stok badge
   updateStokBadge(p.stok);
   openMo('mo-edit-product');
@@ -12426,10 +12434,42 @@ async function saveNewProduct() {
   await loadProducts();
 }
 
+// Preview foto produk lokal sebelum di-upload (upload beneran pas klik Simpan)
+function previewFotoProduk(input) {
+  const f = input.files && input.files[0];
+  const st = document.getElementById('ep-foto-status');
+  const prev = document.getElementById('ep-foto-preview');
+  const img = document.getElementById('ep-foto-img');
+  if(!f) { if(st) st.textContent = ''; return; }
+  const id = document.getElementById('ep-id').value;
+  if(!id) { showToast('Simpan produk dulu baru bisa upload foto','error'); input.value = ''; return; }
+  if(img) { img.src = URL.createObjectURL(f); }
+  if(prev) { prev.style.display = 'block'; }
+  if(st) st.textContent = `📎 ${f.name} · ${(f.size/1024/1024).toFixed(2)} MB — klik Simpan buat upload`;
+}
+
 async function saveEditProduct() {
   const id = document.getElementById('ep-id').value;
   const nama = document.getElementById('ep-nama').value.trim();
   if(!nama) { showToast('Nama produk wajib diisi!','error'); return; }
+  // Upload foto produk kalau ada file dipilih (ke bucket publik 'produk', nama file = {id}.jpeg)
+  const fotoFileEl = document.getElementById('ep-foto-file');
+  const pickedFoto = fotoFileEl && fotoFileEl.files && fotoFileEl.files[0];
+  if(pickedFoto) {
+    const st = document.getElementById('ep-foto-status');
+    try {
+      if(st) st.textContent = '⏳ Compress...';
+      const blob = await compressImage(pickedFoto);
+      if(st) st.textContent = '⏳ Upload foto...';
+      const path = id + '.jpeg';
+      const { error: upErr } = await sb.storage.from('produk').upload(path, blob, { contentType:'image/jpeg', upsert:true });
+      if(upErr) { showToast('Upload foto gagal: '+upErr.message,'error'); if(st) st.textContent = '❌ '+upErr.message; return; }
+      const { data: pub } = sb.storage.from('produk').getPublicUrl(path);
+      const base = (pub && pub.publicUrl) ? pub.publicUrl : ('https://wuejoxgbtvmlrriwlofk.supabase.co/storage/v1/object/public/produk/'+path);
+      document.getElementById('ep-foto-url').value = base + '?t=' + Date.now();
+      if(st) st.textContent = '✅ Foto ke-upload';
+    } catch(e) { showToast('Upload foto error: '+(e.message||e),'error'); return; }
+  }
   const stokRaw = document.getElementById('ep-stok').value;
   const updates = {
     brand: document.getElementById('ep-brand').value,
