@@ -4836,11 +4836,15 @@ async function addOrd() {
   const cust = document.getElementById('ord-cust').value.trim();
   if(!cust) { alert('Customer wajib diisi!'); return; }
 
+  // Parse item order → produk_json (dibaca invoice buat rincian + trigger buat potong stok)
+  let _ordItems = [];
+  try { _ordItems = JSON.parse(document.getElementById('ord-produk').value || '[]') || []; } catch(e) { _ordItems = []; }
   const newOrd = {
     no_order: 'ORD-' + Date.now(),
     customer_nama: cust,
     tgl_order: document.getElementById('ord-tgl').value || ymdLocal(),
-    produk: document.getElementById('ord-produk').value,
+    produk: _ordItems.length ? _ordItems.map(i => `${i.nama} x${i.qty}`).join(', ') : document.getElementById('ord-produk').value,
+    produk_json: _ordItems.length ? _ordItems : null,
     total_nilai: parseRp(document.getElementById('ord-total').value)||0,
     pembayaran: document.getElementById('ord-bayar').value,
     sales_pic: document.getElementById('ord-sales-pic')?.value||null,
@@ -10597,7 +10601,7 @@ function renderOrderItems() {
   
   // Store as text for produk field
   // Simpan sebagai JSON agar bisa di-parse saat kurangi stok
-  document.getElementById('ord-produk').value = JSON.stringify(orderItems.map(i => ({nama: i.nama, qty: i.qty, harga: i.harga, id: i.id})));
+  document.getElementById('ord-produk').value = JSON.stringify(orderItems.map(i => ({nama: i.nama, qty: i.qty, harga: i.harga, id: i.id, product_id: i.id})));
 
   container.innerHTML = '<div style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:8px">' +
     orderItems.map(item => 
