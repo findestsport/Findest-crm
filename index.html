@@ -10556,13 +10556,17 @@ function addProdukToOrder() {
   
   if(!namaProduk) { showToast('Pilih produk dulu!','error'); return; }
 
-  // Cek stok
+  // Cek stok — BLOK kalau order ngelebihin stok gudang (termasuk yang udah di keranjang)
   const prod = (cache.products||[]).find(p => p.nama === namaProduk);
-  if(prod && (prod.stok||0) < qty) {
-    showToast('⚠️ Stok ' + namaProduk + ' hanya ' + (prod.stok||0) + ' unit!', 'warn');
-  }
-
   const existing = orderItems.find(i => i.nama === namaProduk);
+  if(prod) {
+    const stok = prod.stok||0;
+    const already = existing ? existing.qty : 0;
+    if(already + qty > stok) {
+      showToast(`⚠️ Stok ${namaProduk} cuma ${stok} unit${already?` (udah di keranjang ${already})`:''} — gak bisa order ${already + qty}.`, 'error');
+      return;
+    }
+  }
   if(existing) {
     existing.qty += qty;
   } else {
