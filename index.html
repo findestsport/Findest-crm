@@ -7803,9 +7803,9 @@ function openAddKonsi() {
         const opt = produkSel.options[produkSel.selectedIndex];
         const hargaEl = document.getElementById('konsi-harga');
         if(hargaEl && opt) {
-          // Harga konsinyasi = harga jual catalog (bisa diubah manual)
-          const hargaJual = parseInt(opt.getAttribute('data-harga'))||0;
-          hargaEl.value = hargaJual;
+          // Harga jual konsi = HPP × (1 + markup customer konsi), bisa diubah manual
+          const base = parseInt(opt.getAttribute('data-harga'))||0;
+          hargaEl.value = Math.round(base * (1 + _konsiMarkup()/100));
           hargaEl.style.border = '1px solid var(--teal)';
           setTimeout(()=>hargaEl.style.border='', 2000);
         }
@@ -9027,6 +9027,15 @@ function pilihKonsiOutlet(nama, tipe) {
 }
 
 // --- Konsinyasi Produk Search ---
+// Markup konsi dari outlet (customer) yg dipilih; fallback ke default channel konsi
+function _konsiMarkup() {
+  const outletNama = document.getElementById('konsi-outlet')?.value || '';
+  const cust = (cache.customers||[]).find(c => c.nama === outletNama && c.sistem === 'Konsinyasi');
+  let mkp = cust ? parseFloat(cust.markup_pct) : NaN;
+  if(isNaN(mkp) || mkp < 0) mkp = (typeof marginPresets !== 'undefined' && marginPresets.konsinyasi) ? marginPresets.konsinyasi : 0;
+  return mkp || 0;
+}
+
 function searchKonsiProduk() {
   const q = document.getElementById('konsi-produk-search')?.value.toLowerCase().trim();
   const dd = document.getElementById('konsi-produk-dd');
@@ -9037,14 +9046,19 @@ function searchKonsiProduk() {
     (p.brand||'').toLowerCase().includes(q)
   ) : unique.slice(0,8);
   if(!filtered.length || !dd) { if(dd) dd.style.display='none'; return; }
-  dd.innerHTML = filtered.slice(0,10).map(p => `
-    <div class="search-dd-item" onclick="pilihKonsiProduk('${p.nama.replace(/'/g,"\\'")}',${p.harga||0})">
+  const mkp = _konsiMarkup();
+  dd.innerHTML = filtered.slice(0,10).map(p => {
+    const base = p.harga || 0;
+    const jual = Math.round(base * (1 + mkp/100));
+    return `
+    <div class="search-dd-item" onclick="pilihKonsiProduk('${p.nama.replace(/'/g,"\\'")}',${jual})">
       <div>
         <div class="sdi-main">${p.nama}</div>
-        <div class="sdi-sub">${p.brand||''} · Stok: <b>${p.stok||0}</b> unit</div>
+        <div class="sdi-sub">${p.brand||''} · Stok: <b>${p.stok||0}</b>${mkp>0?` · HPP ${fmt(base)} +${mkp}%`:''}</div>
       </div>
-      <div class="sdi-right">${p.harga ? fmt(p.harga) : '-'}</div>
-    </div>`).join('');
+      <div class="sdi-right">${jual ? fmt(jual) : '-'}</div>
+    </div>`;
+  }).join('');
   dd.style.display = 'block';
   setTimeout(() => {
     document.addEventListener('click', function closeDD(e) {
