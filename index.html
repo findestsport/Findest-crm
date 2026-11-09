@@ -1584,12 +1584,28 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
 
   <!-- MARGIN TAB -->
   <div id="g-margin" style="display:none">
-    <!-- Setelan margin per channel -->
+    <!-- Markup per Brand (UTAMA) -->
     <div class="card" style="margin-bottom:14px">
       <div class="card-h">
         <div>
-          <div class="card-title">⚙️ Setelan Margin per Channel</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Atur markup (% dari HPP) tiap channel di 1 tempat. <b>Terapkan</b> = set markup semua customer channel itu sekaligus.</div>
+          <div class="card-title">🏷️ Markup per Brand</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Set markup tiap brand (dari cek kompetitor lu). <b>Terapkan</b> → harga jual semua produk brand itu = HPP × (1 + markup). Ini harga jual utama.</div>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Brand</th><th>Produk</th><th>Markup %</th><th>Contoh (HPP→Jual)</th><th>Aksi</th></tr></thead>
+          <tbody id="tb-brand-markup"><tr><td colspan="5"><div class="empty"><div class="spinner"></div></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Premium per channel (opsional) -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-h">
+        <div>
+          <div class="card-title">⚙️ Premium per Channel (opsional)</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Tambahan % <b>di atas</b> harga brand (mis. konsi +10% karena risiko titip). Biarin <b>0</b> kalau harga brand udah final. <b>Terapkan</b> = set ke semua customer channel itu.</div>
         </div>
       </div>
       <div class="tbl-wrap">
@@ -1632,9 +1648,7 @@ select.filt:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(13,148,136,
         <table id="tbl-margin">
           <thead><tr>
             <th>Brand</th><th>Nama Produk</th><th>HPP</th>
-            <th id="mth-bp">Beli Putus</th>
-            <th id="mth-k">Konsinyasi</th>
-            <th id="mth-d">Default</th>
+            <th>Harga Jual</th><th>Untung</th><th>Margin %</th>
           </tr></thead>
           <tbody id="tb-margin"><tr><td colspan="6"><div class="empty"><div class="spinner"></div></div></td></tr></tbody>
         </table>
@@ -12450,6 +12464,7 @@ function renderCatalog(products) {
 // ══════════════════════════════════════
 let marginPresets = { default: 20, beli_putus: 13, konsinyasi: 20 };
 let marginProducts = [];
+let brandMarkups = {};
 
 async function loadMargin() {
   // Presets dari config (kalo ada)
@@ -12475,8 +12490,90 @@ async function loadMargin() {
   // Prefill input channel dgn markup ASLI customer sekarang (biar gak nimpa gak sengaja)
   const _bp = _channelInfo('Beli Putus'); if(_bp.current != null) marginPresets.beli_putus = _bp.current;
   const _k = _channelInfo('Konsinyasi'); if(_k.current != null) marginPresets.konsinyasi = _k.current;
+  await loadBrandMarkups();
+  renderBrandTable();
   renderMarginChannels();
   renderMarginTable();
+}
+
+// ---- Markup per Brand ----
+async function loadBrandMarkups() {
+  try {
+    const { data } = await sb.from('config').select('value').eq('key','brand_markups').maybeSingle();
+    if(data && data.value) { try { brandMarkups = JSON.parse(data.value) || {}; } catch(e) { brandMarkups = {}; } }
+  } catch(e) { brandMarkups = {}; }
+}
+
+async function _saveBrandMarkups() {
+  try { await sb.from('config').upsert([{ key:'brand_markups', value: JSON.stringify(brandMarkups), updated_at:new Date().toISOString() }], { onConflict:'key' }); } catch(e) {}
+}
+
+function _brandId(b) { return (b||'').replace(/[^a-zA-Z0-9]/g,'_'); }
+
+function renderBrandTable() {
+  const tbody = document.getElementById('tb-brand-markup');
+  if(!tbody) return;
+  const map = {};
+  marginProducts.forEach(p => {
+    const b = p.brand || '(tanpa brand)';
+    if(!map[b]) map[b] = { brand:b, n:0, sample:null };
+    map[b].n++;
+    if((p.hpp||0) > 0 && !map[b].sample) map[b].sample = p;
+  });
+  const brands = Object.values(map).sort((a,b)=> b.n - a.n);
+  if(!brands.length) { tbody.innerHTML = '<tr><td colspan="5"><div class="empty"><div class="empty-txt">Belum ada produk</div></div></td></tr>'; return; }
+  tbody.innerHTML = brands.map(g => {
+    const b = g.brand;
+    let mk = brandMarkups[b];
+    if((mk == null || isNaN(mk)) && g.sample && g.sample.hpp>0) mk = Math.round((g.sample.harga/g.sample.hpp - 1) * 100);
+    if(mk == null || isNaN(mk) || mk < 0) mk = 0;
+    brandMarkups[b] = mk;
+    const bId = _brandId(b);
+    const sampleHpp = g.sample ? g.sample.hpp : 0;
+    const prev = sampleHpp>0 ? `${fmt(sampleHpp)} → <b style="color:var(--teal)">${fmt(Math.round(sampleHpp*(1+mk/100)))}</b>` : '<span style="color:var(--text-muted)">—</span>';
+    const bEsc = b.replace(/'/g,"\\'");
+    return `<tr>
+      <td style="font-weight:700">${b}</td>
+      <td style="font-size:12px">${g.n}</td>
+      <td><input type="number" step="1" min="0" id="bmk-${bId}" value="${mk}" style="width:72px;padding:5px 7px;border:1px solid var(--border);border-radius:6px;font-weight:700;background:var(--surface)" oninput="onBrandMarkupInput('${bEsc}','${bId}')"/> <span style="color:var(--text-muted)">%</span></td>
+      <td style="font-size:11px;color:var(--text-muted)" id="bmk-prev-${bId}">${prev}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="applyBrandMarkup('${bEsc}','${bId}')">🎯 Terapkan</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function onBrandMarkupInput(brand, bId) {
+  const el = document.getElementById('bmk-'+bId);
+  if(!el) return;
+  const v = parseFloat(el.value);
+  if(!isNaN(v) && v >= 0) brandMarkups[brand] = v;
+  const g = marginProducts.find(p => (p.brand||'(tanpa brand)') === brand && (p.hpp||0) > 0);
+  const prev = document.getElementById('bmk-prev-'+bId);
+  if(prev && g) prev.innerHTML = `${fmt(g.hpp)} → <b style="color:var(--teal)">${fmt(Math.round(g.hpp*(1+(brandMarkups[brand]||0)/100)))}</b>`;
+}
+
+async function applyBrandMarkup(brand, bId) {
+  const mk = brandMarkups[brand];
+  if(mk == null || isNaN(mk) || mk < 0) { showToast('Markup gak valid', 'error'); return; }
+  const prods = marginProducts.filter(p => (p.brand||'(tanpa brand)') === brand && (p.hpp||0) > 0);
+  if(!prods.length) { showToast('Brand '+brand+' gak ada produk ber-HPP', 'warn'); return; }
+  const channelAktif = (parseFloat(marginPresets.default)||0) > 0 || (cache.customers||[]).some(c => (parseFloat(c.markup_pct)||0) > 0);
+  let msg = `Set harga jual ${prods.length} produk "${brand}" = HPP × (1 + ${mk}%)?`;
+  if(channelAktif) msg += `\n\n⚠️ Markup channel (konsi/beli putus) bakal di-NOL-in biar harga gak dobel. Harga jual jadi murni per-brand.`;
+  if(!confirm(msg)) return;
+  const mult = 1 + mk/100;
+  const results = await Promise.all(prods.map(p => sb.from('products').update({ harga: Math.max(Math.round((p.hpp||0)*mult),0) }).eq('id', p.id)));
+  const failed = results.filter(r => r.error).length;
+  if(channelAktif) {
+    try { await sb.from('customers').update({ markup_pct: 0 }).gt('id', 0); } catch(e) {}
+    try { await sb.from('config').upsert([{ key:'catalog_default_markup', value:'0', updated_at:new Date().toISOString() }], { onConflict:'key' }); } catch(e) {}
+    marginPresets.default = 0; marginPresets.beli_putus = 0; marginPresets.konsinyasi = 0;
+    try { const { data } = await sb.from('customers').select('*').order('id'); if(data) cache.customers = data; } catch(e) {}
+  }
+  await _saveBrandMarkups();
+  showToast(`✅ ${prods.length - failed} produk ${brand} → markup ${mk}%${failed?` (${failed} gagal)`:''}`);
+  await loadMargin();
+  if(typeof loadCatalog === 'function') loadCatalog();
 }
 
 // Ngitung markup ASLI customer per channel (current rate + apakah campur)
@@ -12566,38 +12663,30 @@ function renderMarginTable() {
   const countEl = document.getElementById('margin-count');
   const q = (document.getElementById('margin-search')?.value || '').toLowerCase();
   const filt = document.getElementById('margin-hpp-filter')?.value || '';
-  const setTh = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
-  setTh('mth-bp', `Beli Putus (${marginPresets.beli_putus}%)`);
-  setTh('mth-k', `Konsi (${marginPresets.konsinyasi}%)`);
-  setTh('mth-d', `Default (${marginPresets.default}%)`);
 
   let list = marginProducts.slice();
   if(q) list = list.filter(p => (p.nama||'').toLowerCase().includes(q) || (p.brand||'').toLowerCase().includes(q));
   if(filt === 'nohpp') list = list.filter(p => !(p.hpp > 0));
   if(filt === 'aktif') list = list.filter(p => (p.status||'Aktif') === 'Aktif');
 
-  const mBP = marginPresets.beli_putus/100, mK = marginPresets.konsinyasi/100, mD = marginPresets.default/100;
-  const cell = (hpp, m) => {
-    if(!(hpp > 0)) return '<span style="color:var(--text-muted)">—</span>';
-    const jual = Math.round(hpp * (1 + m));
-    const untung = Math.round(hpp * m);
-    return `<div style="font-weight:700;color:var(--teal)">${fmt(jual)}</div><div style="font-size:10px;color:var(--gold)">+${fmt(untung)}</div>`;
-  };
-
   if(!list.length) {
     tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="empty-icon">💰</div><div class="empty-txt">Tidak ada produk</div></div></td></tr>';
   } else {
     tbody.innerHTML = list.map(p => {
       const hpp = p.hpp || 0;
+      const harga = p.harga || 0;
       const nonaktif = (p.status||'Aktif') !== 'Aktif';
+      const untung = harga - hpp;
+      const marginPct = hpp > 0 ? Math.round(untung / hpp * 100) : 0;
+      const noMarkup = hpp > 0 && harga <= hpp;
       const hppCell = hpp > 0 ? fmt(hpp) : '<span style="color:var(--red);font-weight:600">⚠️ kosong</span>';
       return `<tr${hpp>0?'':' style="background:rgba(255,99,99,.06)"'}>
         <td><span style="font-size:10px;font-weight:700;color:var(--text-muted)">${p.brand||'-'}</span></td>
         <td style="font-size:12px;font-weight:500">${p.nama||'-'}${nonaktif?' <span style="font-size:9px;color:var(--text-muted)">(nonaktif)</span>':''}</td>
-        <td class="mono" style="cursor:pointer;white-space:nowrap" onclick="openEditProduct(${p.id})" title="Klik buat edit HPP">${hppCell} ✏️</td>
-        <td>${cell(hpp, mBP)}</td>
-        <td>${cell(hpp, mK)}</td>
-        <td>${cell(hpp, mD)}</td>
+        <td class="mono" style="cursor:pointer;white-space:nowrap" onclick="openEditProduct(${p.id})" title="Klik buat edit">${hppCell} ✏️</td>
+        <td class="mono" style="font-weight:700;color:var(--teal);white-space:nowrap">${harga>0?fmt(harga):'—'}</td>
+        <td class="mono" style="color:var(--gold);white-space:nowrap">${hpp>0?('+'+fmt(untung)):'—'}</td>
+        <td style="font-weight:700">${hpp>0?(noMarkup?'<span style="color:var(--red)">0%</span>':marginPct+'%'):'—'}</td>
       </tr>`;
     }).join('');
   }
@@ -12606,11 +12695,11 @@ function renderMarginTable() {
   // KPI (basis produk aktif)
   const aktif = marginProducts.filter(p => (p.status||'Aktif') === 'Aktif');
   const stokVal = aktif.reduce((s,p) => s + (p.hpp||0) * (p.stok||0), 0);
-  const profitBP = aktif.reduce((s,p) => s + (p.hpp||0) * mBP * (p.stok||0), 0);
+  const profit = aktif.reduce((s,p) => s + Math.max((p.harga||0) - (p.hpp||0), 0) * (p.stok||0), 0);
   const noHpp = aktif.filter(p => !(p.hpp > 0)).length;
   const sv = document.getElementById('margin-stok-val'); if(sv) sv.textContent = fmt(stokVal);
-  const pv = document.getElementById('margin-profit-val'); if(pv) pv.textContent = fmt(profitBP);
-  const ps = document.getElementById('margin-profit-sub'); if(ps) ps.textContent = `kalau laku semua @ ${marginPresets.beli_putus}%`;
+  const pv = document.getElementById('margin-profit-val'); if(pv) pv.textContent = fmt(profit);
+  const ps = document.getElementById('margin-profit-sub'); if(ps) ps.textContent = 'kalau laku semua (harga skrg)';
   const nv = document.getElementById('margin-nohpp-val'); if(nv) nv.textContent = noHpp;
 }
 
